@@ -48,7 +48,7 @@ function App() {
         <>
             <Toaster position="top-right" richColors />
 
-            <Router basename="/KLTN-FWMS">
+            <Router>
                 <Routes>
                     {/* Auth */}
                     <Route path="/" element={<Login />} />
