@@ -20,31 +20,15 @@ exports.register=async (req, res, next) => {
             address: data.addressBrand
         }
         if(!brand.name || !brand.address){
-            throw ApiError.NotFound("Brand name and address are required");
+            throw ApiError.ValidationError("Brand name and address are required");
         }
-        // Chỉ gán nếu có file upload
-    // if (req.file) {
-    //   data.image = req.file.cloudinaryUrl;
-    //   data.publicimage = req.file.publicId;
-    // } else {
-    //   data.image = null;
-    //   data.publicimage = null;
-    // }
         // check email tồn tại
+        data.email = data.email.toLowerCase().trim();
         await CheckServices.checkMailExit(data.email);
         // hash password
         data.password = await CheckServices.hashPassword(data.password);
         data.status=true;
-        // lưu tạm user vào tempUsers
-        // const token=crypto.randomBytes(32).toString("hex"); // tạo mã token random
-        // tempUsers.set(token, {
-        //   ...data,
-        //   createdAt: Date.now(),
-        // });
-        // await sendVerificationEmail(data.email, token,data.name);
-        // tạo lưu brand
         const newBrand = await AuthRepository.createBrand(brand, { transaction: t });
-        // console.log("id", newBrand.id);
         // tạo lưu user//
         const newUser = await AuthRepository.createUser(data, newBrand.id , { transaction: t });
         //  gán role manager

@@ -10,7 +10,8 @@ class CheckServices {
                 throw ApiError.ValidationError(ErrorMessageBase.format(ErrorMessageBase.REQUIRED, { PropertyName: "email" }));
             }
             // check email tồn tại
-            const check = await AuthRepository.SelectMail(email);
+            const dataEmail =email.toLowerCase().trim();
+            const check = await AuthRepository.SelectMail(dataEmail);
             if(check){
                 throw ApiError.ValidationError(ErrorMessageBase.format(ErrorMessageBase.EXIST, { PropertyName: "email" }));
             }
@@ -22,7 +23,8 @@ class CheckServices {
     // check pass and mail
     async checkMailPass(email, password) {
         try {
-            const user =  await AuthRepository.SelectMail(email);
+            const dataEmail =email.toLowerCase().trim();
+            const user =  await AuthRepository.SelectMail(dataEmail);
             await this.checkBrand(user.brand?.id);
             const check = await this.checkHash(password, user.password);
             if(!user || !check){
