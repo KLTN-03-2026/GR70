@@ -36,7 +36,7 @@ function Login() {
                 password: form.password,
             }
 
-            const res = await axios.post("https://wasteless-ai.onrender.com/api/auth/login",
+            const res = await axios.post("https://system-waste-less-ai.onrender.com/api/auth/login",
                 clearnForm
             );
             const token = res.data.data;
