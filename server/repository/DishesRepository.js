@@ -20,7 +20,7 @@ class DishesRepository {
     }
     async DeleteDishes(id) {
         try {
-            const deleteDishes = await DishModel.destroy({ where: { id: id } });
+            const deleteDishes = await DishModel.update({ status: false }, ({ where: { id: id } }));
             return deleteDishes;
         } catch (error) {
             throw error;
