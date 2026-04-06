@@ -1,0 +1,68 @@
+{
+  "message": [
+    {
+      "id": 1,
+      "user_id1": 1,
+      "user_id2": 2,
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "user_id1": 1,
+      "user_id2": 3,
+      "status": "active"
+    }
+  ],
+
+  "Detail_message": [
+    {
+      "id": 1,
+      "message_id": 1,
+      "user_id": 1,
+      "content": "Chào anh 👋",
+      "status": "sent",
+      "createAt": "2026-03-24T09:00:00"
+    },
+    {
+      "id": 2,
+      "message_id": 1,
+      "user_id": 2,
+      "content": "Dạ em đây ạ",
+      "status": "seen",
+      "createAt": "2026-03-24T09:01:00"
+    },
+    {
+      "id": 3,
+      "message_id": 1,
+      "user_id": 2,
+      "content": "Anh cần gì không?",
+      "status": "seen",
+      "createAt": "2026-03-24T09:02:00"
+    },
+    {
+      "id": 4,
+      "message_id": 1,
+      "user_id": 1,
+      "content": "Nhớ gửi báo cáo nhé",
+      "status": "sent",
+      "createAt": "2026-03-24T09:03:00"
+    },
+
+    {
+      "id": 5,
+      "message_id": 2,
+      "user_id": 1,
+      "content": "Hello bạn",
+      "status": "sent",
+      "createAt": "2026-03-24T10:00:00"
+    },
+    {
+      "id": 6,
+      "message_id": 2,
+      "user_id": 3,
+      "content": "Chào bạn nha 😄",
+      "status": "seen",
+      "createAt": "2026-03-24T10:01:00"
+    }
+  ]
+}

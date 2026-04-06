@@ -1,0 +1,29 @@
+châu chinh: 
+- tạo tài khoản
++ thêm nhập sdt, địa chỉ
+- xem lịch sử lãng phí
++ nên cho chọn 1 ngày hoặc 1 tháng (làm nhiều cực)
+- gợi ý nhu cầu AI là tự động đề xuất khi vào dashboard, ko cần onclick
+- cảnh báo lãng phí cũng tự động đề xuất ở dashboard, ko cần onclick
+-Quản lý nguyên liệu(thiếu cập nhập,sửa, xóa, tìm kiếm,xem lịch sử xuất)
+-Quản lý món ăn (thiếu CRUD)
+-Báo cáo thì cũng nên để dashboard
+-Tiêu thụ(lọc theo ngày tháng năm, và chọn mục khách hoặc chi tiết món)
+- thêm và cập nhập thì flow (chưa có thì thêm, có rồi thì muốn thì cập nhập)
+- xuất thì chỉ xuất thông kê ko có báo cáo
+-quản lý tài khoản: 
++ mô tả thiếu danh sách tài khoản
++ tiêu chí: chưa nói cập nhập thông tin
+-Thống kê hệ thống
++ tiêu chí: hiển thị danh sách thống kê tài khoản, lọc manager, kitchen, status
+-Quản lý cửa hàng: tiêu chí chưa nói được chức năng nào cả (xem các chức năng ở useStory)
+-Cập nhập món dư: sẽ hiển thị danh sách món ăn trong ngày và điền thông tin món nào dư
+
+
+Đánh giá ưu tiên:
++ gợi ý:1
++ xuất excel: 1
++ chat: 1
++ thống kê: 1
+
+* chia sprint đợi mai meeting t xong thì nói sửa lại

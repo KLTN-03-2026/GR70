@@ -1,0 +1,62 @@
+[
+    {
+        "id": 1,
+        "name": "Thor",
+        "email": "thor@gmail.com",
+        "phonenumber": "034567890",
+        "address": "64 Nhơn Hòa 5, Hòa An, Cẩm Lệ,  Đà Nẵng",
+        "role": "KitChen Staff",
+        "password": "hai123",
+        "status": "1"
+    },
+    {
+        "id": 2,
+        "name": "Captain America",
+        "email": "captain@gmail.com",
+        "phonenumber": "034567890",
+        "address": "K64 Mẹ Suốt, Hòa Khánh Nam, Đà Nẵng",
+        "role": "KitChen Staff",
+        "password": "hai123",
+        "status": "1"
+    },
+    {
+        "id": 3,
+        "name": "Hulk",
+        "email": "hulkdeptrai@gmail.com",
+        "phonenumber": "034567890",
+        "address": "K129 Phạm Như Xương, Hòa Khánh Nam,  Đà Nẵng",
+        "role": "KitChen Staff",
+        "password": "hai123",
+        "status": "0"
+    },
+    {
+        "id": 4,
+        "name": "Black Adam",
+        "email": "bl@gmail.com",
+        "phonenumber": "034567890",
+        "address": "34 Hùng Vương, Hải Châu, Đà Nẵng",
+        "role": "KitChen Staff",
+        "password": "hai123",
+        "status": "1"
+    },
+    {
+        "id": 5,
+        "name": "Doctor Strange",
+        "email": "strange@gmail.com",
+        "phonenumber": "034567890",
+        "address": "Sơn Trà,  Đà Nẵng",
+        "role": "KitChen Staff",
+        "password": "hai123",
+        "status": "0"
+    },
+    {
+        "id": 6,
+        "name": "Spider Man",
+        "email": "spider@gmail.com",
+        "phonenumber": "034567890",
+        "address": "67 Yên Khê 1, Thanh Khê, Đà Nẵng",
+        "role": "KitChen Staff",
+        "password": "hai123",
+        "status": "0"
+    }
+]

@@ -1,0 +1,13 @@
+var express = require('express');
+var router = express.Router();
+const AuthController = require("../controller/AuthController");
+// const uploadImage = require("../middleware/uploadImage");
+// const validateUser = require("../middleware/validator/validate_auth");
+const validateLogin = require("../middleware/validator/login");
+const validateRegister = require("../middleware/validator/register");
+router.post('/register', validateRegister, AuthController.register);
+// router.get('/verify', AuthController.verifiMail);
+router.post('/login', validateLogin, AuthController.login);
+router.post('/check/refresh-token', AuthController.refreshToken);
+router.post('/logout/:id', AuthController.logout);
+module.exports = router;
