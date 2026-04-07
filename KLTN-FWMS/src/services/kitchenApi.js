@@ -1,7 +1,7 @@
 // services/kitchenApi.js
 import axios from "axios";
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 const kitchenApi = axios.create({
     baseURL: API_BASE_URL,
@@ -53,7 +53,7 @@ export const kitchenDishAPI = {
         console.log("Data stringify:", JSON.stringify(data));
 
         try {
-            const response = await kitchenApi.post( 
+            const response = await kitchenApi.post(
                 `/kitchen/create-dishes-daily/${brandId}`,
                 data,
             );

@@ -7,7 +7,7 @@ export default defineConfig({
     server: {
         proxy: {
             "/api": {
-                target: "https://wasteless-ai.onrender.com",
+                target: "https://system-waste-less-ai.onrender.com",
                 changeOrigin: true,
                 secure: false,
             },
