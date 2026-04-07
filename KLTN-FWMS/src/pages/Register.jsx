@@ -10,9 +10,18 @@ function Register() {
         email: "",
         password: "",
         address: "",
+        province: "",
+        businessType: "",
         nameBrand: "",
         addressBrand: "",
     });
+    const provinces = [
+        "Đà Nẵng",
+        "Hà Nội",
+        "Hồ Chí Minh",
+        "Huế",
+        "Quảng Nam"
+    ];
 
     const handleChange = (e) => {
         setForm({
@@ -23,17 +32,17 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try{
+        try {
             const res = await axios.post(
                 "https://system-waste-less-ai.onrender.com/api/auth/register",
                 form
             );
             console.log(res.data);
-            
+
             alert("Đăng ký thành công");
-        } catch(error){
+        } catch (error) {
             console.log(error.response?.data);
-            
+
             alert("Đăng ký không thành công");
         }
     }
@@ -42,17 +51,17 @@ function Register() {
         <div className="min-h-screen bg-gray-100">
 
             {/* Header */}
-           <div className="flex justify-between items-center px-4 py-2 bg-white shadow-sm">
-                            <div className="flex justify-between items-center px-4 py-2 bg-white shadow-sm">
-                                <h1 className="flex items-center gap-2 font-semibold text-lg text-green-600">
-                                    <img
-                                        src={Logo}
-                                        alt="logo"
-                                        className="w-6 h-6 object-contain"
-                                    />
-                                    FWMS
-                                </h1>
-                            </div>
+            <div className="flex justify-between items-center px-4 py-2 bg-white shadow-sm">
+                <div className="flex justify-between items-center px-4 py-2 bg-white shadow-sm">
+                    <h1 className="flex items-center gap-2 font-semibold text-lg text-green-600">
+                        <img
+                            src={Logo}
+                            alt="logo"
+                            className="w-6 h-6 object-contain"
+                        />
+                        FWMS
+                    </h1>
+                </div>
 
                 <p className="text-sm text-gray-500">
                     Đã có tài khoản?{" "}
@@ -123,8 +132,20 @@ function Register() {
                     <h3 className="font-semibold mb-3 text-green-600">
                         Thông tin nhà hàng - khách sạn
                     </h3>
+                    <select
+                        name="businessType"
+                        value={form.businessType}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 mb-4"
+                    >
+                        <option value="">Chọn loại hình</option>
+                        <option value="restaurant">Nhà hàng</option>
+                        <option value="hotel">Khách sạn</option>
+                    </select>
+
 
                     <div className="space-y-4 mb-6">
+
                         <input
                             name="nameBrand"
                             value={form.nameBrand}
@@ -132,6 +153,19 @@ function Register() {
                             placeholder="Nhập tên nhà hàng hoặc khách sạn"
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
                         />
+                        <select
+                            name="province"
+                            value={form.province}
+                            onChange={handleChange}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                        >
+                            <option value="">Chọn tỉnh / thành phố</option>
+                            {provinces.map((p, index) => (
+                                <option key={index} value={p}>
+                                    {p}
+                                </option>
+                            ))}
+                        </select>
                         <input
                             name="addressBrand"
                             value={form.addressBrand}
