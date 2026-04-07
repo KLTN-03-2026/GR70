@@ -112,7 +112,7 @@ export default function Dashboard() {
     if (!token) return;
 
     try {
-      const res = await axios.get("https://wasteless-ai.onrender.com/api/dashboard/get-sum-dishes",
+      const res = await axios.get("https://system-waste-less-ai.onrender.com/api/dashboard/get-sum-dishes",
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -130,7 +130,7 @@ export default function Dashboard() {
 
   const fetchtotalRevenueOneMonth = async () => {
     try {
-      const res = await axios.get("https://wasteless-ai.onrender.com/api/dashboard/get-sum-revenue",
+      const res = await axios.get("https://system-waste-less-ai.onrender.com/api/dashboard/get-sum-revenue",
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
   const fetchreportlowstock = async () => {
     try {
-      const res = await axios.get("https://wasteless-ai.onrender.com/api/dashboard/get-low-stock-ingredients",
+      const res = await axios.get("https://system-waste-less-ai.onrender.com/api/dashboard/get-low-stock-ingredients",
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -163,7 +163,7 @@ export default function Dashboard() {
 
   const fetch_WastePecentage = async () =>{
     try{
-      const res = await axios.get("https://wasteless-ai.onrender.com/api/dashboard/get-waste-percentage",
+      const res = await axios.get("https://system-waste-less-ai.onrender.com/api/dashboard/get-waste-percentage",
         {
           headers: {
             Authorization: `Bearer ${token}`

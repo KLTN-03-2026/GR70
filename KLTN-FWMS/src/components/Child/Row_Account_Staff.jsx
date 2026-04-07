@@ -13,7 +13,7 @@ export const Row_Account_Staff = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await axios.get("https://wasteless-ai.onrender.com/api/users/get-kitchen-staff",
+                const res = await axios.get("https://system-waste-less-ai.onrender.com/api/users/get-kitchen-staff",
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -85,7 +85,7 @@ export const Row_Account_Staff = () => {
                 return;
             }
             try {
-                const res = await axios.put(`https://wasteless-ai.onrender.com/api/users/update-kitchen/${openform_changekitchen.id}`,
+                const res = await axios.put(`https://system-waste-less-ai.onrender.com/api/users/update-kitchen/${openform_changekitchen.id}`,
                     form_ChangeUser,
                     {
                         headers: {
@@ -113,9 +113,9 @@ export const Row_Account_Staff = () => {
         try {
             let Url = "";
             if (currentStatus) {
-                Url = `https://wasteless-ai.onrender.com/api/users/lock-kitchen/${id}`;
+                Url = `https://system-waste-less-ai.onrender.com/api/users/lock-kitchen/${id}`;
             } else {
-                Url = `https://wasteless-ai.onrender.com/api/users/unlock-kitchen/${id}`;
+                Url = `https://system-waste-less-ai.onrender.com/api/users/unlock-kitchen/${id}`;
                 console.log(Url);
                 
             }

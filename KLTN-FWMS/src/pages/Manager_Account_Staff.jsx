@@ -65,7 +65,7 @@ const Manager_Account_Staff = () => {
         if (formaddkitchen.password.length <= 5) return toast.error("Mật khẩu của bạn quá ngắn!");
         try {
             const res = await axios.post(
-                `https://wasteless-ai.onrender.com/api/users/register-kitchen/${userID}`,
+                `https://system-waste-less-ai.onrender.com/api/users/register-kitchen/${userID}`,
                 formaddkitchen,
                 {
                     headers: {

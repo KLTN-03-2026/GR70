@@ -25,7 +25,7 @@ function Register() {
         e.preventDefault();
         try{
             const res = await axios.post(
-                "https://wasteless-ai.onrender.com/api/auth/register",
+                "https://system-waste-less-ai.onrender.com/api/auth/register",
                 form
             );
             console.log(res.data);
