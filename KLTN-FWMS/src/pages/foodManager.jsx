@@ -7,7 +7,8 @@ import {
     updateIngredient,
     deleteIngredient,
     addStock,
-    getIngredientById
+    getIngredientById,
+    getCategoryIngredients,
 } from "../services/ingredientService";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -177,6 +178,13 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
         minimum_stock: "",
         current_stock: "",
     });
+
+    useEffect(() => {
+        if (categories.length > 0 && !form.ingredient_category_id) {
+            setForm((f) => ({ ...f, ingredient_category_id: categories[0].id }));
+        }
+    }, [categories]);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -567,28 +575,22 @@ export default function IngredientsPage() {
 
     const showToast = (message, type = "success") => setToast({ message, type });
 
+
+    useEffect(() => {
+        getCategoryIngredients()
+            .then((res) => setCategories(extractList(res)))
+            .catch(() => { });
+    }, []);
+
     // ── Fetch ──────────────────────────────────────────────────────────────────
+
     const fetchIngredients = useCallback(async () => {
         setLoading(true);
         setFetchError("");
         try {
-
             const res = await getIngredients();
             const rawList = extractList(res);
-            const list = rawList.map(mapIngredient);
-            setIngredients(list);
-
-
-            const seen = new Set();
-            const cats = [];
-            rawList.forEach((item) => {
-                const cat = item.ingredient_category;
-                if (cat?.id && !seen.has(cat.id)) {
-                    seen.add(cat.id);
-                    cats.push({ id: cat.id, name: cat.name });
-                }
-            });
-            setCategories(cats);
+            setIngredients(rawList.map(mapIngredient));
         } catch (e) {
             setFetchError(e?.response?.data?.message ?? e.message);
         } finally {
@@ -711,7 +713,7 @@ export default function IngredientsPage() {
                                 <table className="w-full text-left">
                                     <thead style={{ background: "#f8faf9" }}>
                                         <tr>
-                                            {["Tên nguyên liệu", "Danh mục", "Tồn kho", "Tối thiểu", "Đơn vị", "Hành động"].map((h, i) => (
+                                            {["Tên nguyên liệu", "Danh mục", "Tối thiểu", "Tồn kho", "Đơn vị", "Hành động"].map((h, i) => (
                                                 <th key={h} className={thClass} style={{
                                                     color: "var(--color-text-3)",
                                                     textAlign: i >= 2 ? "right" : "left"

@@ -12,6 +12,53 @@ import {
   getIngredientsByBrand,
 } from "../services/dishService";
 
+// ─── Toast ─────────────────────────────────────────────────────────────────
+function Toast({ toasts, removeToast }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={`flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-lg text-sm font-semibold ${t.type === "error"
+              ? "bg-red-50 border-red-200 text-red-700"
+              : t.type === "warning"
+                ? "bg-amber-50 border-amber-200 text-amber-700"
+                : "bg-emerald-50 border-emerald-200 text-emerald-700"
+            }`}
+          style={{ animation: "fadeInUp 0.25s ease" }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+            {t.type === "error" ? "error" : t.type === "warning" ? "warning" : "check_circle"}
+          </span>
+          {t.message}
+          <button onClick={() => removeToast(t.id)} className="ml-2 opacity-60 hover:opacity-100">
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((message, type = "success") => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
+  }, []);
+  const remove = useCallback(
+    (id) => setToasts((prev) => prev.filter((t) => t.id !== id)),
+    []
+  );
+  return { toasts, add, remove };
+}
+
+// ─── Shared UI ──────────────────────────────────────────────────────────────
+const labelClass =
+  "block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-500";
+const inputClass =
+  "w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-all";
 
 function Modal({ title, onClose, children }) {
   return (
@@ -52,15 +99,61 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-// ─── Food Form Modal ───────────────────────────────────────────────────────
-function FoodFormModal({
-  initial,
-  onClose,
-  onSave,
-  isEdit,
-  brandId,
-  userId
-}) {
+// ─── Confirm Lock Modal ──────────────────────────────────────────────────────
+function ConfirmLockModal({ item, onClose, onConfirm }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    await onConfirm(item.id);
+    setLoading(false);
+    onClose();
+  };
+
+  return (
+    <Modal title="Xác nhận khóa món ăn" onClose={onClose}>
+      <div className="space-y-5">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 24, color: "#f59e0b" }}
+            >
+              lock
+            </span>
+          </div>
+          <div>
+            <p className="font-bold text-base" style={{ color: "var(--color-text-1)" }}>
+              Khóa "{item.name}"?
+            </p>
+            <p className="text-sm mt-0.5" style={{ color: "var(--color-text-3)" }}>
+              Món ăn sẽ bị ẩn khỏi thực đơn. Bạn có thể mở khóa sau.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-bold hover:opacity-80 transition-all"
+            style={{ borderColor: "var(--color-text-4)", color: "var(--color-text-2)" }}
+          >
+            Hủy
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold bg-amber-500 hover:opacity-90 active:scale-95 disabled:opacity-60 transition-all"
+          >
+            {loading ? "Đang khóa..." : "Khóa món ăn"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Food Form Modal ─────────────────────────────────────────────────────────
+function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, showToast }) {
   const userInfo = getUserInfo();
 
   const [form, setForm] = useState({
@@ -73,18 +166,26 @@ function FoodFormModal({
       )
       : "",
     name: initial?.name || "",
-    price: initial?.price ? String(initial.price) : "",
     des: initial?.des || "",
-    status: initial && initial.status === true ? "active" : "paused",
+    status: initial ? (initial.status === true ? "active" : "paused") : "paused",
   });
+
+  // Giá tách riêng: raw (số) và display (format VND)
+  const [priceRaw, setPriceRaw] = useState(
+    initial?.price ? String(initial.price) : ""
+  );
+  const [priceDisplay, setPriceDisplay] = useState(
+    initial?.price ? Number(initial.price).toLocaleString("vi-VN") + " ₫" : ""
+  );
 
   const [categories, setCategories] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
   const [dishRecipes, setDishRecipes] = useState([]);
+  const [fetchReady, setFetchReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch danh mục + nguyên liệu
+  // FIX: Fetch categories + ingredients trước
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -96,27 +197,43 @@ function FoodFormModal({
         setIngredientsList(Array.isArray(ingRes?.data) ? ingRes.data : []);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
+      } finally {
+        setFetchReady(true);
       }
     };
     fetchData();
   }, []);
 
-  // Load công thức khi edit
+  // FIX: Load công thức SAU khi ingredients đã có → select hiển thị đúng
   useEffect(() => {
-    if (isEdit && Array.isArray(initial?.dish_recipes)) {
+    if (!fetchReady) return;
+    if (isEdit && Array.isArray(initial?.dish_recipes) && initial.dish_recipes.length > 0) {
       setDishRecipes(
-        initial.dish_recipes.map((item) => ({
-          ingredient_id: item.ingredient_id || "",
-          quantity: item.quantity ? String(item.quantity) : "",
+        initial.dish_recipes.map((r) => ({
+          ingredient_id: String(r.ingredient_id || ""),
+          quantity: r.quantity ? String(r.quantity) : "",
         }))
       );
-    } else {
-      setDishRecipes([]);
     }
-  }, [initial, isEdit]);
+  }, [fetchReady]);
 
   const handleInputChange = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  // Giá: focus → hiện số thuần để nhập; blur → format VND
+  const handlePriceFocus = () => setPriceDisplay(priceRaw);
+  const handlePriceChange = (e) => {
+    const val = e.target.value.replace(/[^0-9]/g, "");
+    setPriceRaw(val);
+    setPriceDisplay(val);
+  };
+  const handlePriceBlur = () => {
+    if (priceRaw) {
+      setPriceDisplay(Number(priceRaw).toLocaleString("vi-VN") + " ₫");
+    } else {
+      setPriceDisplay("");
+    }
+  };
 
   const handleAddIngredient = () =>
     setDishRecipes((prev) => [...prev, { ingredient_id: "", quantity: "" }]);
@@ -132,70 +249,55 @@ function FoodFormModal({
     });
 
   const handleSave = async () => {
-    if (!form.name?.trim() || !form.category || !form.price) {
-      setError("Vui lòng nhập đầy đủ tên món, danh mục và giá");
+    if (!form.name?.trim() || !form.category || !priceRaw) {
+      setError("Vui lòng nhập đầy đủ tên món, danh mục và giá.");
       return;
     }
-
     if (!isEdit && (!brandId || !userId)) {
       setError("Thiếu thông tin brand hoặc user. Vui lòng đăng nhập lại!");
       return;
     }
 
-    // Lọc và chuẩn bị recipes (chỉ lấy những dòng đã chọn nguyên liệu + số lượng)
     const validRecipes = dishRecipes
       .filter((r) => r.ingredient_id && r.quantity?.trim())
-      .map((r) => ({
-        ingredient_id: r.ingredient_id,
-        quantity: Number(r.quantity),
-      }));
+      .map((r) => ({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) }));
 
     try {
       setLoading(true);
       setError("");
 
       if (isEdit && initial?.id) {
-        // Phần Edit (bạn có thể chỉnh sau nếu cần)
         await updateDish(initial.id, {
           dish_category_id: form.category,
           name: form.name.trim(),
-          price: Number(form.price),
+          price: Number(priceRaw),
           des: form.des.trim(),
           status: form.status === "active",
           dish_recipes: validRecipes,
         });
+        showToast("Cập nhật món ăn thành công!");
       } else {
-        // === PHẦN CREATE - ĐÃ SỬA ĐÚNG ===
-        const payload = {
+        await createDish(brandId, userId, {
           dish_category_id: form.category,
           name: form.name.trim(),
-          price: Number(form.price),
+          price: Number(priceRaw),
           des: form.des.trim() || "",
-          status: form.status === "active",
-          dish_recipes: validRecipes,        // ← Truyền ARRAY, không stringify
-        };
-
-        console.log("=== Payload gửi createDish ===", payload);
-
-        await createDish(brandId, userId, payload);
+          // FIX: BE tự xét, tạo mới luôn false (chờ duyệt)
+          status: false,
+          dish_recipes: validRecipes,
+        });
+        showToast("Thêm món ăn thành công! Đang chờ duyệt.");
       }
 
-      alert("Thêm món ăn thành công!");
       onSave();
       onClose();
     } catch (err) {
-      console.error("=== LỖI ĐẦY ĐỦ ===", err);
-      let errorMsg = "Có lỗi xảy ra khi lưu món ăn";
-
-      if (err?.response?.data) {
-        const backendError = err.response.data;
-        errorMsg = backendError.message ||
-          backendError.error ||
-          (backendError.errors ? `Lỗi: ${backendError.errors}` : JSON.stringify(backendError));
-      }
-
-      console.error("Backend trả về:", err?.response?.data);
-      setError(errorMsg);
+      const backendError = err?.response?.data;
+      const msg =
+        backendError?.message ||
+        backendError?.error ||
+        (backendError?.errors ? `Lỗi: ${backendError.errors}` : "Có lỗi xảy ra khi lưu món ăn");
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -203,156 +305,220 @@ function FoodFormModal({
 
   return (
     <Modal title={isEdit ? "Cập nhật món ăn" : "Thêm món ăn mới"} onClose={onClose}>
-      <div className="space-y-4">
+      <div className="space-y-4" style={{ fontFamily: "'Nunito', sans-serif" }}>
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              error
+            </span>
             {error}
           </div>
         )}
 
-        {/* Hiển thị Người tạo khi thêm mới */}
-        {!isEdit && userInfo?.fullName && (
+        {/* Người tạo — chỉ khi thêm mới */}
+        {!isEdit && (
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-600">person</span>
-            <div>
-              <span className="text-xs text-blue-600 font-medium">Người tạo:</span>
-              <span className="ml-1.5 font-semibold text-blue-700">
-                {userInfo.fullName}
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 20, color: "#3b82f6" }}
+            >
+              person
+            </span>
+            <div className="text-sm">
+              <span className="text-blue-500 font-medium">Người tạo: </span>
+              <span className="font-bold text-blue-700">
+                {userInfo?.fullName ||
+                  userInfo?.name ||
+                  userInfo?.username ||
+                  "Người dùng"}
               </span>
             </div>
           </div>
         )}
 
-        <input
-          value={form.name}
-          onChange={handleInputChange("name")}
-          placeholder="Tên món ăn"
-          className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500"
-        />
+        {/* Tên món */}
+        <div>
+          <label className={labelClass}>
+            Tên món ăn <span className="text-red-400">*</span>
+          </label>
+          <input
+            value={form.name}
+            onChange={handleInputChange("name")}
+            placeholder="VD: Phở bò tái chín"
+            className={inputClass}
+          />
+        </div>
 
-        <select
-          value={form.category}
-          onChange={handleInputChange("category")}
-          className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500"
-        >
-          <option value="">Chọn danh mục</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+        {/* Danh mục */}
+        <div>
+          <label className={labelClass}>
+            Danh mục <span className="text-red-400">*</span>
+          </label>
+          <select
+            value={form.category}
+            onChange={handleInputChange("category")}
+            className={inputClass}
+          >
+            <option value="">— Chọn danh mục —</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <input
-          type="number"
-          value={form.price}
-          onChange={handleInputChange("price")}
-          placeholder="Giá món ăn (VND)"
-          min={0}
-          className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500"
-        />
+        {/* Giá tiền */}
+        <div>
+          <label className={labelClass}>
+            Giá bán <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={priceDisplay}
+            onFocus={handlePriceFocus}
+            onChange={handlePriceChange}
+            onBlur={handlePriceBlur}
+            placeholder="VD: 85000 → hiển thị 85,000 ₫"
+            className={inputClass}
+          />
+        </div>
 
-        <textarea
-          value={form.des}
-          onChange={handleInputChange("des")}
-          placeholder="Mô tả món ăn (tùy chọn)"
-          rows={3}
-          className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500 resize-y"
-        />
+        {/* Mô tả */}
+        <div>
+          <label className={labelClass}>Mô tả món ăn</label>
+          <textarea
+            value={form.des}
+            onChange={handleInputChange("des")}
+            placeholder="Mô tả ngắn về món ăn, hương vị, phong cách nấu..."
+            rows={3}
+            className={inputClass + " resize-y"}
+          />
+        </div>
 
-        <select
-          value={form.status}
-          onChange={handleInputChange("status")}
-          className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500"
-        >
-          <option value="active">Hoạt động</option>
-          <option value="paused">Tạm dừng</option>
-        </select>
+        {/* Trạng thái — chỉ cho edit vì tạo mới BE tự xét */}
+        {isEdit && (
+          <div>
+            <label className={labelClass}>Trạng thái</label>
+            <select
+              value={form.status}
+              onChange={handleInputChange("status")}
+              className={inputClass}
+            >
+              <option value="active">Hoạt động</option>
+              <option value="paused">Tạm dừng</option>
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">
+              * Món mới tạo sẽ vào trạng thái "Chờ duyệt" — BE tự xét.
+            </p>
+          </div>
+        )}
 
         {/* Nguyên liệu */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="font-semibold text-sm" style={{ color: "var(--color-text-1)" }}>
-              Nguyên liệu
+          <div className="flex items-center justify-between mb-2">
+            <label className={labelClass} style={{ marginBottom: 0 }}>
+              Công thức nguyên liệu
             </label>
             <button
               type="button"
               onClick={handleAddIngredient}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                add
+              </span>
               Thêm
             </button>
           </div>
 
-          <div className="space-y-2">
-            {dishRecipes.map((recipe, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <select
-                  value={recipe.ingredient_id}
-                  onChange={(e) => handleRecipeChange(index, "ingredient_id", e.target.value)}
-                  className="flex-1 border p-2.5 rounded-xl text-sm focus:outline-none focus:border-green-500"
-                >
-                  <option value="">Chọn nguyên liệu</option>
-                  {ingredientsList.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing.name} ({ing.unit})
-                    </option>
-                  ))}
-                </select>
+          {!fetchReady ? (
+            <div className="text-center py-4 text-sm text-slate-400">
+              Đang tải nguyên liệu...
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {dishRecipes.map((recipe, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <select
+                    value={recipe.ingredient_id}
+                    onChange={(e) =>
+                      handleRecipeChange(index, "ingredient_id", e.target.value)
+                    }
+                    className="flex-1 border border-gray-200 p-2.5 rounded-xl text-sm focus:outline-none focus:border-green-400"
+                  >
+                    <option value="">— Chọn nguyên liệu —</option>
+                    {ingredientsList.map((ing) => (
+                      <option key={ing.id} value={String(ing.id)}>
+                        {ing.name} ({ing.unit})
+                      </option>
+                    ))}
+                  </select>
 
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    value={recipe.quantity}
-                    onChange={(e) => handleRecipeChange(index, "quantity", e.target.value)}
-                    placeholder="Số lượng"
-                    className="w-32 border p-2.5 pr-10 rounded-xl text-sm focus:outline-none focus:border-green-500"
-                  />
-                  {recipe.ingredient_id && (
-                    <span
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold pointer-events-none"
-                      style={{ color: "var(--color-text-3)" }}
-                    >
-                      {ingredientsList.find((i) => i.id === recipe.ingredient_id)?.unit || ""}
+                  <div className="relative w-32 flex-shrink-0">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={recipe.quantity}
+                      onChange={(e) =>
+                        handleRecipeChange(index, "quantity", e.target.value)
+                      }
+                      placeholder="SL"
+                      className="w-full border border-gray-200 p-2.5 pr-8 rounded-xl text-sm focus:outline-none focus:border-green-400"
+                    />
+                    {recipe.ingredient_id && (
+                      <span
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold pointer-events-none"
+                        style={{ color: "var(--color-text-3)" }}
+                      >
+                        {ingredientsList.find(
+                          (i) => String(i.id) === String(recipe.ingredient_id)
+                        )?.unit || ""}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveIngredient(index)}
+                    className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                      delete
                     </span>
-                  )}
+                  </button>
                 </div>
+              ))}
 
-                <button
-                  type="button"
-                  onClick={() => handleRemoveIngredient(index)}
-                  className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                </button>
-              </div>
-            ))}
-
-            {dishRecipes.length === 0 && (
-              <p className="text-sm text-slate-400 italic text-center py-4 border border-dashed rounded-xl">
-                Chưa có nguyên liệu nào. Nhấn "Thêm" để bắt đầu.
-              </p>
-            )}
-          </div>
+              {dishRecipes.length === 0 && (
+                <p className="text-sm text-slate-400 italic text-center py-4 border border-dashed rounded-xl">
+                  Chưa có nguyên liệu. Nhấn "Thêm" để bắt đầu.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* Actions */}
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-slate-300 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border text-sm font-bold hover:opacity-80 transition-all"
+            style={{ borderColor: "var(--color-text-4)", color: "var(--color-text-2)" }}
           >
             Hủy
           </button>
           <button
             onClick={handleSave}
             disabled={loading}
-            className="flex-1 py-3 text-white rounded-xl font-bold disabled:opacity-70 transition-all"
-            style={{ background: "linear-gradient(135deg, var(--color-primary), #0da04f)" }}
+            className="flex-1 py-2.5 text-white rounded-xl text-sm font-bold disabled:opacity-60 hover:opacity-90 active:scale-95 transition-all"
+            style={{
+              background: "linear-gradient(135deg, var(--color-primary), #0da04f)",
+            }}
           >
-            {loading ? "Đang xử lý..." : isEdit ? "Cập nhật" : "Thêm món ăn"}
+            {loading ? "Đang xử lý..." : isEdit ? "Lưu thay đổi" : "Thêm món ăn"}
           </button>
         </div>
       </div>
@@ -360,22 +526,15 @@ function FoodFormModal({
   );
 }
 
-// ─── Main FoodsPage ────────────────────────────────────────────────────────
+// ─── Main FoodsPage ──────────────────────────────────────────────────────────
 export default function FoodsPage() {
+  const userInfo = getUserInfo();
+  const userId =
+    userInfo?.userId || userInfo?.id || localStorage.getItem("userId");
+  const brandId =
+    userInfo?.brandID || userInfo?.brandId || localStorage.getItem("brandID");
 
-
-  const userInfo = getUserInfo();   // ← Lấy từ JWT decode
-
-  const userId = userInfo?.userId || userInfo?.id || localStorage.getItem("userId");
-  const brandId = userInfo?.brandID || userInfo?.brandId || localStorage.getItem("brandID");
-
-  // Debug để bạn thấy rõ giá trị
-  useEffect(() => {
-    console.log("=== Debug User & Brand ===");
-    console.log("userInfo từ JWT:", userInfo);
-    console.log("userId:", userId);
-    console.log("brandId:", brandId);
-  }, [userId, brandId]);
+  const { toasts, add: showToast, remove: removeToast } = useToast();
 
   const [foods, setFoods] = useState([]);
   const [pending, setPending] = useState([]);
@@ -390,8 +549,8 @@ export default function FoodsPage() {
       ]);
       setFoods(Array.isArray(activeRes?.data) ? activeRes.data : []);
       setPending(Array.isArray(pendingRes?.data) ? pendingRes.data : []);
-    } catch (err) {
-      console.error("Lỗi tải danh sách món ăn:", err);
+    } catch {
+      showToast("Lỗi tải danh sách món ăn", "error");
     }
   }, []);
 
@@ -399,17 +558,18 @@ export default function FoodsPage() {
     fetchFoods();
   }, [fetchFoods]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa món ăn này không?")) return;
+  // FIX: Đổi "xóa" → "khóa"
+  const handleLock = async (id) => {
     try {
       await deleteDish(id);
-      fetchFoods();
+      setFoods((prev) => prev.filter((f) => f.id !== id));
+      showToast("Đã khóa món ăn thành công.");
     } catch (err) {
       const msg = err?.response?.data?.message || "";
       if (msg.includes("foreign key")) {
-        alert("Không thể xóa: món ăn đang được dùng trong thực đơn. Hãy gỡ khỏi thực đơn trước.");
+        showToast("Không thể khóa: món ăn đang dùng trong thực đơn.", "warning");
       } else {
-        alert("Xóa thất bại: " + (msg || "Có lỗi xảy ra"));
+        showToast("Khóa thất bại: " + (msg || "Có lỗi xảy ra"), "error");
       }
     }
   };
@@ -417,19 +577,26 @@ export default function FoodsPage() {
   const handleApprove = async (id) => {
     try {
       await approveDish(id);
+      showToast("Duyệt món ăn thành công!");
       fetchFoods();
     } catch (err) {
-      alert("Duyệt thất bại: " + (err?.response?.data?.message || ""));
+      showToast(
+        "Duyệt thất bại: " + (err?.response?.data?.message || ""),
+        "error"
+      );
     }
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn từ chối món ăn này?")) return;
     try {
       await deleteDish(id);
+      showToast("Đã từ chối và xóa món ăn.");
       fetchFoods();
     } catch (err) {
-      alert("Từ chối thất bại: " + (err?.response?.data?.message || ""));
+      showToast(
+        "Từ chối thất bại: " + (err?.response?.data?.message || ""),
+        "error"
+      );
     }
   };
 
@@ -444,14 +611,19 @@ export default function FoodsPage() {
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.97) translateY(6px); }
-          to   { opacity: 1; transform: scale(1)    translateY(0);   }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
         select { appearance: auto; }
       `}</style>
 
-      <div className=" flex  min-h-screen  pl-8" style={{ background: "#f6f8f7", fontFamily: "'Nunito', sans-serif" }}>
-
-
+      <div
+        className="flex min-h-screen pl-8"
+        style={{ background: "#f6f8f7", fontFamily: "'Nunito', sans-serif" }}
+      >
         <main className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <header className="bg-white border-b border-slate-200 px-8 sticky top-0 z-10">
@@ -471,16 +643,18 @@ export default function FoodsPage() {
                 onClick={() => setModal("add")}
                 className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition-all"
                 style={{
-                  background: "linear-gradient(135deg, var(--color-primary), #0da04f)",
+                  background:
+                    "linear-gradient(135deg, var(--color-primary), #0da04f)",
                   boxShadow: "0 4px 12px rgba(16,188,93,0.25)",
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                  add
+                </span>
                 Thêm món ăn mới
               </button>
             </div>
 
-            {/* Tabs */}
             <div className="flex gap-6">
               {[
                 { key: "list", label: "Danh sách món ăn" },
@@ -492,8 +666,14 @@ export default function FoodsPage() {
                   className="pb-3 px-1 text-sm font-bold border-b-2 transition-all flex items-center gap-2"
                   style={
                     activeTab === tab.key
-                      ? { borderColor: "var(--color-primary)", color: "var(--color-text-1)" }
-                      : { borderColor: "transparent", color: "var(--color-text-3)" }
+                      ? {
+                        borderColor: "var(--color-primary)",
+                        color: "var(--color-text-1)",
+                      }
+                      : {
+                        borderColor: "transparent",
+                        color: "var(--color-text-3)",
+                      }
                   }
                 >
                   {tab.label}
@@ -507,8 +687,8 @@ export default function FoodsPage() {
             </div>
           </header>
 
-          <div className="p-8 space-y-8 max-w-7xl mx-auto w-full ">
-            {/* Tab Danh sách món ăn */}
+          <div className="p-8 space-y-8 max-w-7xl mx-auto w-full">
+            {/* Tab: Danh sách */}
             {activeTab === "list" && (
               <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -524,30 +704,37 @@ export default function FoodsPage() {
                   </h3>
                   <span
                     className="text-xs font-bold px-2.5 py-1 rounded-full"
-                    style={{ background: "rgba(16,188,93,0.1)", color: "var(--color-primary)" }}
+                    style={{
+                      background: "rgba(16,188,93,0.1)",
+                      color: "var(--color-primary)",
+                    }}
                   >
                     {foods.length} món
                   </span>
                 </div>
 
-                {/* Table đã có cột Người tạo */}
                 <table className="w-full text-left">
                   <thead style={{ background: "#f8faf9" }}>
                     <tr>
-                      {["Tên món ăn", "Danh mục", "Đơn giá", "Người tạo", "Trạng thái", "Thao tác"].map(
-                        (header, idx) => (
-                          <th
-                            key={header}
-                            className={thClass}
-                            style={{
-                              color: "var(--color-text-3)",
-                              textAlign: idx === 5 ? "right" : "left",
-                            }}
-                          >
-                            {header}
-                          </th>
-                        )
-                      )}
+                      {[
+                        "Tên món ăn",
+                        "Danh mục",
+                        "Đơn giá",
+                        "Người tạo",
+                        "Trạng thái",
+                        "Thao tác",
+                      ].map((header, idx) => (
+                        <th
+                          key={header}
+                          className={thClass}
+                          style={{
+                            color: "var(--color-text-3)",
+                            textAlign: idx === 5 ? "right" : "left",
+                          }}
+                        >
+                          {header}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -584,17 +771,32 @@ export default function FoodsPage() {
                             className="text-xs px-3 py-1 rounded-full font-semibold"
                             style={{ background: "#f1f5f4", color: "var(--color-text-2)" }}
                           >
-                            {item.dish_category?.name || item.category?.name || "Chưa phân loại"}
+                            {item.dish_category?.name ||
+                              item.category?.name ||
+                              "Chưa phân loại"}
                           </span>
                         </td>
 
-                        <td className="px-6 py-4 text-sm font-bold" style={{ color: "var(--color-text-1)" }}>
+                        <td
+                          className="px-6 py-4 text-sm font-bold"
+                          style={{ color: "var(--color-text-1)" }}
+                        >
                           {Number(item.price).toLocaleString("vi-VN")}đ
                         </td>
 
-                        <td className="px-6 py-4 text-sm" style={{ color: "var(--color-text-2)" }}>
-                          {item.user_id === userId ? "Tôi" : "Không rõ"}
-
+                        {/* FIX: Hiển thị tên người tạo rõ ràng */}
+                        <td
+                          className="px-6 py-4 text-sm"
+                          style={{ color: "var(--color-text-2)" }}
+                        >
+                          {item.user?.fullName ||
+                            item.user?.name ||
+                            item.created_by_name ||
+                            (item.user_id === userId
+                              ? userInfo?.fullName || userInfo?.name || "Tôi"
+                              : item.user_id
+                                ? `Người dùng #${String(item.user_id).slice(0, 6)}`
+                                : "—")}
                         </td>
 
                         <td className="px-6 py-4">
@@ -602,12 +804,18 @@ export default function FoodsPage() {
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{
-                                background: item.status === true ? "var(--color-primary)" : "#9ca3af",
+                                background:
+                                  item.status === true
+                                    ? "var(--color-primary)"
+                                    : "#9ca3af",
                               }}
                             />
                             <span
                               style={{
-                                color: item.status === true ? "var(--color-primary)" : "var(--color-text-3)",
+                                color:
+                                  item.status === true
+                                    ? "var(--color-primary)"
+                                    : "var(--color-text-3)",
                               }}
                             >
                               {item.status === true ? "Hoạt động" : "Tạm dừng"}
@@ -629,16 +837,17 @@ export default function FoodsPage() {
                                 edit
                               </span>
                             </button>
+                            {/* FIX: icon khóa thay vì xóa */}
                             <button
-                              onClick={() => handleDelete(item.id)}
-                              className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                              title="Xóa"
+                              onClick={() => setModal({ type: "lock", item })}
+                              className="p-2 rounded-lg hover:bg-amber-50 transition-colors"
+                              title="Khóa món ăn"
                             >
                               <span
                                 className="material-symbols-outlined"
-                                style={{ fontSize: 18, color: "#f87171" }}
+                                style={{ fontSize: 18, color: "#f59e0b" }}
                               >
-                                delete
+                                lock
                               </span>
                             </button>
                           </div>
@@ -648,7 +857,11 @@ export default function FoodsPage() {
 
                     {foods.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-sm" style={{ color: "var(--color-text-3)" }}>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-12 text-center text-sm"
+                          style={{ color: "var(--color-text-3)" }}
+                        >
                           Chưa có món ăn nào
                         </td>
                       </tr>
@@ -658,7 +871,7 @@ export default function FoodsPage() {
               </section>
             )}
 
-            {/* Tab Chờ duyệt giữ nguyên */}
+            {/* Tab: Chờ duyệt */}
             {activeTab === "pending" && (
               <section className="space-y-4">
                 <h3
@@ -686,7 +899,6 @@ export default function FoodsPage() {
                       key={item.id}
                       className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex justify-between items-center gap-4"
                     >
-                      {/* Nội dung pending giữ nguyên như code cũ của bạn */}
                       <div className="flex gap-4 items-center">
                         <div
                           className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -711,18 +923,29 @@ export default function FoodsPage() {
                           >
                             {item.name}
                           </h5>
-                          <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>
+                          <p
+                            className="text-xs mt-1"
+                            style={{ color: "var(--color-text-3)" }}
+                          >
                             {item.des || "Không có mô tả"}
                           </p>
                           <div className="flex items-center gap-3 mt-2">
                             <span
                               className="text-xs font-bold px-2.5 py-1 rounded-lg"
-                              style={{ background: "rgba(16,188,93,0.1)", color: "var(--color-primary)" }}
+                              style={{
+                                background: "rgba(16,188,93,0.1)",
+                                color: "var(--color-primary)",
+                              }}
                             >
                               {Number(item.price).toLocaleString("vi-VN")}đ
                             </span>
-                            <span className="text-xs" style={{ color: "var(--color-text-2)" }}>
-                              {item.dish_category?.name || item.category?.name || "Chưa phân loại"}
+                            <span
+                              className="text-xs"
+                              style={{ color: "var(--color-text-2)" }}
+                            >
+                              {item.dish_category?.name ||
+                                item.category?.name ||
+                                "Chưa phân loại"}
                             </span>
                           </div>
                         </div>
@@ -739,7 +962,10 @@ export default function FoodsPage() {
                         <button
                           onClick={() => handleApprove(item.id)}
                           className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
-                          style={{ background: "linear-gradient(135deg, var(--color-primary), #0da04f)" }}
+                          style={{
+                            background:
+                              "linear-gradient(135deg, var(--color-primary), #0da04f)",
+                          }}
                         >
                           Duyệt món
                         </button>
@@ -751,7 +977,6 @@ export default function FoodsPage() {
             )}
           </div>
         </main>
-
       </div>
 
       {/* Modals */}
@@ -762,6 +987,7 @@ export default function FoodsPage() {
           isEdit={false}
           brandId={brandId}
           userId={userId}
+          showToast={showToast}
         />
       )}
 
@@ -771,8 +997,21 @@ export default function FoodsPage() {
           onClose={() => setModal(null)}
           onSave={fetchFoods}
           isEdit={true}
+          brandId={brandId}
+          userId={userId}
+          showToast={showToast}
         />
       )}
+
+      {modal?.type === "lock" && modal.item && (
+        <ConfirmLockModal
+          item={modal.item}
+          onClose={() => setModal(null)}
+          onConfirm={handleLock}
+        />
+      )}
+
+      <Toast toasts={toasts} removeToast={removeToast} />
     </>
   );
 }
