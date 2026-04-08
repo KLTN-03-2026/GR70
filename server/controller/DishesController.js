@@ -120,3 +120,14 @@ exports.GetAllDishesTrue = async function (req, res, next) {
         return next(error);
     }
 }
+// all ingredient by dishID
+exports.GetIngredientsByDishID = async function (req, res, next) {
+    try {
+        const dishID = req.params.dishID;
+        await CheckServices.checkDish(dishID);
+        const getIngredientsByDishID = await DishesRepository.GetRecipesIngredientsByDishID(dishID);
+        return res.json(ApiSuccess.getSelect("Ingredients list", getIngredientsByDishID));
+    } catch (error) {
+        return next(error);
+    }
+}

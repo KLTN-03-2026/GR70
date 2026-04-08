@@ -1,4 +1,4 @@
-const {DishModel, DishRecipeModel, DishCategoryModel, UserModel} = require("../models/index");
+const {DishModel, DishRecipeModel, DishCategoryModel, UserModel, IngredientModel} = require("../models/index");
 
 
 class DishesRepository {
@@ -140,6 +140,22 @@ class DishesRepository {
                     }]
                 });
             return dishes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // all ingredient by dishID form dish_recipes
+    async GetRecipesIngredientsByDishID(id) {
+        try {
+            const dishRecipes = await DishRecipeModel.findAll({ 
+                where: { dishes_id: id },
+                attributes: ['ingredient_id', 'quantity'],
+                include: [{
+                    model:   IngredientModel,
+                    attributes: ['name','unit']
+                  }]
+             });
+            return dishRecipes;
         } catch (error) {
             throw error;
         }
