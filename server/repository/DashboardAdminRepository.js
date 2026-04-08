@@ -1,0 +1,71 @@
+const { BrandModel, UserModel, RoleModel,DailyOperationModel,DailyDetailModel } = require("../models/index");
+class DashboardAdminRepository {
+  async getBrandActive() {
+    return await BrandModel.findAll({ where: { status: true } });
+  }
+  async CountBrandActive() {
+    return await BrandModel.count({ where: { status: true } });
+  }
+  async CountUserActive() {
+    return await UserModel.count({
+      where: { status: true },
+      include: [
+        {
+          model: RoleModel,
+          where: { name: "Kitchen" || "Manager" },
+        },
+      ],
+    });
+  }
+  // tổng số lảng phí mon ăn trong 1 tháng (nếu ko truyền month thì lấy tháng hiện tại)
+  async precentWasteDishOnMonth( month = null) {
+    const now = new Date();
+    let year = now.getFullYear();
+    let monthIndex = now.getMonth(); // 0-11
+
+    if (month !== null) {
+      if (typeof month === "object") {
+        year = month.year ?? year;
+        monthIndex = month.month ?? monthIndex;
+      } else if (typeof month === "number") {
+        monthIndex = month;
+      }
+    }
+
+    const firstDayOfMonth = new Date(year, monthIndex, 1);
+    const firstDayOfNextMonth = new Date(year, monthIndex + 1, 1);
+
+    const formatDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+
+    const result = await DailyDetailModel.findOne({
+      attributes: [
+        [fn("COALESCE", fn("SUM", col("quantity_wasted")), 0), "total_waste"],
+        [fn("COALESCE", fn("SUM", col("quantity_prepared")), 0), "total_prepared"],
+      ],
+      include: [
+        {
+          model: DailyOperationModel,
+          attributes: [], // rất quan trọng
+          required: true,
+          where: {
+            operation_date: {
+              [Op.gte]: formatDate(firstDayOfMonth),
+              [Op.lt]: formatDate(firstDayOfNextMonth),
+            },
+          },
+        },
+      ],
+      raw: true,
+    });
+    const total_waste = Number(result?.total_waste ?? 0);
+    const total_prepared = Number(result?.total_prepared ?? 0);
+    const precent = ((total_waste / total_prepared) * 100).toFixed(2);
+    return precent;
+  }
+}
+module.exports = new DashboardAdminRepository();
