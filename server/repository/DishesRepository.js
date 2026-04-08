@@ -10,10 +10,19 @@ class DishesRepository {
             throw error;
         }
     }
-    async UpdateDishes(id, data) {
+    async UpdateDishes(id, data, options={}) {
         try {
-            const updateDishes = await DishModel.update(data, { where: { id: id } });
+            const updateDishes = await DishModel.update(data, { where: { id: id } },{...options});
             return updateDishes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // update dish_recipes
+    async UpdateDishRecipes(data, id, options={}) {
+        try {
+            const updateDishRecipes = await DishRecipeModel.update(data, { where: { id: id } },{...options});
+            return updateDishRecipes;
         } catch (error) {
             throw error;
         }
@@ -149,12 +158,21 @@ class DishesRepository {
         try {
             const dishRecipes = await DishRecipeModel.findAll({ 
                 where: { dishes_id: id },
-                attributes: ['ingredient_id', 'quantity'],
+                attributes: ["id",'ingredient_id', 'quantity'],
                 include: [{
                     model:   IngredientModel,
                     attributes: ['name','unit']
                   }]
              });
+            return dishRecipes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // check recipesID 
+    async CheckDishRecipesID(id) {
+        try {
+            const dishRecipes = await DishRecipeModel.findOne({ where: { id: id } });
             return dishRecipes;
         } catch (error) {
             throw error;
