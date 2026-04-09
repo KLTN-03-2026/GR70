@@ -34,6 +34,10 @@ const DishModel = sequelize.define('dishes', {
   status: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  created_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
   tableName: 'dishes',
