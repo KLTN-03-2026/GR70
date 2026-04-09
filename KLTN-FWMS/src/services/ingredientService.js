@@ -43,3 +43,8 @@ export const getCategoryIngredients = async () => {
     const res = await api.get("category-ingredients");
     return res.data;
 };
+
+export const getIngredientTransactions = async () => {
+    const res = await api.get("ingredients/get-ingredient-transaction");
+    return res.data;
+};
