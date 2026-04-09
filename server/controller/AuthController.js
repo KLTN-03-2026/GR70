@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require('crypto');
 const authServices = require("../services/AuthServices");
 const checkServices = require("../services/CheckServices");
+const { log } = require("console");
  const tempUsers = new Map();
  const MAX_AGE = 15 * 60 * 1000; // 15 phút
 exports.register=async (req, res, next) => {
@@ -81,16 +82,28 @@ exports.verifiMail = async (req, res, next) => {
 exports.login= async (req, res, next) => {
     try {
         const data = req.body;
-        const user = await CheckServices.checkMailPass(data.email, data.password);
-        // console.log("user", user.brand.id);
-        // xóa refresh token cũ nếu có
-        await AuthRepository.deleteRefreshToken(user.id);
-        // access token (sống ngắn, ví dụ 1 giờ)
-        const token = jwt.sign(
-        { userId: user.id, role: user.roles[0].name, name: user.name, email: user.email, brandID: user.brand?.id},
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-        );
+        let user;
+        let token;
+        if(data.email.trim() ==="admin@gmail.com"){
+           user=await CheckServices.checkAdmin(data.email,data.password);
+           await AuthRepository.deleteRefreshToken(user.id);
+          token = jwt.sign(
+            { userId: user.id, role: user.roles[0].name, name: user.name, email: user.email},
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+            );
+        }else{
+             user = await CheckServices.checkMailPass(data.email, data.password);
+            // console.log("user", user.brand.id);
+            // xóa refresh token cũ nếu có
+            await AuthRepository.deleteRefreshToken(user.id);
+            // access token (sống ngắn, ví dụ 1 giờ)
+             token = jwt.sign(
+            { userId: user.id, role: user.roles[0].name, name: user.name, email: user.email, brandID: user.brand?.id},
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+            );
+        }
         // // refresh token (sống lâu hơn, ví dụ 7 ngày)
         const refreshToken = jwt.sign(
         { userId: user.id },

@@ -31,9 +31,10 @@ module.exports =async function authenticate (req, res, next) {
             logger.warn(`⚠️ Token hợp lệ nhưng thiếu userId | Token: ${token.slice(0, 10)}...`);
             return next(ApiError.Unauthorized("Thông tin người dùng không hợp lệ."));
         }
-
-        logger.info(`✅ Xác thực thành công | userId: ${decoded.userId} | IP: ${req.ip}`);
-        await checkServices.checkBrand(decoded.brandID);
+        if(decoded.brandID){
+            logger.info(`✅ Xác thực thành công | userId: ${decoded.userId} | IP: ${req.ip}`);
+            await checkServices.checkBrand(decoded.brandID);
+        }
         await checkServices.checkUserActive(decoded.userId);
         req.user = decoded; // lưu thông tin người dùng vào request
         next();
