@@ -5,7 +5,6 @@ export const getIngredients = async () => {
     const res = await api.get("ingredients/get-ingredients-by-brand");
     return res.data;
 };
-
 export const createIngredient = async (brandId, data) => {
     const formData = new FormData();
     Object.entries({
