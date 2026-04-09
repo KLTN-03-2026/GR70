@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-
 import {
     getIngredients,
     createIngredient,
@@ -9,14 +8,25 @@ import {
     addStock,
     getIngredientById,
     getCategoryIngredients,
+    getIngredientTransactions,
 } from "../services/ingredientService";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-
-
-
 const UNITS = ["kg", "lít", "gói", "hộp", "cái", "túi"];
+
+const TRANSACTION_TYPE_MAP = {
+    extra: { label: "Nhập thêm", className: "bg-emerald-50 text-emerald-700" },
+    "update output": { label: "Cập nhật xuất", className: "bg-amber-50 text-amber-700" },
+    output: { label: "Xuất kho", className: "bg-orange-50 text-orange-700" },
+};
+
+function getTransactionTypeBadge(type) {
+    const key = (type ?? "").toLowerCase();
+    return (
+        TRANSACTION_TYPE_MAP[key] ?? { label: type ?? "—", className: "bg-gray-100 text-gray-600" }
+    );
+}
 
 const BADGE_COLORS = [
     "bg-blue-100 text-blue-700",
@@ -39,7 +49,6 @@ function getCategoryBadge(name) {
 function mapIngredient(raw) {
     const stock = parseFloat(raw.current_stock);
     const minimum = parseFloat(raw.minimum_stock ?? raw.minimumStock ?? 0);
-
     return {
         id: raw.id ?? raw._id,
         name: raw.name,
@@ -68,8 +77,7 @@ function extractList(data) {
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
 const inputClass =
     "w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none transition-all";
-const labelClass =
-    "block text-xs font-bold uppercase tracking-wider mb-1.5";
+const labelClass = "block text-xs font-bold uppercase tracking-wider mb-1.5";
 
 function ErrorBox({ message }) {
     return (
@@ -187,7 +195,6 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
     const handleSave = async () => {
@@ -195,10 +202,8 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
             setError("Vui lòng điền đầy đủ thông tin bắt buộc.");
             return;
         }
-
         setLoading(true);
         setError("");
-
         try {
             const payload = {
                 name: form.name,
@@ -207,10 +212,8 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
                 minimum_stock: form.minimum_stock === "" ? null : Number(form.minimum_stock),
                 current_stock: form.current_stock === "" ? 0 : Number(form.current_stock),
             };
-
             const res = await createIngredient(brandId, payload);
             const raw = res?.data ?? res;
-
             onSave(mapIngredient(raw));
             onClose();
         } catch (e) {
@@ -224,73 +227,41 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
         <Modal title="Thêm nguyên liệu mới" onClose={onClose}>
             <div className="space-y-4">
                 {error && <ErrorBox message={error} />}
-
                 <div>
                     <label className={labelClass}>Tên nguyên liệu <span style={{ color: "#f87171" }}>*</span></label>
-                    <input
-                        value={form.name}
-                        onChange={set("name")}
-                        placeholder="Nhập tên nguyên liệu..."
-                        className={inputClass}
-                    />
+                    <input value={form.name} onChange={set("name")} placeholder="Nhập tên nguyên liệu..." className={inputClass} />
                 </div>
-
                 <div>
                     <label className={labelClass}>Danh mục <span style={{ color: "#f87171" }}>*</span></label>
-                    <select
-                        value={form.ingredient_category_id}
-                        onChange={set("ingredient_category_id")}
-                        className={inputClass}
-                    >
+                    <select value={form.ingredient_category_id} onChange={set("ingredient_category_id")} className={inputClass}>
                         {categories.length === 0 ? (
                             <option value="">Chưa có danh mục</option>
                         ) : (
-                            categories.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))
+                            categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)
                         )}
                     </select>
                 </div>
-
                 <div className="grid grid-cols-3 gap-4">
                     <div>
                         <label className={labelClass}>Đơn vị <span style={{ color: "#f87171" }}>*</span></label>
                         <select value={form.unit} onChange={set("unit")} className={inputClass}>
-                            {UNITS.map((u) => (
-                                <option key={u} value={u}>{u}</option>
-                            ))}
+                            {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className={labelClass}>Số lượng tối thiểu</label>
-                        <input
-                            type="number"
-                            min={0}
-                            value={form.minimum_stock}
+                        <input type="number" min={0} value={form.minimum_stock}
                             onChange={(e) => setForm((f) => ({ ...f, minimum_stock: e.target.value }))}
-                            placeholder="0"
-                            className={inputClass}
-                        />
+                            placeholder="0" className={inputClass} />
                     </div>
                     <div>
                         <label className={labelClass}>Số lượng tồn kho</label>
-                        <input
-                            type="number"
-                            min={0}
-                            value={form.current_stock}
+                        <input type="number" min={0} value={form.current_stock}
                             onChange={(e) => setForm((f) => ({ ...f, current_stock: e.target.value }))}
-                            placeholder="0"
-                            className={inputClass}
-                        />
+                            placeholder="0" className={inputClass} />
                     </div>
                 </div>
-
-                <ModalActions
-                    onClose={onClose}
-                    onSave={handleSave}
-                    loading={loading}
-                    saveLabel="Thêm nguyên liệu"
-                />
+                <ModalActions onClose={onClose} onSave={handleSave} loading={loading} saveLabel="Thêm nguyên liệu" />
             </div>
         </Modal>
     );
@@ -306,22 +277,18 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
     const handleSave = async () => {
         setLoading(true);
         setError("");
         try {
-
             await updateIngredient(ingredient.id, {
                 name: form.name,
                 unit: form.unit,
                 minimum_stock: form.minimum_stock,
                 ingredient_category_id: form.ingredient_category_id,
             });
-
-
             onSave(mapIngredient({ ...ingredient, ...form }));
             onClose();
         } catch (e) {
@@ -335,19 +302,16 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
         <Modal title="Cập nhật nguyên liệu" onClose={onClose}>
             <div className="space-y-4" style={{ fontFamily: "'Nunito', sans-serif" }}>
                 {error && <ErrorBox message={error} />}
-
                 <div>
                     <label className={labelClass} style={{ color: "var(--color-text-3)" }}>Tên nguyên liệu</label>
                     <input type="text" value={form.name} onChange={set("name")} className={inputClass} style={{ color: "var(--color-text-1)" }} />
                 </div>
-
                 <div>
                     <label className={labelClass} style={{ color: "var(--color-text-3)" }}>Danh mục</label>
                     <select value={form.ingredient_category_id} onChange={set("ingredient_category_id")} className={inputClass} style={{ color: "var(--color-text-1)" }}>
                         {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                 </div>
-
                 <div className="grid grid-cols-3 gap-4">
                     <div>
                         <label className={labelClass} style={{ color: "var(--color-text-3)" }}>Đơn vị</label>
@@ -360,7 +324,6 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
                         <input type="number" min="0" value={form.minimum_stock} onChange={set("minimum_stock")} className={inputClass} style={{ color: "var(--color-text-1)" }} />
                     </div>
                 </div>
-
                 <ModalActions onClose={onClose} onSave={handleSave} loading={loading} saveLabel="Lưu thay đổi" />
             </div>
         </Modal>
@@ -369,12 +332,9 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
 
 // ─── ADD STOCK MODAL ──────────────────────────────────────────────────────────
 function AddStockModal({ ingredient, onClose, onSave }) {
-    // Lấy cả userId và tên người dùng
     const getUserData = () => {
         let userId = null;
         let fullName = "Người dùng";
-
-        // Cách 1: Từ getUserInfo() - ưu tiên
         if (typeof getUserInfo === "function") {
             const info = getUserInfo();
             if (info) {
@@ -383,8 +343,6 @@ function AddStockModal({ ingredient, onClose, onSave }) {
                 return { userId, fullName };
             }
         }
-
-        // Cách 2: Fallback từ JWT token
         try {
             const token = localStorage.getItem("token");
             if (token) {
@@ -395,55 +353,26 @@ function AddStockModal({ ingredient, onClose, onSave }) {
         } catch (e) {
             console.error("Lỗi parse token:", e);
         }
-
         return { userId, fullName };
     };
 
     const { userId, fullName } = getUserData();
-
     const [quantity, setQuantity] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    console.log("🔍 AddStockModal - userId:", userId, "| Tên:", fullName);
-
     const handleSave = async () => {
         setError("");
-
-        if (!userId) {
-            setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
-            return;
-        }
-
-        if (!ingredient?.id) {
-            setError("Nguyên liệu không hợp lệ.");
-            return;
-        }
-
+        if (!userId) { setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại."); return; }
+        if (!ingredient?.id) { setError("Nguyên liệu không hợp lệ."); return; }
         const qtyNumber = parseFloat(quantity);
-        if (!quantity || isNaN(qtyNumber) || qtyNumber <= 0) {
-            setError("Vui lòng nhập số lượng hợp lệ (> 0).");
-            return;
-        }
-
+        if (!quantity || isNaN(qtyNumber) || qtyNumber <= 0) { setError("Vui lòng nhập số lượng hợp lệ (> 0)."); return; }
         setLoading(true);
-        setError("");
-
         try {
-            await addStock(userId, {
-                ingredient_id: ingredient.id,
-                quantity: qtyNumber.toString(),
-            });
-
-            onSave({
-                ...ingredient,
-                current_stock: (Number(ingredient.current_stock) || 0) + qtyNumber,
-            });
-
-            console.log("✅ Nhập kho thành công bởi:", fullName);
+            await addStock(userId, { ingredient_id: ingredient.id, quantity: qtyNumber.toString() });
+            onSave({ ...ingredient, current_stock: (Number(ingredient.current_stock) || 0) + qtyNumber });
             onClose();
         } catch (e) {
-            console.error("❌ Lỗi nhập kho:", e?.response?.data || e);
             setError(e?.response?.data?.message || "Đã xảy ra lỗi khi nhập kho.");
         } finally {
             setLoading(false);
@@ -454,47 +383,30 @@ function AddStockModal({ ingredient, onClose, onSave }) {
         <Modal title={`Nhập kho: ${ingredient?.name || "Nguyên liệu"}`} onClose={onClose}>
             <div className="space-y-4">
                 {error && <ErrorBox message={error} />}
-
-                {/* Hiển thị tên người dùng đẹp hơn */}
                 {userId && (
                     <div className="text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg flex items-center gap-2">
                         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>person</span>
                         Người thực hiện: <strong>{fullName}</strong>
                     </div>
                 )}
-
                 <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-between">
-                    <span className="text-sm" style={{ color: "var(--color-text-3)" }}>
-                        Tồn kho hiện tại
-                    </span>
+                    <span className="text-sm" style={{ color: "var(--color-text-3)" }}>Tồn kho hiện tại</span>
                     <span className="font-bold text-lg" style={{ color: "var(--color-primary)" }}>
                         {ingredient?.current_stock || 0} {ingredient?.unit || ""}
                     </span>
                 </div>
-
                 <div>
                     <label className={labelClass} style={{ color: "var(--color-text-3)" }}>
                         Số lượng nhập thêm ({ingredient?.unit || "đơn vị"}) <span className="text-red-400">*</span>
                     </label>
                     <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={quantity}
+                        type="number" min="0" step="0.01" value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        placeholder="VD: 20"
-                        className={inputClass}
-                        style={{ color: "var(--color-text-1)" }}
-                        autoFocus
+                        placeholder="VD: 20" className={inputClass}
+                        style={{ color: "var(--color-text-1)" }} autoFocus
                     />
                 </div>
-
-                <ModalActions
-                    onClose={onClose}
-                    onSave={handleSave}
-                    loading={loading}
-                    saveLabel="Xác nhận nhập kho"
-                />
+                <ModalActions onClose={onClose} onSave={handleSave} loading={loading} saveLabel="Xác nhận nhập kho" />
             </div>
         </Modal>
     );
@@ -526,12 +438,8 @@ function ConfirmDeleteModal({ ingredient, onClose, onConfirm }) {
                         <span className="material-symbols-outlined" style={{ fontSize: 24, color: "#f87171" }}>delete</span>
                     </div>
                     <div>
-                        <p className="font-bold text-base" style={{ color: "var(--color-text-1)" }}>
-                            Xóa "{ingredient.name}"?
-                        </p>
-                        <p className="text-sm mt-0.5" style={{ color: "var(--color-text-3)" }}>
-                            Hành động này không thể hoàn tác.
-                        </p>
+                        <p className="font-bold text-base" style={{ color: "var(--color-text-1)" }}>Xóa "{ingredient.name}"?</p>
+                        <p className="text-sm mt-0.5" style={{ color: "var(--color-text-3)" }}>Hành động này không thể hoàn tác.</p>
                     </div>
                 </div>
                 <div className="flex gap-3">
@@ -549,20 +457,12 @@ function ConfirmDeleteModal({ ingredient, onClose, onConfirm }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function IngredientsPage() {
+
     const token = localStorage.getItem("token");
     const tokenPayload = token ? JSON.parse(atob(token.split(".")[1])) : {};
 
-    const brandId =
-        tokenPayload?.brandID ||
-        tokenPayload?.brandId ||
-        tokenPayload?.brand_id ||
-        null;
-
-    const branchId =
-        tokenPayload?.branchID ||
-        tokenPayload?.branchId ||
-        tokenPayload?.branch_id ||
-        null;
+    const brandId = tokenPayload?.brandID || tokenPayload?.brandId || tokenPayload?.brand_id || null;
+    const branchId = tokenPayload?.branchID || tokenPayload?.branchId || tokenPayload?.branch_id || null;
 
     const [ingredients, setIngredients] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -572,9 +472,10 @@ export default function IngredientsPage() {
     const [search, setSearch] = useState("");
     const [filterCat, setFilterCat] = useState("");
     const [toast, setToast] = useState(null);
+    const [transactions, setTransactions] = useState([]);
+    const [txLoading, setTxLoading] = useState(true);
 
     const showToast = (message, type = "success") => setToast({ message, type });
-
 
     useEffect(() => {
         getCategoryIngredients()
@@ -582,15 +483,12 @@ export default function IngredientsPage() {
             .catch(() => { });
     }, []);
 
-    // ── Fetch ──────────────────────────────────────────────────────────────────
-
     const fetchIngredients = useCallback(async () => {
         setLoading(true);
         setFetchError("");
         try {
             const res = await getIngredients();
-            const rawList = extractList(res);
-            setIngredients(rawList.map(mapIngredient));
+            setIngredients(extractList(res).map(mapIngredient));
         } catch (e) {
             setFetchError(e?.response?.data?.message ?? e.message);
         } finally {
@@ -599,6 +497,27 @@ export default function IngredientsPage() {
     }, []);
 
     useEffect(() => { fetchIngredients(); }, [fetchIngredients]);
+
+    const fetchTransactions = useCallback(async () => {
+        setTxLoading(true);
+        try {
+            const res = await getIngredientTransactions();
+            const list = Array.isArray(res?.data) ? res.data : [];
+            setTransactions(list);
+        } catch (e) {
+            console.error("Lỗi tải lịch sử:", e);
+        } finally {
+            setTxLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const formatDate = (iso) => {
+        const d = new Date(iso);
+        return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+    };
 
     // ── Handlers ───────────────────────────────────────────────────────────────
     const handleAdd = (item) => {
@@ -619,6 +538,7 @@ export default function IngredientsPage() {
 
     const handleStockUpdate = (updated) => {
         setIngredients((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        fetchTransactions();
         showToast("Nhập kho thành công!");
     };
 
@@ -640,8 +560,9 @@ export default function IngredientsPage() {
                 select { appearance: auto; }
             `}</style>
 
-            <div className="flex  min-h-screen  pl-8" style={{ background: "#f6f8f7", fontFamily: "'Nunito', sans-serif" }}>
+            <div className="flex min-h-screen pl-8" style={{ background: "#f6f8f7", fontFamily: "'Nunito', sans-serif" }}>
                 <main className="flex-1 flex flex-col min-w-0">
+
                     {/* ── Header ── */}
                     <header className="bg-white border-b border-slate-200 px-8 h-20 flex items-center justify-between sticky top-0 z-10">
                         <h2 style={{ fontFamily: "'Arimo', sans-serif", fontSize: 22, fontWeight: 700, color: "var(--color-text-1)", margin: 0 }}>
@@ -667,7 +588,7 @@ export default function IngredientsPage() {
                         </div>
                     </header>
 
-                    <div className="p-8 space-y-8 max-w-7xl mx-auto w-full ">
+                    <div className="p-8 space-y-8 max-w-7xl mx-auto w-full">
 
                         {/* ── Fetch Error Banner ── */}
                         {fetchError && (
@@ -699,7 +620,7 @@ export default function IngredientsPage() {
                             </select>
                         </section>
 
-                        {/* ── Table ── */}
+                        {/* ── Ingredients Table ── */}
                         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                                 <h3 style={{ fontFamily: "'Arimo', sans-serif", fontWeight: 700, color: "var(--color-text-1)", margin: 0 }}>
@@ -714,10 +635,9 @@ export default function IngredientsPage() {
                                     <thead style={{ background: "#f8faf9" }}>
                                         <tr>
                                             {["Tên nguyên liệu", "Danh mục", "Tối thiểu", "Tồn kho", "Đơn vị", "Hành động"].map((h, i) => (
-                                                <th key={h} className={thClass} style={{
-                                                    color: "var(--color-text-3)",
-                                                    textAlign: i >= 2 ? "right" : "left"
-                                                }}>{h}</th>
+                                                <th key={h} className={thClass} style={{ color: "var(--color-text-3)", textAlign: i >= 2 ? "right" : "left" }}>
+                                                    {h}
+                                                </th>
                                             ))}
                                         </tr>
                                     </thead>
@@ -777,9 +697,101 @@ export default function IngredientsPage() {
                             </div>
                         </section>
 
+                        {/* ── Transaction History Table ── */}
+                        <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                                <h3 style={{ fontFamily: "'Arimo', sans-serif", fontWeight: 700, color: "var(--color-text-1)", margin: 0 }}>
+                                    Lịch sử nhập và xuất nguyên liệu
+                                </h3>
+                                <button
+                                    onClick={fetchTransactions}
+                                    className="flex items-center gap-1.5 text-sm font-bold border px-3 py-1.5 rounded-lg hover:opacity-80 transition-all"
+                                    style={{ borderColor: "var(--color-text-4)", color: "var(--color-text-2)" }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
+                                    Làm mới
+                                </button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead style={{ background: "#f8faf9" }}>
+                                        <tr>
+                                            {["Ngày/Giờ", "Tên nguyên liệu", "Loại giao dịch", "Số lượng", "Người thực hiện"].map((h, i) => (
+                                                <th key={h} className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
+                                                    style={{ textAlign: i >= 2 ? "right" : "left" }}>
+                                                    {h}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {txLoading ? (
+                                            Array.from({ length: 3 }).map((_, i) => (
+                                                <tr key={i}>
+                                                    {[160, 140, 90, 80, 120].map((w, j) => (
+                                                        <td key={j} className="px-6 py-4">
+                                                            <div className="h-4 rounded-lg animate-pulse"
+                                                                style={{ width: w, background: "#f1f5f2", marginLeft: j >= 2 ? "auto" : 0 }} />
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))
+                                        ) : transactions.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-6 py-10 text-center text-sm" style={{ color: "var(--color-text-3)" }}>
+                                                    Chưa có lịch sử giao dịch
+                                                </td>
+                                            </tr>
+                                        ) : transactions.map((tx) => {
+                                            const badge = getTransactionTypeBadge(tx.type);
+                                            const isPositive = tx.type === "extra";
+
+                                            return (
+                                                <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+                                                    <td className="px-6 py-4 text-xs text-slate-600 whitespace-nowrap">
+                                                        {formatDate(tx.created_at)}
+                                                    </td>
+
+                                                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                                                        {tx.ingredient?.name ?? "—"}
+                                                        <span className="ml-1.5 text-xs text-slate-400">
+                                                            ({tx.ingredient?.unit})
+                                                        </span>
+                                                    </td>
+
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${badge.className}`}>
+                                                            {badge.label}
+                                                        </span>
+                                                    </td>
+
+                                                    <td
+                                                        className="px-6 py-4 text-sm text-right font-bold"
+                                                        style={{
+                                                            color: isPositive ? "var(--color-primary)" : "#dc2626"
+                                                        }}
+                                                    >
+                                                        {isPositive ? "+" : "-"}
+                                                        {parseFloat(tx.quantity).toFixed(2)} {tx.ingredient?.unit}
+                                                    </td>
+
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
+                                                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>person</span>
+                                                            {tx.user?.name ?? "—"}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
                     </div>
                 </main>
-
             </div>
 
             {/* ── Modals ── */}
@@ -790,11 +802,7 @@ export default function IngredientsPage() {
                 <UpdateIngredientModal ingredient={modal.item} onClose={() => setModal(null)} onSave={handleUpdate} categories={categories} />
             )}
             {modal?.type === "addStock" && modal.item && (
-                <AddStockModal
-                    ingredient={modal.item}
-                    onClose={() => setModal(null)}
-                    onSave={handleStockUpdate}
-                />
+                <AddStockModal ingredient={modal.item} onClose={() => setModal(null)} onSave={handleStockUpdate} />
             )}
             {modal?.type === "delete" && (
                 <ConfirmDeleteModal ingredient={modal.item} onClose={() => setModal(null)} onConfirm={handleDelete} />
