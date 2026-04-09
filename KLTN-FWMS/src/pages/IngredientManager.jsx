@@ -10,6 +10,7 @@ import {
   approveDish,
   getCategoryDishes,
   getIngredientsByBrand,
+  getRecipesByDish,
 } from "../services/dishService";
 
 // ─── Toast ─────────────────────────────────────────────────────────────────
@@ -20,10 +21,10 @@ function Toast({ toasts, removeToast }) {
         <div
           key={t.id}
           className={`flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-lg text-sm font-semibold ${t.type === "error"
-              ? "bg-red-50 border-red-200 text-red-700"
-              : t.type === "warning"
-                ? "bg-amber-50 border-amber-200 text-amber-700"
-                : "bg-emerald-50 border-emerald-200 text-emerald-700"
+            ? "bg-red-50 border-red-200 text-red-700"
+            : t.type === "warning"
+              ? "bg-amber-50 border-amber-200 text-amber-700"
+              : "bg-emerald-50 border-emerald-200 text-emerald-700"
             }`}
           style={{ animation: "fadeInUp 0.25s ease" }}
         >
@@ -152,31 +153,14 @@ function ConfirmLockModal({ item, onClose, onConfirm }) {
   );
 }
 
+
 // ─── Food Form Modal ─────────────────────────────────────────────────────────
 function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, showToast }) {
   const userInfo = getUserInfo();
 
-  const [form, setForm] = useState({
-    category: initial
-      ? String(
-        initial.dish_category_id ||
-        initial.dish_category?.id ||
-        initial.category?.id ||
-        ""
-      )
-      : "",
-    name: initial?.name || "",
-    des: initial?.des || "",
-    status: initial ? (initial.status === true ? "active" : "paused") : "paused",
-  });
-
-  // Giá tách riêng: raw (số) và display (format VND)
-  const [priceRaw, setPriceRaw] = useState(
-    initial?.price ? String(initial.price) : ""
-  );
-  const [priceDisplay, setPriceDisplay] = useState(
-    initial?.price ? Number(initial.price).toLocaleString("vi-VN") + " ₫" : ""
-  );
+  const [form, setForm] = useState({ category: "", name: "", des: "" });
+  const [priceRaw, setPriceRaw] = useState("");
+  const [priceDisplay, setPriceDisplay] = useState("");
 
   const [categories, setCategories] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
@@ -185,7 +169,7 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // FIX: Fetch categories + ingredients trước
+  // Fetch danh mục + nguyên liệu
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -204,23 +188,53 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
     fetchData();
   }, []);
 
-  // FIX: Load công thức SAU khi ingredients đã có → select hiển thị đúng
+  // Load món ăn + công thức nguyên liệu
   useEffect(() => {
-    if (!fetchReady) return;
-    if (isEdit && Array.isArray(initial?.dish_recipes) && initial.dish_recipes.length > 0) {
-      setDishRecipes(
-        initial.dish_recipes.map((r) => ({
-          ingredient_id: String(r.ingredient_id || ""),
-          quantity: r.quantity ? String(r.quantity) : "",
-        }))
-      );
+    if (!isEdit || !initial?.id) {
+      setDishRecipes([]);
+      return;
     }
-  }, [fetchReady]);
+
+    setForm({
+      category: String(initial.dish_category_id || initial.dish_category?.id || ""),
+      name: initial.name || "",
+      des: initial.des || "",
+    });
+
+    setPriceRaw(initial.price ? String(initial.price) : "");
+    setPriceDisplay(initial.price ? Number(initial.price).toLocaleString("vi-VN") + " ₫" : "");
+
+    // Gọi API lấy recipes
+    const loadRecipes = async () => {
+      try {
+        const res = await getRecipesByDish(initial.id);
+        const recipesData = res?.data || [];
+
+        if (Array.isArray(recipesData) && recipesData.length > 0) {
+          const normalized = recipesData.map((r) => ({
+            id: r.id || "",
+            ingredient_id: String(r.ingredient_id ?? ""),
+            quantity: r.quantity != null ? String(r.quantity) : "",
+          }));
+
+          setDishRecipes(normalized);
+          console.log("✅ Loaded recipes:", normalized);
+        } else {
+          setDishRecipes([]);
+        }
+      } catch (err) {
+        console.error("Lỗi load recipes:", err);
+        setDishRecipes([]);
+      }
+    };
+
+
+    loadRecipes();
+  }, [isEdit, initial?.id]);
 
   const handleInputChange = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  // Giá: focus → hiện số thuần để nhập; blur → format VND
   const handlePriceFocus = () => setPriceDisplay(priceRaw);
   const handlePriceChange = (e) => {
     const val = e.target.value.replace(/[^0-9]/g, "");
@@ -228,15 +242,16 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
     setPriceDisplay(val);
   };
   const handlePriceBlur = () => {
-    if (priceRaw) {
-      setPriceDisplay(Number(priceRaw).toLocaleString("vi-VN") + " ₫");
-    } else {
-      setPriceDisplay("");
-    }
+    if (priceRaw) setPriceDisplay(Number(priceRaw).toLocaleString("vi-VN") + " ₫");
+    else setPriceDisplay("");
   };
 
   const handleAddIngredient = () =>
-    setDishRecipes((prev) => [...prev, { ingredient_id: "", quantity: "" }]);
+    setDishRecipes((prev) => [
+      ...prev,
+      { id: "", ingredient_id: "", quantity: "" },
+    ]);
+
 
   const handleRemoveIngredient = (index) =>
     setDishRecipes((prev) => prev.filter((_, i) => i !== index));
@@ -253,14 +268,14 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
       setError("Vui lòng nhập đầy đủ tên món, danh mục và giá.");
       return;
     }
-    if (!isEdit && (!brandId || !userId)) {
-      setError("Thiếu thông tin brand hoặc user. Vui lòng đăng nhập lại!");
-      return;
-    }
 
     const validRecipes = dishRecipes
       .filter((r) => r.ingredient_id && r.quantity?.trim())
-      .map((r) => ({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) }));
+      .map((r) => ({
+        ...(r.id ? { id: r.id } : {}),
+        ingredient_id: r.ingredient_id,
+        quantity: Number(r.quantity),
+      }));
 
     try {
       setLoading(true);
@@ -272,17 +287,23 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           name: form.name.trim(),
           price: Number(priceRaw),
           des: form.des.trim(),
-          status: form.status === "active",
           dish_recipes: validRecipes,
         });
         showToast("Cập nhật món ăn thành công!");
+
+        // Reload recipes sau khi lưu
+        const res = await getRecipesByDish(initial.id);
+        const newRecipes = (res?.data || []).map((r) => ({
+          ingredient_id: String(r.ingredient_id ?? ""),
+          quantity: r.quantity != null ? String(r.quantity) : "",
+        }));
+        setDishRecipes(newRecipes);
       } else {
         await createDish(brandId, userId, {
           dish_category_id: form.category,
           name: form.name.trim(),
           price: Number(priceRaw),
           des: form.des.trim() || "",
-          // FIX: BE tự xét, tạo mới luôn false (chờ duyệt)
           status: false,
           dish_recipes: validRecipes,
         });
@@ -292,11 +313,7 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
       onSave();
       onClose();
     } catch (err) {
-      const backendError = err?.response?.data;
-      const msg =
-        backendError?.message ||
-        backendError?.error ||
-        (backendError?.errors ? `Lỗi: ${backendError.errors}` : "Có lỗi xảy ra khi lưu món ăn");
+      const msg = err?.response?.data?.message || "Có lỗi xảy ra khi lưu món ăn";
       setError(msg);
     } finally {
       setLoading(false);
@@ -308,39 +325,25 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
       <div className="space-y-4" style={{ fontFamily: "'Nunito', sans-serif" }}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-              error
-            </span>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>error</span>
             {error}
           </div>
         )}
 
-        {/* Người tạo — chỉ khi thêm mới */}
         {!isEdit && (
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-2">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20, color: "#3b82f6" }}
-            >
-              person
-            </span>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#3b82f6" }}>person</span>
             <div className="text-sm">
               <span className="text-blue-500 font-medium">Người tạo: </span>
               <span className="font-bold text-blue-700">
-                {userInfo?.fullName ||
-                  userInfo?.name ||
-                  userInfo?.username ||
-                  "Người dùng"}
+                {userInfo?.fullName || userInfo?.name || userInfo?.username || "Người dùng"}
               </span>
             </div>
           </div>
         )}
 
-        {/* Tên món */}
         <div>
-          <label className={labelClass}>
-            Tên món ăn <span className="text-red-400">*</span>
-          </label>
+          <label className={labelClass}>Tên món ăn <span className="text-red-400">*</span></label>
           <input
             value={form.name}
             onChange={handleInputChange("name")}
@@ -349,30 +352,18 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           />
         </div>
 
-        {/* Danh mục */}
         <div>
-          <label className={labelClass}>
-            Danh mục <span className="text-red-400">*</span>
-          </label>
-          <select
-            value={form.category}
-            onChange={handleInputChange("category")}
-            className={inputClass}
-          >
+          <label className={labelClass}>Danh mục <span className="text-red-400">*</span></label>
+          <select value={form.category} onChange={handleInputChange("category")} className={inputClass}>
             <option value="">— Chọn danh mục —</option>
             {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
         </div>
 
-        {/* Giá tiền */}
         <div>
-          <label className={labelClass}>
-            Giá bán <span className="text-red-400">*</span>
-          </label>
+          <label className={labelClass}>Giá bán <span className="text-red-400">*</span></label>
           <input
             type="text"
             inputMode="numeric"
@@ -385,68 +376,44 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           />
         </div>
 
-        {/* Mô tả */}
         <div>
           <label className={labelClass}>Mô tả món ăn</label>
           <textarea
             value={form.des}
             onChange={handleInputChange("des")}
-            placeholder="Mô tả ngắn về món ăn, hương vị, phong cách nấu..."
+            placeholder="Mô tả ngắn về món ăn..."
             rows={3}
             className={inputClass + " resize-y"}
           />
         </div>
 
-        {/* Trạng thái — chỉ cho edit vì tạo mới BE tự xét */}
-        {isEdit && (
-          <div>
-            <label className={labelClass}>Trạng thái</label>
-            <select
-              value={form.status}
-              onChange={handleInputChange("status")}
-              className={inputClass}
-            >
-              <option value="active">Hoạt động</option>
-              <option value="paused">Tạm dừng</option>
-            </select>
-            <p className="text-[11px] text-slate-400 mt-1">
-              * Món mới tạo sẽ vào trạng thái "Chờ duyệt" — BE tự xét.
-            </p>
-          </div>
-        )}
-
         {/* Nguyên liệu */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className={labelClass} style={{ marginBottom: 0 }}>
-              Công thức nguyên liệu
-            </label>
+          <div className="flex items-center justify-between mb-3">
+            <label className={labelClass} style={{ marginBottom: 0 }}>Công thức nguyên liệu</label>
             <button
               type="button"
               onClick={handleAddIngredient}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                add
-              </span>
-              Thêm
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+              Thêm nguyên liệu
             </button>
           </div>
 
-          {!fetchReady ? (
-            <div className="text-center py-4 text-sm text-slate-400">
-              Đang tải nguyên liệu...
+          {dishRecipes.length === 0 ? (
+            <div className="border-2 border-dashed border-amber-300 bg-amber-50 rounded-2xl p-10 text-center">
+              <p className="text-lg font-medium text-amber-700">Món ăn này chưa có nguyên liệu</p>
+              <p className="text-sm text-amber-600 mt-1">Nhấn nút "Thêm nguyên liệu" để tạo công thức</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {dishRecipes.map((recipe, index) => (
-                <div key={index} className="flex gap-2 items-center">
+                <div key={`recipe-${index}`} className="flex gap-3 items-center bg-white p-3 rounded-xl border">
                   <select
                     value={recipe.ingredient_id}
-                    onChange={(e) =>
-                      handleRecipeChange(index, "ingredient_id", e.target.value)
-                    }
-                    className="flex-1 border border-gray-200 p-2.5 rounded-xl text-sm focus:outline-none focus:border-green-400"
+                    onChange={(e) => handleRecipeChange(index, "ingredient_id", e.target.value)}
+                    className="flex-1 border border-gray-200 p-3 rounded-xl text-sm focus:outline-none focus:border-green-400"
                   >
                     <option value="">— Chọn nguyên liệu —</option>
                     {ingredientsList.map((ing) => (
@@ -456,69 +423,43 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
                     ))}
                   </select>
 
-                  <div className="relative w-32 flex-shrink-0">
+                  <div className="relative w-36">
                     <input
                       type="number"
                       step="0.01"
-                      min={0}
+                      min="0"
                       value={recipe.quantity}
-                      onChange={(e) =>
-                        handleRecipeChange(index, "quantity", e.target.value)
-                      }
-                      placeholder="SL"
-                      className="w-full border border-gray-200 p-2.5 pr-8 rounded-xl text-sm focus:outline-none focus:border-green-400"
+                      onChange={(e) => handleRecipeChange(index, "quantity", e.target.value)}
+                      className="w-full border border-gray-200 p-3 rounded-xl text-sm focus:outline-none focus:border-green-400"
                     />
                     {recipe.ingredient_id && (
-                      <span
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold pointer-events-none"
-                        style={{ color: "var(--color-text-3)" }}
-                      >
-                        {ingredientsList.find(
-                          (i) => String(i.id) === String(recipe.ingredient_id)
-                        )?.unit || ""}
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500">
+                        {ingredientsList.find((i) => String(i.id) === String(recipe.ingredient_id))?.unit || ""}
                       </span>
                     )}
                   </div>
 
                   <button
-                    type="button"
                     onClick={() => handleRemoveIngredient(index)}
-                    className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0"
+                    className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                      delete
-                    </span>
+                    <span className="material-symbols-outlined">delete</span>
                   </button>
                 </div>
               ))}
-
-              {dishRecipes.length === 0 && (
-                <p className="text-sm text-slate-400 italic text-center py-4 border border-dashed rounded-xl">
-                  Chưa có nguyên liệu. Nhấn "Thêm" để bắt đầu.
-                </p>
-              )}
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border text-sm font-bold hover:opacity-80 transition-all"
-            style={{ borderColor: "var(--color-text-4)", color: "var(--color-text-2)" }}
-          >
-            Hủy
-          </button>
+        <div className="flex gap-3 pt-4">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border font-bold hover:bg-gray-50">Hủy</button>
           <button
             onClick={handleSave}
             disabled={loading}
-            className="flex-1 py-2.5 text-white rounded-xl text-sm font-bold disabled:opacity-60 hover:opacity-90 active:scale-95 transition-all"
-            style={{
-              background: "linear-gradient(135deg, var(--color-primary), #0da04f)",
-            }}
+            className="flex-1 py-3 text-white font-bold rounded-xl disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, var(--color-primary), #0da04f)" }}
           >
-            {loading ? "Đang xử lý..." : isEdit ? "Lưu thay đổi" : "Thêm món ăn"}
+            {loading ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Thêm món ăn"}
           </button>
         </div>
       </div>
@@ -558,11 +499,11 @@ export default function FoodsPage() {
     fetchFoods();
   }, [fetchFoods]);
 
-  // FIX: Đổi "xóa" → "khóa"
+  // FIX 1: Sau khi khóa → gọi fetchFoods() để cập nhật cả 2 tab realtime
   const handleLock = async (id) => {
     try {
       await deleteDish(id);
-      setFoods((prev) => prev.filter((f) => f.id !== id));
+      await fetchFoods(); // refetch để tab "Chờ duyệt" cũng cập nhật
       showToast("Đã khóa món ăn thành công.");
     } catch (err) {
       const msg = err?.response?.data?.message || "";
@@ -784,7 +725,6 @@ export default function FoodsPage() {
                           {Number(item.price).toLocaleString("vi-VN")}đ
                         </td>
 
-                        {/* FIX: Hiển thị tên người tạo rõ ràng */}
                         <td
                           className="px-6 py-4 text-sm"
                           style={{ color: "var(--color-text-2)" }}
@@ -837,7 +777,6 @@ export default function FoodsPage() {
                                 edit
                               </span>
                             </button>
-                            {/* FIX: icon khóa thay vì xóa */}
                             <button
                               onClick={() => setModal({ type: "lock", item })}
                               className="p-2 rounded-lg hover:bg-amber-50 transition-colors"
