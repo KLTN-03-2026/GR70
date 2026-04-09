@@ -28,3 +28,22 @@ exports.ReportPrecentWasteDish = async function (req, res, next) {
         return next(error);
     }
 };
+
+// báo cáo cửa hàng có lãng phí cao hiện tại > 15
+exports.ReportBrandWasteDish = async function (req, res, next) {
+    try {
+        const response = await dashboardRepository.ReportBrandWasteDish();
+        return res.json(ApiSuccess.getSelect("Report Brand Waste Dish", response));
+    } catch (error) {
+        return next(error);
+    }
+}
+// báo cáo của tất cả cửa hàng lãng phí hiện tại
+exports.ReportAllBrandWasteDish = async function (req, res, next) {
+    try {
+        const response = await dashboardRepository.ReportBrandWasteDish(0);
+        return res.json(ApiSuccess.getSelect("Report All Brand Waste Dish", response));
+    } catch (error) {
+        return next(error);
+    }
+}
