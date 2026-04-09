@@ -52,5 +52,16 @@ class AuthRepository{
             }],
         });
     }
+    async checkUserAdmin(mail) {
+        return await UserModel.findOne({
+            where: {email: mail},
+            attributes: ['id', 'email', 'name', "password"],
+            include: [{
+                model: RoleModel,
+                attributes: ['name'],
+                through: { attributes: [] } 
+            }],
+        });
+    }
 }
 module.exports =  new AuthRepository();
