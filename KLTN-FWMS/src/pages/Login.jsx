@@ -4,7 +4,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import Logo from "../assets/Logo.svg";
 import { toast } from "sonner";
-import { Loading } from "../components/Layout/Loading";
+import Loading  from "../components/Layout/Loading";
 
 function Login() {
     const [showPassword, setShowPassword] = useState(false);
