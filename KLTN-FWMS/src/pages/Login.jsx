@@ -43,7 +43,7 @@ function Login() {
             console.log(token);
             localStorage.setItem("token", token);
             const decode = jwtDecode(token);
-            // console.log(decode);
+            console.log(decode);
 
             toast.success("Đăng nhập thành công!");
 
