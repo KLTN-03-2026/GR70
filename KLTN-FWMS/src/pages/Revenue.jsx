@@ -16,9 +16,10 @@ import {
 } from "../api/revenueApi.js";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import axios from "axios";
+import { Sum_Revenue_Month, Sum_Revenue_yesterday, Transaction_Revenue_Month } from "../services/Revenue_Manager.js";
 
 const Revenue = () => {
-    // set default để không bị undefined
     const [stats, setStats] = useState({
         today: 0,
         month: 0,
@@ -27,21 +28,28 @@ const Revenue = () => {
 
     const [chartData, setChartData] = useState([]);
     const [transactions, setTransactions] = useState([]);
+
+    // set default để không bị undefined
+    const [sum_Revenue_Yesterday, setSum_Revenue_Yesterday] = useState([]);
+    const [sum_Revenue_Month, setSum_Revenue_Month] = useState([]);
+    const [transactions_Revenue_Month, settransactions_Revenue_Month] = useState([]);
     const [loading, setLoading] = useState(true);
+
 
     // gọi API
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [statsRes, chartRes, transRes] = await Promise.all([
-                    getRevenueStats(),
-                    getRevenueChart(),
-                    getTransactions(),
-                ]);
+                const [res, res1, res2] = await Promise.all([
+                    Sum_Revenue_yesterday(),
+                    Sum_Revenue_Month(),
+                    Transaction_Revenue_Month(),
+                ])
+                setSum_Revenue_Yesterday(res.data.data.total_revenue);
+                setSum_Revenue_Month(res1.data.data.total_revenue);
+                settransactions_Revenue_Month(res2.data.data);
+                console.log(res2.data.data);
 
-                setStats(statsRes.data || {});
-                setChartData(chartRes.data || []);
-                setTransactions(transRes.data || []);
             } catch (err) {
                 console.error("Lỗi load dữ liệu:", err);
             } finally {
@@ -51,12 +59,6 @@ const Revenue = () => {
 
         fetchData();
     }, []);
-
-    //  format tiền (fix undefined)
-    const formatMoney = (num) => {
-        if (!num) return "0 VNĐ";
-        return num.toLocaleString("vi-VN") + " VNĐ";
-    };
 
     //  tránh crash khi chartData rỗng
     const maxValue =
@@ -69,13 +71,11 @@ const Revenue = () => {
     // THÊM HÀM XUẤT EXCEL (thêm vào trong component Revenue, trước return)
     const exportToExcel = () => {
         // Chuẩn bị dữ liệu cho Excel
-        const excelData = transactions.map((item) => ({
-            "Ngày giao dịch": item.date,
-            "Danh mục": item.name,
-            "Số lượng": item.quantity || 0,
-            "Số tiền": item.amount?.toLocaleString("vi-VN") + " VNĐ" || "0 VNĐ",
-            "Trạng thái":
-                item.status === "success" ? "Thành công" : "Đang xử lý",
+        const excelData = transactions_Revenue_Month.map((item) => ({
+            "Ngày giao dịch": item["daily_operation.operation_date"],
+            "Danh mục": item["dish.name"],
+            "Số lượng": item.quantity_used || 0,
+            "Số tiền": item.revenue_cost?.toLocaleString("vi-VN") + " VNĐ" || "0 VNĐ",
         }));
 
         // Tạo worksheet
@@ -87,7 +87,7 @@ const Revenue = () => {
             { wch: 20 }, // Danh mục
             { wch: 12 }, // Số lượng
             { wch: 18 }, // Số tiền
-            { wch: 12 }, // Trạng thái
+            // { wch: 12 }, // Trạng thái
         ];
         worksheet["!cols"] = colWidths;
 
@@ -111,51 +111,33 @@ const Revenue = () => {
 
     // THÊM HÀM XUẤT EXCEL CHO TỪNG GIAO DỊCH
     const exportSingleToExcel = (item) => {
-        // Chuẩn bị dữ liệu cho 1 giao dịch
         const singleData = [
             {
-                "Ngày giao dịch": item.date,
-                "Danh mục": item.name,
-                "Số lượng": item.quantity || 0,
+                "Ngày giao dịch": item["daily_operation.operation_date"],
+                "Danh mục": item["dish.name"],
+                "Số lượng": item.quantity_used || 0,
                 "Số tiền":
-                    item.amount?.toLocaleString("vi-VN") + " VNĐ" || "0 VNĐ",
-                "Trạng thái":
-                    item.status === "success" ? "Thành công" : "Đang xử lý",
+                    Number(item.revenue_cost || 0).toLocaleString("vi-VN") + " VNĐ",
             },
         ];
 
-        // Tạo worksheet
         const worksheet = XLSX.utils.json_to_sheet(singleData);
 
-        // Tùy chỉnh độ rộng cột
-        const colWidths = [
-            { wch: 15 }, // Ngày giao dịch
-            { wch: 20 }, // Danh mục
-            { wch: 12 }, // Số lượng
-            { wch: 18 }, // Số tiền
-            { wch: 12 }, // Trạng thái
-        ];
-        worksheet["!cols"] = colWidths;
-
-        // Tạo workbook
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(
-            workbook,
-            worksheet,
-            `Giao dịch ${item.id || item.name}`,
-        );
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Giao dịch");
 
-        // Xuất file
         const excelBuffer = XLSX.write(workbook, {
             bookType: "xlsx",
             type: "array",
         });
+
         const data = new Blob([excelBuffer], {
             type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
+
         saveAs(
             data,
-            `giao_dich_${item.date}_${item.name}_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.xlsx`,
+            `giao_dich_${item["daily_operation.operation_date"]}_${item["dish.name"]}.xlsx`
         );
     };
 
@@ -174,7 +156,7 @@ const Revenue = () => {
 
                 <div className="flex items-center gap-3">
                     <select className="border rounded-lg px-3 py-2 text-sm">
-                        <option>Tháng 03, 2026</option>
+                        <option>Tháng 04, 2026</option>
                     </select>
                     <button className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm">
                         Xem thống kê
@@ -187,14 +169,14 @@ const Revenue = () => {
                 <div className="bg-white p-5 rounded-xl shadow">
                     <p className="text-gray-500 text-sm">Hôm qua</p>
                     <h2 className="text-2xl font-bold mt-1">
-                        {formatMoney(stats.today)}
+                        {(sum_Revenue_Yesterday ? parseFloat(sum_Revenue_Yesterday).toLocaleString("vi-VN") : "0")} VND
                     </h2>
                 </div>
 
                 <div className="bg-white p-5 rounded-xl shadow">
                     <p className="text-gray-500 text-sm">Tháng này</p>
                     <h2 className="text-2xl font-bold mt-1">
-                        {formatMoney(stats.month)}
+                        {parseFloat((sum_Revenue_Month ?? 0)).toLocaleString('vi-VN')} VND
                     </h2>
                 </div>
 
@@ -262,39 +244,40 @@ const Revenue = () => {
                     <thead className="bg-gray-50 text-sm text-gray-500">
                         <tr>
                             <th className="text-left p-4">Ngày giao dịch</th>
-                            <th className="text-left p-4">Danh mục</th>
-                            <th className="text-left p-4">Số lượng</th>
+                            <th className="text-left p-4">Tên món</th>
+                            <th className="text-left p-4 text-center">Số lượng</th>
                             <th className="text-left p-4">Số tiền</th>
-                            <th className="text-left p-4">Trạng thái</th>
+                            {/* <th className="text-left p-4">Trạng thái</th> */}
                             <th className="text-left p-4">Thao tác</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        {transactions.length > 0 ? (
-                            transactions.map((item) => (
+                        {transactions_Revenue_Month.length > 0 ? (
+                            transactions_Revenue_Month.map((item) => (
                                 <tr key={item.id} className="border-t">
-                                    <td className="p-4">{item.date}</td>
-                                    <td className="p-4">{item.name}</td>
-                                    <td className="p-4">
-                                        {item.quantity || 0}
+                                    <td className="p-4">{item["daily_operation.operation_date"]
+                                        ? new Date(item["daily_operation.operation_date"]).toLocaleDateString('vi-VN')
+                                        : 'N/A'}</td>
+                                    <td className="p-4">{item["dish.name"]}</td>
+                                    <td className="p-4 text-center">
+                                        {item.quantity_used || 0}
                                     </td>
                                     <td className="p-4 font-semibold">
-                                        {formatMoney(item.amount)}
+                                        {(Number(item.revenue_cost)).toLocaleString("vi-VN")} VND
                                     </td>
-                                    <td className="p-4">
+                                    {/* <td className="p-4">
                                         <span
-                                            className={`px-3 py-1 rounded-full text-xs ${
-                                                item.status === "success"
+                                            className={`px-3 py-1 rounded-full text-xs ${item.status === "success"
                                                     ? "bg-green-100 text-green-600"
                                                     : "bg-yellow-100 text-yellow-600"
-                                            }`}
+                                                }`}
                                         >
                                             {item.status === "success"
                                                 ? "Thành công"
                                                 : "Đang xử lý"}
                                         </span>
-                                    </td>
+                                    </td> */}
                                     {/* THÊM CỘT THAO TÁC VỚI NÚT XUẤT EXCEL */}
                                     <td className="p-4">
                                         <button
@@ -335,7 +318,7 @@ const Revenue = () => {
 
                 {/* Pagination */}
                 <div className="flex justify-between items-center p-4 text-sm text-gray-500">
-                    <span>Hiển thị {transactions.length} giao dịch</span>
+                    <span>Hiển thị {transactions_Revenue_Month.length} giao dịch</span>
                     <div className="flex gap-2">
                         <button className="px-3 py-1 bg-green-500 text-white rounded">
                             1
