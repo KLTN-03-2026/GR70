@@ -5,21 +5,21 @@ export const AdminDashboard = () => {
         {
             title: "Tổng cửa hàng đang hoạt động",
             value: "12",
-            note: "Tính theo số cửa hàng đang mở và có dữ liệu trong hệ thống hiện tại",
+            note: "Các cửa hàng đang vận hành ổn định",
             accent: "bg-emerald-500",
             soft: "bg-emerald-50 text-emerald-600",
         },
         {
             title: "Tài khoản đang hoạt động",
             value: "48",
-            note: "Tính theo tài khoản Admin, Manager, Kitchen chưa bị khóa",
+            note: "Tài khoản đang có quyền truy cập hệ thống",
             accent: "bg-blue-500",
             soft: "bg-blue-50 text-blue-600",
         },
         {
             title: "% lãng phí toàn hệ thống",
             value: "7.8%",
-            note: "Tính theo tháng hiện tại = tổng món dư / tổng món ra × 100",
+            note: "Tỷ lệ lãng phí trung bình toàn hệ thống",
             accent: "bg-amber-500",
             soft: "bg-amber-50 text-amber-600",
         },
@@ -88,11 +88,11 @@ export const AdminDashboard = () => {
                             </button>
                         </div>
                     </header>
-                    <p className="mt-1 ml-10 text-sm text-slate-500">
+                    <p className="mt-4 ml-10 text-sm text-slate-500">
                         Theo dõi cửa hàng, tài khoản và mức lãng phí toàn hệ thống
                     </p>
 
-                    <div className="space-y-6 px-8 py-8">
+                    <div className="space-y-6 px-8 py-6">
                         <div className="grid grid-cols-3 gap-4">
                             {summaryCards.map((card, index) => (
                                 <div key={index} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -114,9 +114,6 @@ export const AdminDashboard = () => {
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <h2 className="text-lg font-semibold">Cửa hàng có lãng phí cao trong tháng hiện tại</h2>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                            Công thức: % lãng phí = tổng món dư trong tháng / tổng món ra trong tháng × 100
-                                        </p>
                                     </div>
                                     <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">Mốc thời gian: Tháng hiện tại</div>
                                 </div>
@@ -165,15 +162,6 @@ export const AdminDashboard = () => {
                                 <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700">
                                     Xem tất cả cửa hàng
                                 </button>
-                            </div>
-
-                            <div className="mt-4 grid grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                <div>
-                                    <span className="font-semibold text-slate-800">% lãng phí cửa hàng:</span> tổng món dư trong tháng / tổng món ra trong tháng × 100
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-slate-800">Nguyên liệu sắp hết:</span> số nguyên liệu có tồn kho hiện tại nhỏ hơn hoặc bằng mức tối thiểu
-                                </div>
                             </div>
 
                             <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
