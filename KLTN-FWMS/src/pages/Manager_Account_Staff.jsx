@@ -162,20 +162,6 @@ const Manager_Account_Staff = () => {
                             </button>
                         </div>
 
-                        {/* Tabs */}
-                        <div className="border-b border-slate-200 ">
-                            <nav className="flex gap-8">
-                                <button className="pb-4 px-1 border-b-2 border-primary text-primary font-bold text-sm">
-                                    Tất cả (24)
-                                </button>
-                                <button className="pb-4 px-1 border-b-2 border-transparent text-slate-500  font-medium text-sm hover:text-slate-700">
-                                    Đang hoạt động (18)
-                                </button>
-                                <button className="pb-4 px-1 border-b-2 border-transparent text-slate-500  font-medium text-sm hover:text-slate-700">
-                                    Đã khóa (6)
-                                </button>
-                            </nav>
-                        </div>
                         {/* List Kitchen Staff  */}
                         <Row_Account_Staff />
                         {/* List Kitchen Staff  */}
