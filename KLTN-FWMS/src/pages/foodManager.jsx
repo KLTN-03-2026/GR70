@@ -514,10 +514,17 @@ export default function IngredientsPage() {
     useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    const formatDate = (iso) => {
-        const d = new Date(iso);
-        return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+    const formatDate = (date) => {
+        return new Date(date).toLocaleString("vi-VN", {
+            timeZone: "Asia/Ho_Chi_Minh",
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
     };
+
 
     // ── Handlers ───────────────────────────────────────────────────────────────
     const handleAdd = (item) => {
@@ -742,48 +749,52 @@ export default function IngredientsPage() {
                                                     Chưa có lịch sử giao dịch
                                                 </td>
                                             </tr>
-                                        ) : transactions.map((tx) => {
-                                            const badge = getTransactionTypeBadge(tx.type);
-                                            const isPositive = tx.type === "extra";
+                                        ) : [...transactions]
+                                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                                            .map((tx) => {
 
-                                            return (
-                                                <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
-                                                    <td className="px-6 py-4 text-xs text-slate-600 whitespace-nowrap">
-                                                        {formatDate(tx.created_at)}
-                                                    </td>
+                                                const badge = getTransactionTypeBadge(tx.type);
+                                                const isPositive = tx.type === "extra";
 
-                                                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                                                        {tx.ingredient?.name ?? "—"}
-                                                        <span className="ml-1.5 text-xs text-slate-400">
-                                                            ({tx.ingredient?.unit})
-                                                        </span>
-                                                    </td>
+                                                return (
+                                                    <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+                                                        <td className="px-6 py-4 text-xs text-slate-600 whitespace-nowrap">
+                                                            {formatDate(tx.created_at)}
+                                                        </td>
 
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${badge.className}`}>
-                                                            {badge.label}
-                                                        </span>
-                                                    </td>
+                                                        <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                                                            {tx.ingredient?.name ?? "—"}
+                                                            <span className="ml-1.5 text-xs text-slate-400">
+                                                                ({tx.ingredient?.unit})
+                                                            </span>
+                                                        </td>
 
-                                                    <td
-                                                        className="px-6 py-4 text-sm text-right font-bold"
-                                                        style={{
-                                                            color: isPositive ? "var(--color-primary)" : "#dc2626"
-                                                        }}
-                                                    >
-                                                        {isPositive ? "+" : "-"}
-                                                        {parseFloat(tx.quantity).toFixed(2)} {tx.ingredient?.unit}
-                                                    </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${badge.className}`}>
+                                                                {badge.label}
+                                                            </span>
+                                                        </td>
 
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
-                                                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>person</span>
-                                                            {tx.user?.name ?? "—"}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
+                                                        <td
+                                                            className="px-6 py-4 text-sm text-right font-bold"
+                                                            style={{
+                                                                color: isPositive ? "var(--color-primary)" : "#dc2626"
+                                                            }}
+                                                        >
+                                                            {isPositive ? "+" : "-"}
+                                                            {parseFloat(tx.quantity).toFixed(2)} {tx.ingredient?.unit}
+                                                        </td>
+
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
+                                                                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>person</span>
+                                                                {tx.user?.name ?? "—"}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+
                                         }
                                     </tbody>
                                 </table>
