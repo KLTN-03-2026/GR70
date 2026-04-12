@@ -156,3 +156,15 @@ exports.GetIngredientsByDishID = async function (req, res, next) {
         return next(error);
     }
 }
+
+// xem món ăn chi tiết
+exports.GetDishDetail = async function (req, res, next) {
+    try {
+        const dishID = req.params.dishID;
+        await CheckServices.checkDish(dishID);
+        const getDishDetail = await DishesRepository.GetDishDetail(dishID);
+        return res.json(ApiSuccess.getSelect("Dish detail", getDishDetail));
+    } catch (error) {
+        return next(error);
+    }
+}
