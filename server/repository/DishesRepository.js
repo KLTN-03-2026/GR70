@@ -1,4 +1,4 @@
-const {DishModel, DishRecipeModel, DishCategoryModel, UserModel, IngredientModel} = require("../models/index");
+const {DishModel, DishRecipeModel, DishCategoryModel, UserModel, IngredientModel, DailyDetailModel} = require("../models/index");
 
 
 class DishesRepository {
@@ -174,6 +174,34 @@ class DishesRepository {
         try {
             const dishRecipes = await DishRecipeModel.findOne({ where: { id: id } });
             return dishRecipes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // lấy chi tiết món ăn
+    async GetDishDetail(id) {
+        try {
+            const dish = await DishModel.findOne({ 
+                attributes: ['id', 'name', 'price', 'des', 'status'],
+                where: { id: id },
+                include: [{
+                    model:   DishCategoryModel,
+                    attributes: ['name']
+                  },{
+                      model: UserModel,
+                      attributes: ['name']
+                  },{
+                    model:   DishRecipeModel,
+                    attributes: ['id', 'quantity'],
+                    include: [{
+                        model:   IngredientModel,
+                        attributes: ['name','unit']
+                      }]
+                  }]
+            });
+            const totalSellDishPrepared = await DailyDetailModel.sum('quantity_prepared', { where: { dishes_id: id } }) || 0;
+            const totalSellDishWaste = await DailyDetailModel.sum('quantity_wasted', { where: { dishes_id: id } }) || 0;
+            return { dish, totalSellDishPrepared, totalSellDishWaste };
         } catch (error) {
             throw error;
         }

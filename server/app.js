@@ -25,6 +25,7 @@ var RevenueRouter = require('./routes/RevenueRoutes');
 var DashboardKitchenRouter = require('./routes/Kitchen/DashboardRoutes');
 var AdminDashboardRouter = require('./routes/admin/dashboardRoutes');
 var ReportWasteRouter = require('./routes/reportWasteRoutes');
+var ChatRouter = require('./routes/chatRoutes');
 // cron
 const { OperationDaily, CallAIEveryDays } = require('./routes/cron');
 //test
@@ -70,6 +71,7 @@ app.use('/api/consumption', ConsumptionRouter);
 app.use('/api/history', HistoryWasteRouter);
 app.use('/api/revenue', RevenueRouter);
 app.use('/api/report-waste', ReportWasteRouter);
+app.use('/api/chat', ChatRouter);
 //kithen
 app.use('/api/kitchen', KitchenRouter);
 //admin

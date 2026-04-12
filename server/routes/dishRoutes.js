@@ -10,4 +10,5 @@ router.get('/get-all-dishes-false', authorize(["Manager"]), DishesController.Get
 router.get('/get-all-dishes', DishesController.GetAllDishesTrue);
 router.put('/approve-dishes/:DishID', authorize(["Manager", "Admin"]), DishesController.ApproveDishes);
 router.get('/get-recipes-by-dish/:dishID',authorize(["Manager", "Admin"]), DishesController.GetIngredientsByDishID);
+router.get('/get-dish-detail/:dishID', DishesController.GetDishDetail);
 module.exports = router;

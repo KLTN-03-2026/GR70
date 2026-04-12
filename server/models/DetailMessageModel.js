@@ -20,7 +20,7 @@ const DetailMessageModel = sequelize.define('detail_message', {
   },
   status: {
     type: DataTypes.BOOLEAN,
-    defaultValue: false
+    defaultValue: true
   },
   created_at: {
     type: DataTypes.DATE,
