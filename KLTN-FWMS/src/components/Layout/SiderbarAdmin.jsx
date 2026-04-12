@@ -26,6 +26,7 @@ export const SiderbarAdmin = () => {
 
     const logout = () => {
         localStorage.removeItem("token");
+        navigate("/");
     }
 
     return (

@@ -154,6 +154,7 @@ function ConfirmLockModal({ item, onClose, onConfirm }) {
   );
 }
 
+
 // ─── Food Form Modal ─────────────────────────────────────────────────────────
 function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, showToast }) {
   const userInfo = getUserInfo();
@@ -503,7 +504,7 @@ export default function FoodsPage() {
   const handleLock = async (id) => {
     try {
       await deleteDish(id);
-      await fetchFoods();
+      await fetchFoods(); // refetch để tab "Chờ duyệt" cũng cập nhật
       showToast("Đã khóa món ăn thành công.");
     } catch (err) {
       const msg = err?.response?.data?.message || "";

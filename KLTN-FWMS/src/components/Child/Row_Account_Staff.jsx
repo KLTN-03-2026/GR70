@@ -9,6 +9,14 @@ export const Row_Account_Staff = () => {
     const [visibility_password, setVisibility_Password] = useState(null);
     const token = localStorage.getItem("token");
     const [countID, setcountID] = useState(null);
+    //Filter
+    const [filterStatus, setFilterStatus] = useState("all");
+
+    const filteredStaff = datastaff.filter((staff) => {
+        if (filterStatus === "active") return staff.status === true;
+        if (filterStatus === "locked") return staff.status === false;
+        return true; // all
+    });
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -78,9 +86,9 @@ export const Row_Account_Staff = () => {
             return toast.warning("Không có gì thay đổi!");
         }
 
-        
+
         if (openform_changekitchen) {
-            if(openform_changekitchen.status == false){
+            if (openform_changekitchen.status == false) {
                 toast.error("Không thể sửa tài khoản đã bị khóa!");
                 return;
             }
@@ -109,7 +117,7 @@ export const Row_Account_Staff = () => {
         );
         if (!confirm) return;
         console.log(currentStatus);
-        
+
         try {
             let Url = "";
             if (currentStatus) {
@@ -117,7 +125,7 @@ export const Row_Account_Staff = () => {
             } else {
                 Url = `https://system-waste-less-ai.onrender.com/api/users/unlock-kitchen/${id}`;
                 console.log(Url);
-                
+
             }
             const res = await axios.put(Url,
                 {
@@ -149,9 +157,27 @@ export const Row_Account_Staff = () => {
         <>
             <div className={`w-full gap-8 transition-all duration-300 flex relative`}>
                 {/* Table Section */}
+
                 <div className={`space-y-6 transition-all duration-300 ${selectedStaff == null ? "w-full" : "w-2/3"}`}>
+                    {/* Tabs */}
+                    <div className="border-b border-slate-200 ">
+                        <nav className="flex gap-8 transition-all duration-300">
+                            <button onClick={()=>setFilterStatus("all")} className={`${filterStatus === "all" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
+                                Tất cả
+                            </button>
+                            <button onClick={()=>setFilterStatus("active")} className={`${filterStatus === "active" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
+                                Đang hoạt động
+                            </button>
+                            <button onClick={()=>setFilterStatus("locked")} className={`${filterStatus === "locked" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
+                                Đã khóa
+                            </button>
+                        </nav>
+                    </div>
+
+                    
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="overflow-x-auto">
+
                             <table className={`text-left border-collapse w-full`}>
                                 <thead>
                                     <tr className="bg-slate-50 text-center">
@@ -165,7 +191,7 @@ export const Row_Account_Staff = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 ">
 
-                                    {datastaff.map((staff, index) => (
+                                    {filteredStaff.map((staff, index) => (
                                         <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors group text-center">
 
                                             <td key={staff.id} className="px-3 py-4 text-sm font-medium">

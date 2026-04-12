@@ -524,8 +524,6 @@ export default function IngredientsPage() {
             year: "numeric"
         });
     };
-
-
     // ── Handlers ───────────────────────────────────────────────────────────────
     const handleAdd = (item) => {
         setIngredients((prev) => [item, ...prev]);
@@ -752,7 +750,6 @@ export default function IngredientsPage() {
                                         ) : [...transactions]
                                             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                                             .map((tx) => {
-
                                                 const badge = getTransactionTypeBadge(tx.type);
                                                 const isPositive = tx.type === "extra";
 
@@ -761,30 +758,22 @@ export default function IngredientsPage() {
                                                         <td className="px-6 py-4 text-xs text-slate-600 whitespace-nowrap">
                                                             {formatDate(tx.created_at)}
                                                         </td>
-
                                                         <td className="px-6 py-4 text-sm font-medium text-slate-900">
                                                             {tx.ingredient?.name ?? "—"}
                                                             <span className="ml-1.5 text-xs text-slate-400">
                                                                 ({tx.ingredient?.unit})
                                                             </span>
                                                         </td>
-
                                                         <td className="px-6 py-4 text-right">
                                                             <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${badge.className}`}>
                                                                 {badge.label}
                                                             </span>
                                                         </td>
-
-                                                        <td
-                                                            className="px-6 py-4 text-sm text-right font-bold"
-                                                            style={{
-                                                                color: isPositive ? "var(--color-primary)" : "#dc2626"
-                                                            }}
-                                                        >
+                                                        <td className="px-6 py-4 text-sm text-right font-bold"
+                                                            style={{ color: isPositive ? "var(--color-primary)" : "#dc2626" }}>
                                                             {isPositive ? "+" : "-"}
                                                             {parseFloat(tx.quantity).toFixed(2)} {tx.ingredient?.unit}
                                                         </td>
-
                                                         <td className="px-6 py-4 text-right">
                                                             <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
                                                                 <span className="material-symbols-outlined" style={{ fontSize: 14 }}>person</span>
@@ -794,7 +783,6 @@ export default function IngredientsPage() {
                                                     </tr>
                                                 );
                                             })
-
                                         }
                                     </tbody>
                                 </table>
