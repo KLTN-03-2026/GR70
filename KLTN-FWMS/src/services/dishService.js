@@ -83,3 +83,7 @@ export const getRecipesByDish = async (dishId) => {
     const res = await api.get(`/dishes/get-recipes-by-dish/${dishId}`);
     return res.data;
 };
+export const getDishDetail = async (id) => {
+    const res = await api.get(`dishes/get-dish-detail/${id}`);
+    return res.data;
+};
