@@ -2,7 +2,6 @@ const ApiError = require("../utils/ApiError");
 const ApiSuccess = require("../utils/ApiSuccess");
 const ChatRepository = require("../repository/ChatRepository");
 const ChatServices = require("../services/ChatServices");
-const socket = require('../config/connectSocketIO');
 
 exports.sendChatUser = async (req, res, next) => {
     try {
@@ -10,10 +9,12 @@ exports.sendChatUser = async (req, res, next) => {
         const userID = req.user.userId;
         let receiverId;
         const check = await ChatServices.checkMessage(data.message_id);
-        if(check.user_id1 === userID && check.user_id2 !== userID) {
+        if(check.user_id1 === userID) {
             receiverId = check.user_id2;
-        }else{
+        }else if (check.user_id2 === userID) {
             receiverId = check.user_id1;
+        }else{
+            throw ApiError.NotFound("Bạn không thuộc nội dung cuộc họp này");
         }
         const result = await ChatRepository.sendChatUser(data.message_id,data.content,userID);
         global._io
