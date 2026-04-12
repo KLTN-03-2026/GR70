@@ -3,6 +3,7 @@ const ApiError = require("../utils/ApiError");
 // const cloudinary=require("../config/connectCloudinary")
 const CheckServices = require("../services/CheckServices");
 const AuthRepository = require("../repository/AuthRepository");
+const ChatRepository = require("../repository/ChatRepository");
 // const sendVerificationEmail = require("../utils/sendMail");
 const sequelize = require("../config/connectData");
 const jwt = require("jsonwebtoken");
@@ -33,8 +34,11 @@ exports.register=async (req, res, next) => {
         // tạo lưu user//
         const newUser = await AuthRepository.createUser(data, newBrand.id , { transaction: t });
         //  gán role manager
-        const roleManager="73799aa1-2e76-4a17-bd78-40b4a472f9f8";
+        const roleManager=process.env.ROLE_MANAGER;
+        const adminID = process.env.ADMIN_ID;
         await AuthRepository.createRole(newUser.id, roleManager, { transaction: t });
+        // tạo group chat
+        await ChatRepository.createChat(adminID, newUser.id, { transaction: t });
         await t.commit();
         return res.json(ApiSuccess.created("User registered successfully"));
     } catch (error) {
