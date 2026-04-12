@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getUserInfo } from "../utils/auth";
+import ViewFood from "../components/FoodView";
 
 import {
   getAllDishes,
@@ -499,7 +500,7 @@ export default function FoodsPage() {
     fetchFoods();
   }, [fetchFoods]);
 
-  // FIX 1: Sau khi khóa → gọi fetchFoods() để cập nhật cả 2 tab realtime
+
   const handleLock = async (id) => {
     try {
       await deleteDish(id);
@@ -766,6 +767,19 @@ export default function FoodsPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-1.5">
                             <button
+                              onClick={() => setModal({ type: "viewIngredients", item })}
+                              className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                              title="Xem nguyên liệu"
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{ fontSize: 18, color: "#3b82f6" }}
+                              >
+                                visibility
+                              </span>
+                            </button>
+
+                            <button
                               onClick={() => setModal({ type: "edit", item })}
                               className="p-2 rounded-lg hover:bg-green-50 transition-colors"
                               title="Cập nhật"
@@ -807,6 +821,7 @@ export default function FoodsPage() {
                     )}
                   </tbody>
                 </table>
+
               </section>
             )}
 
@@ -929,7 +944,12 @@ export default function FoodsPage() {
           showToast={showToast}
         />
       )}
-
+      {modal?.type === "viewIngredients" && (
+        <ViewFood
+          food={modal.item}
+          onClose={() => setModal(null)}
+        />
+      )}
       {modal?.type === "edit" && modal.item && (
         <FoodFormModal
           initial={modal.item}
