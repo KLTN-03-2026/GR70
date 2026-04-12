@@ -5,6 +5,8 @@ const {
   UserModel
 } = require("../models/index");
 const sequelize = require("../config/connectData");
+const pagination = require("../utils/pagination");
+const { where } = require("sequelize");
 class IngredientRepository {
   async createIngredient(data, brandID) {
     return await IngredientModel.create({ ...data, brand_id: brandID });
@@ -68,18 +70,24 @@ class IngredientRepository {
   });
   }
   // lịch sử nguyên liệu
-  async getIngredientTransaction(brandID) {
-    return await IngredientStockTransactionModel.findAll({ 
-        attributes: ['id', 'type', 'quantity', 'created_at'],
-        include: [{
-            model: IngredientModel,
-            attributes: ['name',"unit"],
-        },{
-            model: UserModel,
-            attributes: ['name'],
-            where: {brand_id: brandID}
-        }]
-    });
+  async getIngredientTransaction(brandID,options) {
+    return await pagination.getPagination({
+      model: IngredientStockTransactionModel,
+      attributes: ['id', 'type', 'quantity', 'created_at'],
+      include: [{
+          model: IngredientModel,
+          attributes: ['name',"unit"],
+      },{
+          model: UserModel,
+          attributes: ['name'],
+          where: {brand_id: brandID}
+      }],
+      searchFields: [
+      'type',
+      '$ingredient.name$'  // 👈 search theo tên nguyên liệu
+    ],
+      ...options
+    })
   }
 }
 module.exports = new IngredientRepository();

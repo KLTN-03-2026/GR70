@@ -9,7 +9,7 @@ async function getPagination({
   filters = {},  // { search, isActive, fromDate, toDate }
   orderBy = "create_at",
   order = "ASC",
-  searchFields = ["name", "title"], // cột được tìm kiếm khi có search
+  searchFields = ["name"], // cột được tìm kiếm khi có search
   where = {} , // custom where thêm ngoài filters
   include = []  
 }) {
@@ -17,8 +17,7 @@ async function getPagination({
   const offset = (page - 1) * size;
 
   // --- Build dynamic conditions ---
-  console.log(filters);
-  
+  // console.log(filters);
   if (filters.search) {
     where[Op.or] = searchFields.map(field => ({
       [field]: { [Op.iLike]: `%${filters.search}%` }
