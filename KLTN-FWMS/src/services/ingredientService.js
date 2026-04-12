@@ -1,6 +1,6 @@
 import api from "./api";
 
-// ====================== INGREDIENT SERVICES ======================
+
 export const getIngredients = async () => {
     const res = await api.get("ingredients/get-ingredients-by-brand");
     return res.data;
