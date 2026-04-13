@@ -1,11 +1,13 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route ,Navigate} from "react-router-dom";
 import { Toaster } from "sonner";
+
 
 // Layouts
 import Layout from "./components/Layout/Layout";
 import KitchenLayout from "./components/Layout/KitchenLayout";
 import { LayoutAdmin } from "./components/Layout/LayoutAdmin";
+
 
 // Routes bảo vệ
 import PrivateRoute from "./components/PrivateRoute";
@@ -25,6 +27,7 @@ import IngredientManager from "./pages/IngredientManager";
 import Revenue from "./pages/Revenue";
 import WasteHistory from "./pages/WasteHistory";
 import Manager_Account_Staff from "./pages/Manager_Account_Staff";
+import ManagerProfile from "./pages/ManagerProfile";
 
 // Kitchen Pages
 import KitchenDashboard from "./pages/kitchen/KitchenDashboard";
@@ -38,6 +41,14 @@ import WasteReportPage from "./components/WasteReportPage";
 
 // Admin Pages
 import { AdminDashboard } from "./pages/Admin/AdminDashboard";
+import { StoreManager } from "./pages/Admin/StoreManager";
+import { UserManager } from "./pages/Admin/UserManager";
+
+
+
+
+
+
 
 function App() {
     const token = localStorage.getItem("token");
@@ -83,6 +94,7 @@ function App() {
                             path="waste-base"
                             element={<WasteReportPage />}
                         />
+                        <Route path="profile" element={<ManagerProfile />} />
                     </Route>
 
                     {/* Kitchen */}
@@ -105,18 +117,14 @@ function App() {
                     </Route>
 
                     {/* Admin */}
-                    <Route
-                        path="/admin"
-                        element={
-                            <AdminRoute>
-                                <LayoutAdmin />
-                            </AdminRoute>
-                        }
-                    >
+                    <Route path="/admin" element={<AdminRoute> <LayoutAdmin /></AdminRoute>} >
+                        <Route index element={<Navigate to="dashboard" replace />} />
                         <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="storeManager" element={<StoreManager />} />
+                        <Route path="userManager" element={<UserManager />} />
+
                     </Route>
                 </Routes>
-
             </Router>
         </>
     );

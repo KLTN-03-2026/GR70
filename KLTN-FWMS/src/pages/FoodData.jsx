@@ -17,7 +17,7 @@ const FoodData = () => {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "https://wasteless-ai.onrender.com/api/consumption/list-dishes-output-lastday",
+                "https://system-waste-less-ai.onrender.com/api/consumption/list-dishes-output-lastday",
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
