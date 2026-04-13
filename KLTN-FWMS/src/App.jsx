@@ -33,6 +33,7 @@ import ManagerProfile from "./pages/ManagerProfile";
 import KitchenDashboard from "./pages/kitchen/KitchenDashboard";
 import SurplusDishes from "./pages/kitchen/SurplusDishes/SurplusDishes";
 import ProfilePage from "./pages/kitchen/ProfilePage";
+import Manager_Dish_Kitchen from "./pages/kitchen/ServedDishes/Manager_Dish_Kitchen";
 
 // Components
 
@@ -49,12 +50,10 @@ import { UserManager } from "./pages/Admin/UserManager";
 
 
 
-// Widget
-import ChatWidget from "./components/ChatWidget";
-import Manager_Dish_Kitchen from "./pages/kitchen/ServedDishes/Manager_Dish_Kitchen";
-
 function App() {
     const token = localStorage.getItem("token");
+
+
     return (
         <>
             <Toaster position="top-right" richColors />
@@ -126,9 +125,6 @@ function App() {
 
                     </Route>
                 </Routes>
-
-                {/* Global Widget */}
-                {!token && <ChatWidget />}
             </Router>
         </>
     );

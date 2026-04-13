@@ -1,46 +1,74 @@
 import { useState, useRef, useEffect } from "react";
+import socket from "../services/Socket";
+import axios from "axios";
 
-export default function ChatWidget() {
+export default function ChatWidget({ userId }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [position, setPosition] = useState({ x: 20, y: 300 });
-
+    const [chatList, setChatList] = useState([]);
+    const [activeChat, setActiveChat] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState("");
+    const [content, setContent] = useState("");
 
-    const currentUserId = 1;
-    const currentMessageId = 1;
-
-    const dragging = useRef(false);
-    const offset = useRef({ x: 0, y: 0 });
     const bottomRef = useRef(null);
+    const API = "https://system-waste-less-ai.onrender.com/api";
 
-    // ================= DRAG =================
-    const handleMouseDown = (e) => {
-        dragging.current = true;
-        offset.current = {
-            x: e.clientX - position.x,
-            y: e.clientY - position.y,
+    const config = {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    };
+
+    // ================= LOAD LIST CHAT =================
+    useEffect(() => {
+        if (!userId) return;
+
+        const fetchList = async () => {
+            try {
+                const res = await axios.get(`${API}/chat/list-message`, config);
+                setChatList(res.data.data);
+            } catch (err) {
+                console.error(err);
+            }
         };
-    };
 
-    const handleMouseMove = (e) => {
-        if (!dragging.current) return;
-        setPosition({
-            x: e.clientX - offset.current.x,
-            y: e.clientY - offset.current.y,
+        fetchList();
+    }, [userId]);
+
+    // ================= JOIN ROOM =================
+    useEffect(() => {
+        if (!activeChat) return;
+
+        socket.emit("join_room", `message_${activeChat}`, config);
+
+        socket.on("receive_message", (data) => {
+            setMessages((prev) => [...prev, data]);
         });
-    };
 
-    const handleMouseUp = () => {
-        dragging.current = false;
-    };
+        return () => {
+            socket.off("receive_message");
+        };
+    }, [activeChat]);
 
     // ================= LOAD MESSAGE =================
     useEffect(() => {
-        fetch(`http://localhost:5173/KLTN-FWMS/Detail_message?message_id=${currentMessageId}`)
-            .then((res) => res.json())
-            .then((data) => setMessages(data));
-    }, []);
+        if (!activeChat) return;
+
+        const fetchMessages = async () => {
+            try {
+                const res = await axios.get(
+                    `${API}/chat/get-message/${activeChat}`, config
+                );
+                setMessages(res.data.data);
+
+                // mark as read
+                await axios.get(`${API}/chat/mark-as-read/${activeChat}`);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchMessages();
+    }, [activeChat]);
 
     // ================= AUTO SCROLL =================
     useEffect(() => {
@@ -49,56 +77,66 @@ export default function ChatWidget() {
 
     // ================= SEND =================
     const handleSend = async () => {
-        if (!input.trim()) return;
+        if (!content.trim() || !activeChat) return;
 
-        const newMsg = {
-            message_id: currentMessageId,
-            user_id: currentUserId,
-            content: input,
-            status: "sent",
-            createAt: new Date().toISOString(),
-        };
+        try {
+            const res = await axios.post(
+                `${API}/chat/send`,
+                {
+                    message_id: activeChat,
+                    content: content,
+                },
+                config
+            );
 
-        await fetch("http://localhost:5173/KLTN-FWMS/Detail_message", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(newMsg),
+            // ✅ ADD NGAY VÀO UI (QUAN TRỌNG)
+            setMessages((prev) => [...prev, res.data.data]);
+
+            setContent("");
+        } catch (err) {
+            console.error("❌ Send lỗi:", err.response?.data || err);
+        }
+    };
+
+    // ================= NOTIFICATION =================
+    useEffect(() => {
+        if (!userId) return;
+
+        socket.emit("join_user", `user_${userId}`);
+
+        socket.on("new_message_notification", (data) => {
+            console.log("🔔 Tin nhắn mới:", data);
+
+            // có thể update UI badge ở đây
         });
 
-        setMessages((prev) => [...prev, { ...newMsg, id: Date.now() }]);
-        setInput("");
-    };
+        return () => {
+            socket.off("new_message_notification");
+        };
+    }, [userId]);
 
     return (
         <>
-            {/* CHAT ICON */}
+            {/* ICON */}
             <div
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
                     position: "fixed",
-                    left: position.x,
-                    top: position.y,
+                    bottom: 20,
+                    right: 20,
                     cursor: "pointer",
                     zIndex: 9999,
                 }}
             >
-                <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                    <div className="w-8 h-6 bg-white rounded-md relative">
-                        <div className="absolute top-1 left-1 w-5 h-1 bg-green-500 rounded"></div>
-                        <div className="absolute top-3 left-1 w-4 h-1 bg-green-500 rounded"></div>
-                    </div>
+                <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center text-white text-xl shadow-lg">
+                    💬
                 </div>
             </div>
 
-            {/* POPUP */}
+            {/* CHAT BOX */}
             {isOpen && (
-                <div className="fixed bottom-24 right-6 w-[500px] h-[600px] bg-white rounded-2xl shadow-2xl flex z-50 overflow-hidden">
-                    
+                <div className="fixed bottom-24 right-10 w-[500px] h-[600px] bg-white rounded-2xl shadow-2xl flex overflow-hidden">
+
                     {/* SIDEBAR */}
                     <div className="w-[180px] bg-gray-50 border-r flex flex-col">
                         <div className="p-3">
@@ -109,24 +147,19 @@ export default function ChatWidget() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
-                            {[
-                                { name: "Lê Thị Mai", role: "Admin" },
-                                { name: "Trần Hoàng Nam", role: "Manager" },
-                                { name: "Bếp Trưởng Toàn", role: "Kitchen" },
-                            ].map((u, i) => (
+                            {chatList.map((chat) => (
                                 <div
-                                    key={i}
-                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-200 cursor-pointer"
+                                    key={chat.id}
+                                    onClick={() => setActiveChat(chat.id)}
+                                    className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-200 ${activeChat === chat.id && "bg-gray-300"
+                                        }`}
                                 >
                                     <img
-                                        src={`https://i.pravatar.cc/40?img=${i + 1}`}
+                                        src={`https://i.pravatar.cc/40?u=${chat.other_user_id}`}
                                         className="w-8 h-8 rounded-full"
                                     />
-                                    <div>
-                                        <div className="text-xs font-medium">{u.name}</div>
-                                        <div className="text-[10px] text-green-500">
-                                            {u.role}
-                                        </div>
+                                    <div className="text-xs font-medium">
+                                        {chat.other_user_name}
                                     </div>
                                 </div>
                             ))}
@@ -135,15 +168,11 @@ export default function ChatWidget() {
 
                     {/* CHAT */}
                     <div className="flex-1 flex flex-col">
-                        
+
                         {/* HEADER */}
-                        <div className="p-3 border-b flex items-center gap-2">
-                            <img
-                                src="https://i.pravatar.cc/40"
-                                className="w-8 h-8 rounded-full"
-                            />
+                        <div className="p-3 border-b flex items-center">
                             <span className="font-medium text-sm">
-                                Lê Thị Mai
+                                {chatList.find(c => c.id === activeChat)?.other_user_name || "Chat"}
                             </span>
 
                             <button
@@ -157,7 +186,7 @@ export default function ChatWidget() {
                         {/* MESSAGES */}
                         <div className="flex-1 p-3 overflow-y-auto space-y-2 bg-gray-100 text-sm">
                             {messages.map((msg) => {
-                                const isMe = msg.user_id === currentUserId;
+                                const isMe = msg.user_id === userId;
 
                                 return isMe ? (
                                     <div key={msg.id} className="flex justify-end">
@@ -182,20 +211,22 @@ export default function ChatWidget() {
                         </div>
 
                         {/* INPUT */}
-                        <div className="p-2 border-t flex gap-2">
-                            <input
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="Nhập tin nhắn..."
-                                className="flex-1 border rounded-full px-3 py-2 text-sm"
-                            />
-                            <button
-                                onClick={handleSend}
-                                className="bg-green-500 text-white px-4 rounded-full"
-                            >
-                                Gửi
-                            </button>
-                        </div>
+                        {activeChat && (
+                            <div className="p-2 border-t flex gap-2">
+                                <input
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    placeholder="Nhập tin nhắn..."
+                                    className="flex-1 border rounded-full px-3 py-2 text-sm"
+                                />
+                                <button
+                                    onClick={handleSend}
+                                    className="bg-green-500 text-white px-4 rounded-full"
+                                >
+                                    Gửi
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
