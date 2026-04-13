@@ -97,7 +97,7 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            {/* Thông tin hệ thống */}
+            {/* Thông tin hệ thống (READ ONLY) */}
             <div className="bg-white rounded-xl p-6 shadow-sm">
                 <h3 className="font-semibold mb-4">Thông tin hệ thống</h3>
 
@@ -111,49 +111,19 @@ export default function ProfilePage() {
                     {/* Business Type */}
                     <div>
                         <p className="text-gray-400">Loại hình</p>
-                        {isEditing ? (
-                            <select
-                                name="businessType"
-                                value={form.businessType}
-                                onChange={handleChange}
-                                className="w-full border p-2 rounded"
-                            >
-                                <option>Nhà hàng</option>
-                                <option>Khách sạn</option>
-                            </select>
-                        ) : (
-                            <p className="font-medium">{form.businessType}</p>
-                        )}
+                        <p className="font-medium">{form.businessType}</p>
                     </div>
 
                     {/* Address */}
                     <div>
                         <p className="text-gray-400">Địa chỉ quán</p>
-                        {isEditing ? (
-                            <input
-                                name="address"
-                                value={form.address}
-                                onChange={handleChange}
-                                className="w-full border p-2 rounded"
-                            />
-                        ) : (
-                            <p className="font-medium">{form.address}</p>
-                        )}
+                        <p className="font-medium">{form.address} </p>
                     </div>
 
                     {/* Province */}
                     <div>
                         <p className="text-gray-400">Tỉnh / Thành phố</p>
-                        {isEditing ? (
-                            <input
-                                name="province"
-                                value={form.province}
-                                onChange={handleChange}
-                                className="w-full border p-2 rounded"
-                            />
-                        ) : (
-                            <p className="font-medium">{form.province}</p>
-                        )}
+                        <p className="font-medium">{form.province} </p>
                     </div>
                 </div>
             </div>

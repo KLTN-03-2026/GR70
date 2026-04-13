@@ -24,18 +24,13 @@ const WasteReportPage = () => {
   // 👉 fallback tránh lỗi khi chưa có data
   const summary = data?.summary || {};
   const topWaste = data?.topWaste || [];
-  const reasons = data?.reasons || [];
 
-  // 👉 giữ màu như cũ
-  const pieData = reasons.map((item, index) => ({
-    ...item,
-    color: ["#22C55E", "#F59E0B", "#EF4444", "#374151"][index],
-  }));
+  const COLORS = ["#22C55E", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6"];
 
   return (
     <div className="ml-10 p-5 bg-[#F6F8FA] min-h-screen">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">       
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[#141C21]">
           Báo cáo Phân tích Lãng phí
         </h1>
@@ -45,21 +40,8 @@ const WasteReportPage = () => {
         />
       </div>
 
-      {/* CARDS */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl shadow-sm">
-          <p className="text-xs text-gray-500 mb-2">
-            TỔNG KHỐI LƯỢNG LÃNG PHÍ
-          </p>
-          <h2 className="text-2xl font-bold">
-            {summary.totalWaste || 0} kg
-            
-          </h2>
-          <p className="text-green-500 text-xs mt-1">
-            +12% vs tháng trước
-          </p>
-        </div>
-
+      {/* CARDS (đã bỏ totalWaste) */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow-sm">
           <p className="text-xs text-gray-500 mb-2">
             TỈ LỆ LÃNG PHÍ/NGUYÊN LIỆU
@@ -115,7 +97,6 @@ const WasteReportPage = () => {
 
             <tbody>
               {topWaste.map((item, index) => {
-                // 👉 convert data API -> UI cũ
                 const trendText =
                   item.trend > 0
                     ? `+${item.trend}%`
@@ -158,24 +139,24 @@ const WasteReportPage = () => {
           </table>
         </div>
 
-        {/* PIE */}
+        {/* PIE TOP 5 */}
         <div className="bg-white p-5 rounded-xl shadow-sm">
           <h3 className="font-semibold mb-4">
-            Lý do lãng phí chính
+            Top 5 món ăn lãng phí nhiều nhất
           </h3>
-
 
           <div className="w-full h-52">
             <ResponsiveContainer>
               <PieChart>
                 <Pie
-                  data={pieData}
+                  data={topWaste}
+                  dataKey="amount"
+                  nameKey="name"
                   innerRadius={50}
                   outerRadius={80}
-                  dataKey="value"
                 >
-                  {pieData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
+                  {topWaste.map((entry, index) => (
+                    <Cell key={index} fill={COLORS[index]} />
                   ))}
                 </Pie>
               </PieChart>
@@ -184,16 +165,18 @@ const WasteReportPage = () => {
 
           {/* LEGEND */}
           <div className="text-sm mt-4 space-y-2">
-            {pieData.map((item, index) => (
+            {topWaste.map((item, index) => (
               <div key={index} className="flex justify-between">
                 <span className="flex items-center gap-2">
                   <span
                     className="w-3 h-3 rounded-full"
-                    style={{ background: item.color }}
+                    style={{ background: COLORS[index] }}
                   ></span>
                   {item.name}
                 </span>
-                <span>{item.value}%</span>
+                <span>
+                  {item.amount} {item.unit}
+                </span>
               </div>
             ))}
           </div>

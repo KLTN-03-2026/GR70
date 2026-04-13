@@ -38,7 +38,7 @@ const Customers = () => {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "https://wasteless-ai.onrender.com/api/consumption/sum-customer-as-last-month",
+                "https://system-waste-less-ai.onrender.com/api/consumption/sum-customer-as-last-month",
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -63,7 +63,8 @@ const Customers = () => {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "https://wasteless-ai.onrender.com/api/consumption/list-customer-in-month",
+                "https://system-waste-less-ai.onrender.com/api/consumption/list-customer-in-month",
+                
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
