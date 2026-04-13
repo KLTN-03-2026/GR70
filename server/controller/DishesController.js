@@ -55,17 +55,42 @@ exports.CreateDishes = async function (req, res, next) {
 };
 // cập nhập món ăn cho manager
 exports.UpdateDishes = async function (req, res, next) {
+    const t = await sequelize.transaction();
     try {
         const data = req.body;
         const id = req.params.DishID;
         await CheckServices.checkDish(id);
-        if (!data.name || !data.price || !data.dish_category_id || !data.des) {
+        if (!data.name || !data.price || !data.dish_category_id || !data.des || !data.dish_recipes) {
             throw ApiError.ValidationError("Missing required fields");
         }
+        
         await CheckServices.checkCategoryDishes(data.dish_category_id);
-        const updateDishes = await DishesRepository.UpdateDishes(id, data);
+        const updateDishes = await DishesRepository.UpdateDishes(id, data, { transaction: t });
+        await Promise.all(
+            data.dish_recipes.map(async (item) => {
+                if (!item.quantity || !item.ingredient_id) {
+                    throw ApiError.ValidationError(
+                        "Missing required fields quantity or ingredient_id in dish_recipes"
+                    );
+                }
+                if(!item.id){
+                    return DishesRepository.CreateDishRecipes(item, id, { transaction: t });
+                }else{
+                    const checkRecipeID = await DishesRepository.CheckDishRecipesID(item.id);
+                    if(!checkRecipeID){
+                        throw ApiError.NotFound("Dish recipe not found");
+                    }
+                    return DishesRepository.UpdateDishRecipes(item, item.id, { transaction: t });
+                }
+                
+            })
+        )
+        await t.commit();
         return res.json(ApiSuccess.updated("Dish updated successfully", updateDishes));
     } catch (error) {
+        if(!t.finished){
+            await t.rollback();
+        }
         return next(error);
     }
 };
@@ -116,6 +141,29 @@ exports.GetAllDishesTrue = async function (req, res, next) {
         await CheckServices.checkBrand(BrandID);
         const getAllDishes = await DishesRepository.GetAllDishesTrue(BrandID);
         return res.json(ApiSuccess.getSelect("Dishes list", getAllDishes));
+    } catch (error) {
+        return next(error);
+    }
+}
+// all ingredient by dishID
+exports.GetIngredientsByDishID = async function (req, res, next) {
+    try {
+        const dishID = req.params.dishID;
+        await CheckServices.checkDish(dishID);
+        const getIngredientsByDishID = await DishesRepository.GetRecipesIngredientsByDishID(dishID);
+        return res.json(ApiSuccess.getSelect("Ingredients list", getIngredientsByDishID));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// xem món ăn chi tiết
+exports.GetDishDetail = async function (req, res, next) {
+    try {
+        const dishID = req.params.dishID;
+        await CheckServices.checkDish(dishID);
+        const getDishDetail = await DishesRepository.GetDishDetail(dishID);
+        return res.json(ApiSuccess.getSelect("Dish detail", getDishDetail));
     } catch (error) {
         return next(error);
     }

@@ -52,5 +52,27 @@ class AuthRepository{
             }],
         });
     }
+    async checkUserAdmin(mail) {
+        return await UserModel.findOne({
+            where: {email: mail},
+            attributes: ['id', 'email', 'name', "password"],
+            include: [{
+                model: RoleModel,
+                attributes: ['name'],
+                through: { attributes: [] } 
+            }],
+        });
+    }
+    // danh sách list kitchen cùng brand
+    async getKitchenList(brandID) {
+        return await UserModel.findAll({
+            where: { brand_id: brandID, status: true },
+            attributes: ['id'],
+            include: [{
+                model: RoleModel,
+                where:{name: "Kitchen"},
+            }],
+        });
+    }
 }
 module.exports =  new AuthRepository();

@@ -1,0 +1,10 @@
+var express = require('express');
+var router = express.Router();
+const DashboardController = require('../../controller/admin/DashboardController');
+const authorize = require('../../middleware/authorize');
+router.get('/get-report-sum-brand', authorize(["Admin"]), DashboardController.ReportBrandActive);
+router.get('/get-report-sum-user',authorize(["Admin"]), DashboardController.ReportUserActive);
+router.get('/get-report-waste-dish',authorize(["Admin"]), DashboardController.ReportPrecentWasteDish);
+router.get('/get-report-brand-waste-dish',authorize(["Admin"]), DashboardController.ReportBrandWasteDish);
+router.get('/get-report-all-brand-waste-dish',authorize(["Admin"]), DashboardController.ReportAllBrandWasteDish);
+module.exports = router;

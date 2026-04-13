@@ -9,7 +9,7 @@ export const LayoutAdmin = () => {
             <SiderbarAdmin/>
             <div className="flex-1 overflow-auto">
                 <main className="min-h-screen bg-gray-50">
-                    <Outlet/> {/* THAY {children} BẰNG Outlet */}
+                    <Outlet/>
                 </main>
             </div>
         </div>

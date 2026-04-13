@@ -116,5 +116,18 @@ class CheckServices {
             throw error;
         }
     }
+    async checkAdmin(email,password) {
+        try {
+            const dataEmail =email.toLowerCase().trim();
+            const user =  await AuthRepository.checkUserAdmin(dataEmail);
+            const check = await this.checkHash(password, user.password);
+            if(!user || !check){
+                throw ApiError.Unauthorized("Invalid email or password");
+            }
+            return user;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 module.exports = new CheckServices();

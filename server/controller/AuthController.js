@@ -3,12 +3,14 @@ const ApiError = require("../utils/ApiError");
 // const cloudinary=require("../config/connectCloudinary")
 const CheckServices = require("../services/CheckServices");
 const AuthRepository = require("../repository/AuthRepository");
+const ChatRepository = require("../repository/ChatRepository");
 // const sendVerificationEmail = require("../utils/sendMail");
 const sequelize = require("../config/connectData");
 const jwt = require("jsonwebtoken");
 const crypto = require('crypto');
 const authServices = require("../services/AuthServices");
 const checkServices = require("../services/CheckServices");
+const { log } = require("console");
  const tempUsers = new Map();
  const MAX_AGE = 15 * 60 * 1000; // 15 phút
 exports.register=async (req, res, next) => {
@@ -32,8 +34,11 @@ exports.register=async (req, res, next) => {
         // tạo lưu user//
         const newUser = await AuthRepository.createUser(data, newBrand.id , { transaction: t });
         //  gán role manager
-        const roleManager="73799aa1-2e76-4a17-bd78-40b4a472f9f8";
+        const roleManager=process.env.ROLE_MANAGER;
+        const adminID = process.env.ADMIN_ID;
         await AuthRepository.createRole(newUser.id, roleManager, { transaction: t });
+        // tạo group chat
+        await ChatRepository.createChat(adminID, newUser.id, { transaction: t });
         await t.commit();
         return res.json(ApiSuccess.created("User registered successfully"));
     } catch (error) {
@@ -81,16 +86,28 @@ exports.verifiMail = async (req, res, next) => {
 exports.login= async (req, res, next) => {
     try {
         const data = req.body;
-        const user = await CheckServices.checkMailPass(data.email, data.password);
-        // console.log("user", user.brand.id);
-        // xóa refresh token cũ nếu có
-        await AuthRepository.deleteRefreshToken(user.id);
-        // access token (sống ngắn, ví dụ 1 giờ)
-        const token = jwt.sign(
-        { userId: user.id, role: user.roles[0].name, name: user.name, email: user.email, brandID: user.brand?.id},
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-        );
+        let user;
+        let token;
+        if(data.email.trim() ==="admin@gmail.com"){
+           user=await CheckServices.checkAdmin(data.email,data.password);
+           await AuthRepository.deleteRefreshToken(user.id);
+          token = jwt.sign(
+            { userId: user.id, role: user.roles[0].name, name: user.name, email: user.email},
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+            );
+        }else{
+             user = await CheckServices.checkMailPass(data.email, data.password);
+            // console.log("user", user.brand.id);
+            // xóa refresh token cũ nếu có
+            await AuthRepository.deleteRefreshToken(user.id);
+            // access token (sống ngắn, ví dụ 1 giờ)
+             token = jwt.sign(
+            { userId: user.id, role: user.roles[0].name, name: user.name, email: user.email, brandID: user.brand?.id},
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+            );
+        }
         // // refresh token (sống lâu hơn, ví dụ 7 ngày)
         const refreshToken = jwt.sign(
         { userId: user.id },

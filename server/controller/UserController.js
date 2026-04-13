@@ -2,6 +2,7 @@ const ApiError = require("../utils/ApiError");
 const ApiSuccess = require("../utils/ApiSuccess");
 const UserRepository = require("../repository/UserRepository");
 const AuthRepository = require("../repository/AuthRepository");
+const ChatRepository = require("../repository/ChatRepository");
 const CheckServices = require("../services/CheckServices");
 const sequelize = require("../config/connectData");
 exports.GetInfoUser = async function (req, res, next) {
@@ -34,16 +35,28 @@ exports.RegisterKitchen = async function (req, res, next) {
     data.password = await CheckServices.hashPassword(data.password);
     data.status = true;
     // console.log(checkuser.brand.id);
-
+    // lấy tất cả user kitchen cùng brand
+    const listKichen = await AuthRepository.getKitchenList(checkuser.brand.id);
     const createKitchen = await AuthRepository.createUser(
       data,
       checkuser.brand.id,
       { transaction: t },
     );
-    const roleKitchen = "8b0a3c6d-6634-4d1a-bb77-45cefdce3002";
+    const roleKitchen = process.env.ROLE_KITCHEN;
     await AuthRepository.createRole(createKitchen.id, roleKitchen, {
       transaction: t,
     });
+    await ChatRepository.createChat(userID, createKitchen.id, {
+      transaction: t,
+    });
+    // tạo các đoạn chát của nhân viên với nhân viên mới
+    await Promise.all(
+      listKichen.map(async (item) => {
+        await ChatRepository.createChat(item.id, createKitchen.id, {
+          transaction: t,
+        });
+      }),
+    );
     await t.commit();
     return res.json(
       ApiSuccess.created("Kitchen staff registered successfully"),

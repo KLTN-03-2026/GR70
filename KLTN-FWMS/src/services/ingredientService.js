@@ -5,7 +5,6 @@ export const getIngredients = async () => {
     const res = await api.get("ingredients/get-ingredients-by-brand");
     return res.data;
 };
-
 export const createIngredient = async (brandId, data) => {
     const formData = new FormData();
     Object.entries({
@@ -41,5 +40,10 @@ export const getIngredientById = async (id) => {
 
 export const getCategoryIngredients = async () => {
     const res = await api.get("category-ingredients");
+    return res.data;
+};
+
+export const getIngredientTransactions = async () => {
+    const res = await api.get("ingredients/get-ingredient-transaction");
     return res.data;
 };

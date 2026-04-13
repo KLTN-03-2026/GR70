@@ -1,4 +1,4 @@
-const {DishModel, DishRecipeModel, DishCategoryModel, UserModel} = require("../models/index");
+const {DishModel, DishRecipeModel, DishCategoryModel, UserModel, IngredientModel, DailyDetailModel} = require("../models/index");
 
 
 class DishesRepository {
@@ -10,10 +10,19 @@ class DishesRepository {
             throw error;
         }
     }
-    async UpdateDishes(id, data) {
+    async UpdateDishes(id, data, options={}) {
         try {
-            const updateDishes = await DishModel.update(data, { where: { id: id } });
+            const updateDishes = await DishModel.update(data, { where: { id: id } },{...options});
             return updateDishes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // update dish_recipes
+    async UpdateDishRecipes(data, id, options={}) {
+        try {
+            const updateDishRecipes = await DishRecipeModel.update(data, { where: { id: id } },{...options});
+            return updateDishRecipes;
         } catch (error) {
             throw error;
         }
@@ -140,6 +149,59 @@ class DishesRepository {
                     }]
                 });
             return dishes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // all ingredient by dishID form dish_recipes
+    async GetRecipesIngredientsByDishID(id) {
+        try {
+            const dishRecipes = await DishRecipeModel.findAll({ 
+                where: { dishes_id: id },
+                attributes: ["id",'ingredient_id', 'quantity'],
+                include: [{
+                    model:   IngredientModel,
+                    attributes: ['name','unit']
+                  }]
+             });
+            return dishRecipes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // check recipesID 
+    async CheckDishRecipesID(id) {
+        try {
+            const dishRecipes = await DishRecipeModel.findOne({ where: { id: id } });
+            return dishRecipes;
+        } catch (error) {
+            throw error;
+        }
+    }
+    // lấy chi tiết món ăn
+    async GetDishDetail(id) {
+        try {
+            const dish = await DishModel.findOne({ 
+                attributes: ['id', 'name', 'price', 'des', 'status'],
+                where: { id: id },
+                include: [{
+                    model:   DishCategoryModel,
+                    attributes: ['name']
+                  },{
+                      model: UserModel,
+                      attributes: ['name']
+                  },{
+                    model:   DishRecipeModel,
+                    attributes: ['id', 'quantity'],
+                    include: [{
+                        model:   IngredientModel,
+                        attributes: ['name','unit']
+                      }]
+                  }]
+            });
+            const totalSellDishPrepared = await DailyDetailModel.sum('quantity_prepared', { where: { dishes_id: id } }) || 0;
+            const totalSellDishWaste = await DailyDetailModel.sum('quantity_wasted', { where: { dishes_id: id } }) || 0;
+            return { dish, totalSellDishPrepared, totalSellDishWaste };
         } catch (error) {
             throw error;
         }
