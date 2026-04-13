@@ -1,8 +1,14 @@
 import React from 'react'
 import { SiderbarAdmin } from './SiderbarAdmin'
 import { Outlet } from 'react-router-dom'
+import ChatWidget from '../ChatWidget'
+import { jwtDecode } from 'jwt-decode'
 
 export const LayoutAdmin = () => {
+    const token = localStorage.getItem("token");
+    const decode = jwtDecode(token);
+    const userID = decode.userId;
+    
   return (
     <div>
         <div className="flex h-screen overflow-hidden">
@@ -12,6 +18,7 @@ export const LayoutAdmin = () => {
                     <Outlet/>
                 </main>
             </div>
+            <ChatWidget userId={userID}/>
         </div>
     </div>
   )
