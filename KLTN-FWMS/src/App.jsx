@@ -25,6 +25,7 @@ import IngredientManager from "./pages/IngredientManager";
 import Revenue from "./pages/Revenue";
 import WasteHistory from "./pages/WasteHistory";
 import Manager_Account_Staff from "./pages/Manager_Account_Staff";
+import ManagerProfile from "./pages/ManagerProfile";
 
 // Kitchen Pages
 import KitchenDashboard from "./pages/kitchen/KitchenDashboard";
@@ -84,6 +85,7 @@ function App() {
                             path="waste-base"
                             element={<WasteReportPage />}
                         />
+                        <Route path="profile" element={<ManagerProfile />} />
                     </Route>
 
                     {/* Kitchen */}
