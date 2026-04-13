@@ -84,7 +84,7 @@ export const kitchenDishAPI = {
         }
     },
 
-    //PUT /kitchen/update-dishes-output/{dailyDetailId}
+    // PUT /kitchen/update-dishes-output/{dailyDetailId}
     updateDishesOutput: async (dailyDetailId, data) => {
         const response = await kitchenApi.put(
             `/kitchen/update-dishes-output/${dailyDetailId}`,
@@ -93,34 +93,6 @@ export const kitchenDishAPI = {
         return response.data;
     },
 
-    // updateDishesOutput: async (dailyDetailId, data) => {
-    //     try {
-    //         console.log("=== UPDATE DISHES OUTPUT ===");
-    //         console.log("DailyDetailId:", dailyDetailId);
-    //         console.log("Data to send:", data);
-
-    //         // Kiểm tra format dữ liệu
-    //         const formattedData = {
-    //             quantity_prepared: Number(data.quantity_prepared),
-    //             quantity_wasted: Number(data.quantity_wasted || 0),
-    //         };
-    //         console.log("Formatted data:", formattedData);
-
-    //         const response = await apiClient.put(
-    //             `/kitchen/update-dishes-output/${dailyDetailId}`,
-    //             formattedData,
-    //         );
-
-    //         console.log("Update response:", response);
-    //         return response.data;
-    //     } catch (error) {
-    //         console.error("Update dishes output error:", error);
-    //         console.error("Error response:", error.response);
-    //         console.error("Error data:", error.response?.data);
-    //         throw error;
-    //     }
-    // },
-
     // PUT /kitchen/update-dishes-leftover/{dailyDetailId}
     updateDishesLeftover: async (dailyDetailId, data) => {
         const response = await kitchenApi.put(
@@ -128,6 +100,50 @@ export const kitchenDishAPI = {
             data,
         );
         return response.data;
+    },
+
+    // ========== THÊM 3 API MỚI CHO DASHBOARD ==========
+
+    // GET /dashboard/kitchen/get-report-pay-yesterday
+    getReportPayYesterday: async () => {
+        try {
+            const response = await kitchenApi.get(
+                "/dashboard/kitchen/get-report-pay-yesterday",
+            );
+            console.log("Report pay yesterday:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching pay yesterday report:", error);
+            throw error;
+        }
+    },
+
+    // GET /dashboard/kitchen/get-report-leftover-dishes
+    getReportLeftoverDishes: async () => {
+        try {
+            const response = await kitchenApi.get(
+                "/dashboard/kitchen/get-report-leftover-dishes",
+            );
+            console.log("Report leftover dishes:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching leftover dishes report:", error);
+            throw error;
+        }
+    },
+
+    // GET /dashboard/kitchen/get-report-warning-dishes
+    getReportWarningDishes: async () => {
+        try {
+            const response = await kitchenApi.get(
+                "/dashboard/kitchen/get-report-warning-dishes",
+            );
+            console.log("Report warning dishes:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching warning dishes report:", error);
+            throw error;
+        }
     },
 };
 
