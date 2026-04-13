@@ -1,11 +1,13 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route ,Navigate} from "react-router-dom";
 import { Toaster } from "sonner";
+
 
 // Layouts
 import Layout from "./components/Layout/Layout";
 import KitchenLayout from "./components/Layout/KitchenLayout";
 import { LayoutAdmin } from "./components/Layout/LayoutAdmin";
+
 
 // Routes bảo vệ
 import PrivateRoute from "./components/PrivateRoute";
@@ -38,6 +40,14 @@ import WasteReportPage from "./components/WasteReportPage";
 
 // Admin Pages
 import { AdminDashboard } from "./pages/Admin/AdminDashboard";
+import { StoreManager } from "./pages/Admin/StoreManager";
+import { UserManager } from "./pages/Admin/UserManager";
+
+
+
+
+
+
 
 // Widget
 import ChatWidget from "./components/ChatWidget";
@@ -104,24 +114,21 @@ function App() {
                         />
                         <Route path="profile" element={<ProfilePage />} />
                         <Route path="waste-base" element={<WasteReportPage />} />
-                        <Route path="manager-dish" element={<Manager_Dish_Kitchen/>} />
+                        <Route path="manager-dish" element={<Manager_Dish_Kitchen />} />
                     </Route>
 
                     {/* Admin */}
-                    <Route
-                        path="/admin"
-                        element={
-                            <AdminRoute>
-                                <LayoutAdmin />
-                            </AdminRoute>
-                        }
-                    >
+                    <Route path="/admin" element={<AdminRoute> <LayoutAdmin /></AdminRoute>} >
+                        <Route index element={<Navigate to="dashboard" replace />} />
                         <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="storeManager" element={<StoreManager />} />
+                        <Route path="userManager" element={<UserManager />} />
+
                     </Route>
                 </Routes>
 
                 {/* Global Widget */}
-                {!token && <ChatWidget/>}
+                {!token && <ChatWidget />}
             </Router>
         </>
     );
