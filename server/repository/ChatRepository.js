@@ -27,7 +27,17 @@ class ChatRepository {
     }
     // ĐỔI trạng thái đã đọc
     async markAsRead(userID,messageId) {
-        const message = await DetailMessageModel.update({status:false},{where:{message_id:messageId,user_id:userID},raw:true});
+        const message = await DetailMessageModel.update(
+            {status:false},
+            {where:{
+                message_id:messageId,
+                user_id: {
+                    [Op.ne]: userID   // ❗ KHÁC user hiện tại
+                },
+                status: true
+            },
+            raw:true
+        });
         return message;
     }
     // lấy list danh sách của user
@@ -52,11 +62,10 @@ class ChatRepository {
                     where: { id: otherUserId },
                     raw: true
                 });
-                const otherUserID2= item.user_id1 === userID ? item.user_id1 : item.user_id2;
                 const otherUnReadCount = await DetailMessageModel.count({
                     where: {
                         message_id: item.id,
-                        user_id: otherUserID2,
+                        user_id: otherUserId,
                         status: true
                     }
                 });
