@@ -1,4 +1,5 @@
 const {DetailMessageModel,MessageModel, UserModel} = require("../models/index");
+const pagination = require("../utils/pagination");
 const { Op } = require("sequelize");
 class ChatRepository {
     async chetMessage(id){
@@ -15,15 +16,15 @@ class ChatRepository {
         return result;
     }
     // lấy danh sách tin nhắn trong hội thoại
-    async getChatUser(messageId) {
-        const messages = await DetailMessageModel.findAll({
+    async getChatUser(messageId, options) {
+        return await pagination.getPagination({
+            model: DetailMessageModel,
+            attributes: ['id', 'message_id', 'content', 'user_id', 'status', 'created_at'],
             where: { message_id: messageId },
             order: [['created_at', 'DESC']],
-            limit: 30,
-            raw: true
-        });
-
-        return messages.reverse();
+            // raw: true
+            ...options
+        })
     }
     // ĐỔI trạng thái đã đọc
     async markAsRead(userID,messageId) {
