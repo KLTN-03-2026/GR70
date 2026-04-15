@@ -52,10 +52,11 @@ class ChatRepository {
                     where: { id: otherUserId },
                     raw: true
                 });
+                const otherUserID2= item.user_id1 === userID ? item.user_id1 : item.user_id2;
                 const otherUnReadCount = await DetailMessageModel.count({
                     where: {
                         message_id: item.id,
-                        user_id: otherUserId,
+                        user_id: otherUserID2,
                         status: true
                     }
                 });
