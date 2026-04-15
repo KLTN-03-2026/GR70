@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import socket from "../services/Socket";
 import axios from "axios";
 
@@ -14,51 +14,158 @@ export default function ChatWidget({ userId }) {
     const [size] = useState(20);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [loadingChats, setLoadingChats] = useState(false);
+    const [loadingMessages, setLoadingMessages] = useState(false);
 
     const bottomRef = useRef(null);
     const messageBoxRef = useRef(null);
     const shouldScrollToBottomRef = useRef(false);
+    const lastOpenedChatRef = useRef(null);
 
     const API = "https://system-waste-less-ai.onrender.com/api";
 
-    const config = {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+    const config = useMemo(
+        () => ({
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        }),
+        []
+    );
+
+    const isSameId = (a, b) => String(a) === String(b);
+    const safeArray = (value) => (Array.isArray(value) ? value : []);
+
+    const extractPaginatedList = (res) => {
+        if (Array.isArray(res?.data?.data?.data)) return res.data.data.data;
+        if (Array.isArray(res?.data?.data)) return res.data.data;
+        if (Array.isArray(res?.data)) return res.data;
+        return [];
+    };
+
+    const extractPaginationMeta = (res) => {
+        return {
+            total: res?.data?.data?.total ?? 0,
+            page: res?.data?.data?.page ?? 1,
+            size: res?.data?.data?.size ?? 0,
+            totalPages: res?.data?.data?.totalPages ?? 1,
+        };
     };
 
     const normalizeDescMessages = (list = []) => {
-        return [...list].reverse();
+        return safeArray(list).slice().reverse();
     };
 
-    const scrollToBottom = (smooth = true) => {
+    const mergeUniqueMessages = (oldList, newList, mode = "append") => {
+        const current = safeArray(oldList);
+        const incoming = safeArray(newList);
+        const map = new Map();
+
+        if (mode === "prepend") {
+            [...incoming, ...current].forEach((msg) => {
+                if (msg?.id != null) {
+                    map.set(String(msg.id), msg);
+                }
+            });
+        } else {
+            [...current, ...incoming].forEach((msg) => {
+                if (msg?.id != null) {
+                    map.set(String(msg.id), msg);
+                }
+            });
+        }
+
+        return Array.from(map.values()).sort(
+            (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+    };
+
+    const scrollToBottom = useCallback((smooth = false) => {
         requestAnimationFrame(() => {
-            bottomRef.current?.scrollIntoView({
-                behavior: smooth ? "smooth" : "auto",
-                block: "end",
+            requestAnimationFrame(() => {
+                if (messageBoxRef.current) {
+                    messageBoxRef.current.scrollTop = messageBoxRef.current.scrollHeight;
+                }
+
+                bottomRef.current?.scrollIntoView({
+                    behavior: smooth ? "smooth" : "auto",
+                    block: "end",
+                });
             });
         });
-    };
+    }, []);
 
-    const markAsReadByChatId = async (chatId) => {
-        if (!chatId) return;
+    const updateChatPreview = useCallback((message) => {
+        if (!message?.message_id) return;
 
-        try {
-            await axios.put(`${API}/chat/mark-as-read/${chatId}`, {}, config);
+        setChatList((prev) => {
+            const list = safeArray(prev);
+            const index = list.findIndex((chat) =>
+                isSameId(chat.id, message.message_id)
+            );
+
+            if (index === -1) return list;
+
+            const updated = [...list];
+            updated[index] = {
+                ...updated[index],
+                last_message: message.content,
+                last_message_at: message.created_at,
+            };
+
+            return updated;
+        });
+    }, []);
+
+    const incrementUnreadIfNeeded = useCallback(
+        (message) => {
+            if (!message?.message_id) return;
 
             setChatList((prev) =>
-                prev.map((chat) =>
-                    String(chat.id) === String(chatId)
-                        ? { ...chat, other_unread_count: 0 }
-                        : chat
-                )
-            );
-        } catch (err) {
-            console.error("mark-as-read error:", err);
-        }
-    };
+                safeArray(prev).map((chat) => {
+                    if (!isSameId(chat.id, message.message_id)) return chat;
 
-    const resetChatState = () => {
+                    const isCurrentOpenChat =
+                        isOpen && activeChat && isSameId(activeChat, message.message_id);
+
+                    return {
+                        ...chat,
+                        other_unread_count: isCurrentOpenChat
+                            ? 0
+                            : (chat.other_unread_count || 0) + 1,
+                    };
+                })
+            );
+        },
+        [activeChat, isOpen]
+    );
+
+    const markAsReadByChatId = useCallback(
+        async (chatId) => {
+            if (!chatId) return;
+
+            try {
+                await axios.put(`${API}/chat/mark-as-read/${chatId}`, {}, config);
+
+                setChatList((prev) =>
+                    safeArray(prev).map((chat) =>
+                        isSameId(chat.id, chatId)
+                            ? { ...chat, other_unread_count: 0 }
+                            : chat
+                    )
+                );
+            } catch (err) {
+                console.error("mark-as-read error:", err);
+            }
+        },
+        [API, config]
+    );
+
+    const resetChatState = ({ keepLastChat = true } = {}) => {
+        if (!keepLastChat) {
+            lastOpenedChatRef.current = null;
+        }
+
         setActiveChat(null);
         setMessages([]);
         setContent("");
@@ -66,47 +173,117 @@ export default function ChatWidget({ userId }) {
         setPage(1);
         setHasMore(true);
         setLoadingMore(false);
+        setLoadingMessages(false);
         shouldScrollToBottomRef.current = false;
     };
 
-    const handleToggleWidget = () => {
+    const fetchChatList = useCallback(async () => {
+        if (!userId) return;
+
+        try {
+            setLoadingChats(true);
+            const res = await axios.get(`${API}/chat/list-message`, config);
+            const list = extractPaginatedList(res);
+            setChatList(safeArray(list));
+        } catch (err) {
+            console.error("fetchChatList error:", err);
+            setChatList([]);
+        } finally {
+            setLoadingChats(false);
+        }
+    }, [API, config, userId]);
+
+    const fetchMessagesByChat = useCallback(
+        async (chatId, targetPage = 1) => {
+            const res = await axios.get(
+                `${API}/chat/get-message/${chatId}?page=${targetPage}&size=${size}`,
+                config
+            );
+
+            const messageListDesc = extractPaginatedList(res);
+            const pagination = extractPaginationMeta(res);
+
+            return {
+                messages: normalizeDescMessages(messageListDesc),
+                rawLength: safeArray(messageListDesc).length,
+                pagination,
+            };
+        },
+        [API, config, size]
+    );
+
+    const openChatAndScrollToBottom = useCallback(
+        async (chatId) => {
+            if (!chatId) return;
+
+            try {
+                setActiveChat(chatId);
+                lastOpenedChatRef.current = chatId;
+
+                setMessages([]);
+                setContent("");
+                setPage(1);
+                setHasMore(true);
+                setLoadingMore(false);
+                setLoadingMessages(true);
+
+                const { messages: firstMessages, rawLength, pagination } =
+                    await fetchMessagesByChat(chatId, 1);
+
+                setMessages(firstMessages);
+
+                if (rawLength < size || 1 >= (pagination.totalPages || 1)) {
+                    setHasMore(false);
+                } else {
+                    setHasMore(true);
+                }
+
+                await markAsReadByChatId(chatId);
+
+                shouldScrollToBottomRef.current = true;
+
+                setTimeout(() => {
+                    scrollToBottom(false);
+                }, 0);
+            } catch (err) {
+                console.error("openChatAndScrollToBottom error:", err);
+                setMessages([]);
+                setHasMore(false);
+            } finally {
+                setLoadingMessages(false);
+            }
+        },
+        [fetchMessagesByChat, markAsReadByChatId, scrollToBottom, size]
+    );
+
+    const handleToggleWidget = async () => {
         if (isOpen) {
             setIsOpen(false);
-            resetChatState();
+            resetChatState({ keepLastChat: true });
             return;
         }
 
         setIsOpen(true);
+
+        if (lastOpenedChatRef.current) {
+            await openChatAndScrollToBottom(lastOpenedChatRef.current);
+        }
     };
 
     const handleCloseChat = () => {
         setIsOpen(false);
-        resetChatState();
+        resetChatState({ keepLastChat: true });
     };
 
-    // ================= LOAD LIST CHAT =================
     useEffect(() => {
-        if (!userId) return;
+        fetchChatList();
+    }, [fetchChatList]);
 
-        const fetchList = async () => {
-            try {
-                const res = await axios.get(`${API}/chat/list-message`, config);
-                setChatList(res.data.data || []);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchList();
-    }, [userId]);
-
-    // ================= JOIN USER =================
     useEffect(() => {
         if (!userId) return;
         socket.emit("join_user", userId);
     }, [userId]);
 
-    // ================= JOIN ROOM =================
     useEffect(() => {
         if (!activeChat || !isOpen) return;
 
@@ -121,15 +298,12 @@ export default function ChatWidget({ userId }) {
         }
 
         const handleIncoming = (data) => {
-            if (String(data.message_id) !== String(activeChat)) return;
+            if (!data?.message_id) return;
+            if (!isSameId(data.message_id, activeChat)) return;
 
             shouldScrollToBottomRef.current = true;
-
-            setMessages((prev) => {
-                const exists = prev.find((m) => String(m.id) === String(data.id));
-                if (exists) return prev;
-                return [...prev, data];
-            });
+            setMessages((prev) => mergeUniqueMessages(prev, [data], "append"));
+            updateChatPreview(data);
         };
 
         socket.off("receive_message", handleIncoming);
@@ -139,38 +313,16 @@ export default function ChatWidget({ userId }) {
             socket.off("receive_message", handleIncoming);
             socket.off("connect", joinRoom);
         };
-    }, [activeChat, isOpen]);
+    }, [activeChat, isOpen, updateChatPreview]);
 
-    // ================= NOTIFICATION =================
     useEffect(() => {
         if (!userId) return;
 
         const handler = (data) => {
-            setChatList((prev) =>
-                prev.map((chat) => {
-                    if (String(chat.id) !== String(data.message_id)) return chat;
+            if (!data?.message_id) return;
 
-                    const isCurrentOpenChat =
-                        isOpen && String(activeChat) === String(data.message_id);
-
-                    return {
-                        ...chat,
-                        other_unread_count: isCurrentOpenChat
-                            ? 0
-                            : (chat.other_unread_count || 0) + 1,
-                    };
-                })
-            );
-
-            if (isOpen && String(data.message_id) === String(activeChat)) {
-                shouldScrollToBottomRef.current = true;
-
-                setMessages((prev) => {
-                    const exists = prev.find((m) => String(m.id) === String(data.id));
-                    if (exists) return prev;
-                    return [...prev, data];
-                });
-            }
+            updateChatPreview(data);
+            incrementUnreadIfNeeded(data);
         };
 
         socket.off("new_message_notification", handler);
@@ -179,9 +331,8 @@ export default function ChatWidget({ userId }) {
         return () => {
             socket.off("new_message_notification", handler);
         };
-    }, [userId, activeChat, isOpen]);
+    }, [userId, updateChatPreview, incrementUnreadIfNeeded]);
 
-    // ================= LOAD MORE WHEN SCROLL TOP =================
     const loadMoreMessages = async () => {
         if (!activeChat || loadingMore || !hasMore) return;
 
@@ -196,25 +347,22 @@ export default function ChatWidget({ userId }) {
                 config
             );
 
-            const olderMessagesDesc = res.data.data || [];
+            const olderMessagesDesc = extractPaginatedList(res);
             const olderMessages = normalizeDescMessages(olderMessagesDesc);
+            const pagination = extractPaginationMeta(res);
 
             if (olderMessages.length === 0) {
                 setHasMore(false);
                 return;
             }
 
-            setMessages((prev) => {
-                const existingIds = new Set(prev.map((m) => String(m.id)));
-                const uniqueOlder = olderMessages.filter(
-                    (m) => !existingIds.has(String(m.id))
-                );
-                return [...uniqueOlder, ...prev];
-            });
-
+            setMessages((prev) => mergeUniqueMessages(prev, olderMessages, "prepend"));
             setPage(nextPage);
 
-            if (olderMessagesDesc.length < size) {
+            if (
+                olderMessagesDesc.length < size ||
+                nextPage >= (pagination.totalPages || 1)
+            ) {
                 setHasMore(false);
             }
 
@@ -238,86 +386,58 @@ export default function ChatWidget({ userId }) {
         }
     };
 
-    // ================= CLICK CHAT =================
     const handleSelectChat = async (chatId) => {
-        try {
-            setIsOpen(true);
-            setActiveChat(chatId);
-            setMessages([]);
-            setContent("");
-            setPage(1);
-            setHasMore(true);
-            setLoadingMore(false);
-
-            const res = await axios.get(
-                `${API}/chat/get-message/${chatId}?page=1&size=${size}`,
-                config
-            );
-
-            const firstMessagesDesc = res.data.data || [];
-            const firstMessages = normalizeDescMessages(firstMessagesDesc);
-
-            setMessages(firstMessages);
-
-            if (firstMessagesDesc.length < size) {
-                setHasMore(false);
-            }
-
-            await markAsReadByChatId(chatId);
-
-            shouldScrollToBottomRef.current = true;
-        } catch (err) {
-            console.error(err);
-        }
+        setIsOpen(true);
+        await openChatAndScrollToBottom(chatId);
     };
 
-    // ================= FOCUS INPUT NHẮN TIN =================
     const handleFocusMessageInput = async () => {
         if (!activeChat) return;
 
         await markAsReadByChatId(activeChat);
         shouldScrollToBottomRef.current = true;
+
         setTimeout(() => {
             scrollToBottom(false);
         }, 50);
     };
 
-    // ================= AUTO SCROLL =================
     useEffect(() => {
         if (!isOpen || !activeChat) return;
         if (!shouldScrollToBottomRef.current) return;
 
-        scrollToBottom(true);
+        scrollToBottom(false);
         shouldScrollToBottomRef.current = false;
-    }, [messages, isOpen, activeChat]);
+    }, [messages, isOpen, activeChat, scrollToBottom]);
 
-    // ================= SEND =================
     const handleSend = async () => {
-        if (!content.trim() || !activeChat) return;
+        const trimmed = content.trim();
+        if (!trimmed || !activeChat) return;
 
         try {
             const res = await axios.post(
                 `${API}/chat/send`,
                 {
                     message_id: activeChat,
-                    content: content.trim(),
+                    content: trimmed,
                 },
                 config
             );
 
-            shouldScrollToBottomRef.current = true;
+            const newMessage =
+                res?.data?.data && typeof res.data.data === "object"
+                    ? res.data.data
+                    : null;
 
-            setMessages((prev) => {
-                const exists = prev.find(
-                    (m) => String(m.id) === String(res.data.data.id)
-                );
-                if (exists) return prev;
-                return [...prev, res.data.data];
-            });
+            if (newMessage) {
+                shouldScrollToBottomRef.current = true;
+                setMessages((prev) => mergeUniqueMessages(prev, [newMessage], "append"));
+                updateChatPreview(newMessage);
+            }
 
             setContent("");
         } catch (err) {
-            console.error(err);
+            console.error("handleSend error:", err);
         }
     };
 
@@ -328,17 +448,19 @@ export default function ChatWidget({ userId }) {
         }
     };
 
-    // ================= FILTER CHAT LIST =================
-    const filteredChatList = chatList.filter((chat) =>
-        (chat.other_user_name || "")
+    const filteredChatList = safeArray(chatList).filter((chat) =>
+        String(chat?.other_user_name || "")
             .toLowerCase()
             .includes(search.toLowerCase())
     );
 
-    // ================= TOTAL BADGE =================
-    const totalUnread = chatList.reduce(
-        (sum, chat) => sum + (chat.other_unread_count || 0),
+    const totalUnread = safeArray(chatList).reduce(
+        (sum, chat) => sum + Number(chat?.other_unread_count || 0),
         0
+    );
+
+    const activeChatInfo = safeArray(chatList).find((c) =>
+        isSameId(c.id, activeChat)
     );
 
     return (
@@ -376,44 +498,58 @@ export default function ChatWidget({ userId }) {
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
-                            {filteredChatList.map((chat) => (
-                                <div
-                                    key={chat.id}
-                                    onClick={() => handleSelectChat(chat.id)}
-                                    className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-200 ${
-                                        activeChat === chat.id ? "bg-gray-300" : ""
-                                    }`}
-                                >
-                                    <img
-                                        src={`https://i.pravatar.cc/40?u=${chat.other_user_id}`}
-                                        className="w-8 h-8 rounded-full"
-                                        alt=""
-                                    />
-
-                                    <div className="flex-1 text-xs font-medium">
-                                        {chat.other_user_name}
-                                    </div>
-
-                                    {chat.other_unread_count > 0 && (
-                                        <div className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-                                            {chat.other_unread_count}
-                                        </div>
-                                    )}
+                            {loadingChats ? (
+                                <div className="p-3 text-xs text-gray-500">
+                                    Đang tải danh sách chat...
                                 </div>
-                            ))}
+                            ) : filteredChatList.length === 0 ? (
+                                <div className="p-3 text-xs text-gray-500">
+                                    Không có cuộc trò chuyện nào
+                                </div>
+                            ) : (
+                                filteredChatList.map((chat) => (
+                                    <div
+                                        key={chat.id}
+                                        onClick={() => handleSelectChat(chat.id)}
+                                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-200 ${
+                                            isSameId(activeChat, chat.id) ? "bg-gray-300" : ""
+                                        }`}
+                                    >
+                                        <img
+                                            src={`https://i.pravatar.cc/40?u=${chat.other_user_id}`}
+                                            className="w-8 h-8 rounded-full"
+                                            alt={chat.other_user_name || "avatar"}
+                                        />
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-xs font-medium truncate">
+                                                {chat.other_user_name || "Người dùng"}
+                                            </div>
+                                            {chat.last_message && (
+                                                <div className="text-[11px] text-gray-500 truncate">
+                                                    {chat.last_message}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {Number(chat.other_unread_count || 0) > 0 && (
+                                            <div className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                                                {chat.other_unread_count}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
                     <div className="flex-1 flex flex-col">
-                        <div className="p-3 border-b flex items-center">
-                            <span className="font-medium text-sm">
-                                {chatList.find((c) => c.id === activeChat)?.other_user_name || "Chat"}
+                        <div className="p-3 border-b flex items-center gap-2">
+                            <span className="font-medium text-sm truncate">
+                                {activeChatInfo?.other_user_name || "Chat"}
                             </span>
 
-                            <button
-                                onClick={handleCloseChat}
-                                className="ml-auto"
-                            >
+                            <button onClick={handleCloseChat} className="ml-auto">
                                 ✖
                             </button>
                         </div>
@@ -423,14 +559,26 @@ export default function ChatWidget({ userId }) {
                             onScroll={handleScrollMessages}
                             className="flex-1 p-3 overflow-y-auto space-y-2 bg-gray-100 text-sm"
                         >
+                            {loadingMessages && (
+                                <div className="text-center text-xs text-gray-500">
+                                    Đang tải tin nhắn...
+                                </div>
+                            )}
+
                             {loadingMore && (
                                 <div className="text-center text-xs text-gray-500">
                                     Đang tải thêm...
                                 </div>
                             )}
 
+                            {!loadingMessages && activeChat && messages.length === 0 && (
+                                <div className="text-center text-xs text-gray-500">
+                                    Chưa có tin nhắn nào
+                                </div>
+                            )}
+
                             {messages.map((msg) => {
-                                const isMe = String(msg.user_id) === String(userId);
+                                const isMe = isSameId(msg.user_id, userId);
 
                                 return isMe ? (
                                     <div key={msg.id} className="flex justify-end">
@@ -441,9 +589,9 @@ export default function ChatWidget({ userId }) {
                                 ) : (
                                     <div key={msg.id} className="flex items-end gap-2">
                                         <img
-                                            src="https://i.pravatar.cc/30"
+                                            src={`https://i.pravatar.cc/30?u=${msg.user_id}`}
                                             className="w-6 h-6 rounded-full"
-                                            alt=""
+                                            alt="avatar"
                                         />
                                         <div className="bg-white px-3 py-2 rounded-xl max-w-[70%] break-words">
                                             {msg.content}
@@ -467,7 +615,8 @@ export default function ChatWidget({ userId }) {
                                 />
                                 <button
                                     onClick={handleSend}
-                                    className="bg-green-500 text-white px-4 rounded-full"
+                                    className="bg-green-500 text-white px-4 rounded-full disabled:opacity-50"
+                                    disabled={!content.trim()}
                                 >
                                     Gửi
                                 </button>
