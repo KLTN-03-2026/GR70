@@ -131,7 +131,6 @@ export default function ChatWidget({ userId }) {
         fetchMessages();
     }, [activeChat]);
 
-
     // ================= AUTO SCROLL =================
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
