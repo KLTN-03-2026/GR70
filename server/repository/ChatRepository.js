@@ -52,11 +52,18 @@ class ChatRepository {
                     where: { id: otherUserId },
                     raw: true
                 });
-
+                const otherUnReadCount = await DetailMessageModel.count({
+                    where: {
+                        message_id: item.id,
+                        user_id: otherUserId,
+                        status: true
+                    }
+                });
                 return {
                     id: item.id,
                     other_user_id: otherUserId,
-                    other_user_name: otherUser ? otherUser.name : null
+                    other_user_name: otherUser ? otherUser.name : null,
+                    other_unread_count:otherUnReadCount || 0
                 };
             })
         );
