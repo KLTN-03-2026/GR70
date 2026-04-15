@@ -1,9 +1,5 @@
 import {
   Eye,
-  BarChart,
-  LockOpen,
-  Lock,
-  Store as StoreIcon,
 } from "lucide-react";
 
 export const StoreItem = ({ store, onViewDetails }) => {
@@ -12,7 +8,6 @@ export const StoreItem = ({ store, onViewDetails }) => {
       label: "Hoạt động",
       badgeClass: "bg-primary/10 text-primary",
       iconClass: "bg-primary-container/10 text-primary",
-      revenueClass: "bg-primary text-on-primary",
       lockIcon: "lock_open",
       lockClass: "bg-surface-container-highest text-on-surface-variant hover:text-primary",
       itemClass: "",
@@ -21,7 +16,6 @@ export const StoreItem = ({ store, onViewDetails }) => {
       label: "Cảnh báo",
       badgeClass: "bg-tertiary-container/20 text-tertiary",
       iconClass: "bg-tertiary-container/10 text-tertiary",
-      revenueClass: "bg-surface-container-high text-on-surface",
       lockIcon: "lock_open",
       lockClass: "bg-surface-container-highest text-on-surface-variant hover:text-on-surface",
       itemClass: "",
@@ -30,7 +24,6 @@ export const StoreItem = ({ store, onViewDetails }) => {
       label: "Đã khóa",
       badgeClass: "bg-on-surface/10 text-on-surface",
       iconClass: "bg-on-surface/5 text-on-surface",
-      revenueClass: "bg-surface-container-high text-on-surface opacity-50 cursor-not-allowed",
       lockIcon: "lock",
       lockClass: "bg-primary-container text-on-primary-container hover:opacity-90",
       itemClass: "opacity-75 grayscale hover:grayscale-0",
@@ -68,13 +61,10 @@ export const StoreItem = ({ store, onViewDetails }) => {
         <p className="font-bold text-on-surface">{store.owner}</p>
       </div>
 
-      {/* Danh sách tài khoản */}
+      {/* Role (mới) */}
       <div className="md:col-span-2">
-        <p className="text-sm text-on-surface-variant uppercase">Danh sách tài khoản</p>
-        <button className="text-primary font-bold text-sm hover:underline flex items-center gap-1">
-          Xem tài khoản
-          <span className="material-symbols-outlined text-sm">open_in_new</span>
-        </button>
+        <p className="text-sm text-on-surface-variant uppercase">Role</p>
+        <p className="font-bold text-on-surface">{store.role}</p>
       </div>
 
       {/* Trạng thái */}
@@ -84,19 +74,14 @@ export const StoreItem = ({ store, onViewDetails }) => {
         </span>
       </div>
 
-      {/* Actions */}
+      {/* Actions (đã bỏ nút DOANH THU) */}
       <div className="md:col-span-2 flex justify-end gap-2">
         <button
-          onClick={() => onViewDetails()}
+          onClick={() => onViewDetails(store)}
           className="bg-surface-container-highest p-2 rounded-xl text-on-surface-variant hover:text-primary transition-colors"
           title="Xem chi tiết"
         >
           <span className="material-symbols-outlined">visibility</span>
-        </button>
-
-        <button className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${config.revenueClass}`}>
-          <span className="material-symbols-outlined text-sm">bar_chart</span>
-          DOANH THU
         </button>
 
         <button
