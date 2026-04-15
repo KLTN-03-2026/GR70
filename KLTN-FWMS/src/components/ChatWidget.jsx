@@ -10,7 +10,7 @@ export default function ChatWidget({ userId }) {
     const [content, setContent] = useState("");
 
     const bottomRef = useRef(null);
-    const API = "https://system-waste-less-ai.onrender.com/api";
+    const API = 'https://system-waste-less-ai.onrender.com/api';
 
     const config = {
         headers: {
@@ -36,32 +36,88 @@ export default function ChatWidget({ userId }) {
 
     // ================= JOIN ROOM =================
     useEffect(() => {
-        if (!activeChat) return;
+    if (!activeChat) return;
 
-        socket.emit("join_room", `message_${activeChat}`, config);
+    const joinRoom = () => {
+        console.log("📥 JOIN ROOM:", activeChat);
+        socket.emit("join_message", activeChat);
+    };
 
-        socket.on("receive_message", (data) => {
-            setMessages((prev) => [...prev, data]);
+    if (socket.connected) {
+        joinRoom();
+    } else {
+        socket.on("connect", joinRoom);
+    }
+
+    const handleIncoming = (data) => {
+        console.log("📩 incoming:", data);
+
+        setMessages((prev) => {
+            if (data.message_id !== activeChat) return prev;
+
+            const exists = prev.find((m) => m.id === data.id);
+            if (exists) return prev;
+            return [...prev, data];
         });
+    };
+
+    socket.off("receive_message", handleIncoming);
+    socket.on("receive_message", handleIncoming);
+
+    return () => {
+        socket.off("receive_message", handleIncoming);
+        socket.off("connect", joinRoom);
+    };
+}, [activeChat]);
+
+    useEffect(() => {
+        if (!userId) return;
+
+        const handler = (data) => {
+            console.log("🔔 notification:", data);
+
+            // 🔥 LUÔN update chatList
+            setChatList((prev) => {
+                const exists = prev.find(c => c.id === data.message_id);
+                if (!exists) return prev;
+                return prev;
+            });
+
+            // 🔥 nếu đang mở chat → add message
+            if (data.message_id === activeChat) {
+                setMessages((prev) => {
+                    const exists = prev.find((m) => m.id === data.id);
+                    if (exists) return prev;
+                    return [...prev, data];
+                });
+            }
+
+            // ❗ KHÔNG return sớm nữa
+        };
+
+        socket.off("new_message_notification");
+        socket.on("new_message_notification", handler);
 
         return () => {
-            socket.off("receive_message");
+            socket.off("new_message_notification");
         };
-    }, [activeChat]);
+    }, [userId, activeChat]);
 
     // ================= LOAD MESSAGE =================
     useEffect(() => {
         if (!activeChat) return;
+
+        setMessages([]); // 🔥 reset khi đổi room
 
         const fetchMessages = async () => {
             try {
                 const res = await axios.get(
                     `${API}/chat/get-message/${activeChat}`, config
                 );
+
                 setMessages(res.data.data);
 
-                // mark as read
-                await axios.get(`${API}/chat/mark-as-read/${activeChat}`);
+                await axios.get(`${API}/chat/mark-as-read/${activeChat}`, config);
             } catch (err) {
                 console.error(err);
             }
@@ -98,22 +154,13 @@ export default function ChatWidget({ userId }) {
         }
     };
 
-    // ================= NOTIFICATION =================
+    // =========  JOIN USSER  ==========
     useEffect(() => {
-        if (!userId) return;
+    if (!userId) return;
 
-        socket.emit("join_user", `user_${userId}`);
-
-        socket.on("new_message_notification", (data) => {
-            console.log("🔔 Tin nhắn mới:", data);
-
-            // có thể update UI badge ở đây
-        });
-
-        return () => {
-            socket.off("new_message_notification");
-        };
-    }, [userId]);
+    console.log("🔌 JOIN USER:", userId);
+    socket.emit("join_user", userId);
+}, [userId]);
 
     return (
         <>
