@@ -17,3 +17,13 @@ exports.UpdateCustomerCount = async function (req, res, next) {
     return next(error);
   }
 };
+
+exports.GetCustomerCount = async function (req, res, next) {
+  try {
+    const brandID = req.user.brandID;
+    const customer_count = await DailyRepository.GetCustomerCount(brandID);
+    return res.json(ApiSuccess.getSelect("Customer count", customer_count));
+  } catch (error) {
+    return next(error);
+  }
+};

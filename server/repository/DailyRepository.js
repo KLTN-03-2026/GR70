@@ -497,7 +497,16 @@ async SumWasteByMonth(brandID, month = null) {
     });
     return result;
   }
-  //
+  //lấy số lượng khách hàng hằng ngày
+  async GetCustomerCount(brandID) {
+    return await DailyOperationModel.findOne({
+      attributes: ["customer_count"],
+      where: {
+         brand_id: brandID, 
+         operation_date: new Date().toISOString().split("T")[0]
+         } 
+    });
+  }
 }
 
 module.exports = new DailyRepository();
