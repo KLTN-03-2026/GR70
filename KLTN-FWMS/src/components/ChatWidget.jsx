@@ -36,39 +36,39 @@ export default function ChatWidget({ userId }) {
 
     // ================= JOIN ROOM =================
     useEffect(() => {
-    if (!activeChat) return;
+        if (!activeChat) return;
 
-    const joinRoom = () => {
-        console.log("📥 JOIN ROOM:", activeChat);
-        socket.emit("join_message", activeChat);
-    };
+        const joinRoom = () => {
+            console.log("📥 JOIN ROOM:", activeChat);
+            socket.emit("join_message", activeChat);
+        };
 
-    if (socket.connected) {
-        joinRoom();
-    } else {
-        socket.on("connect", joinRoom);
-    }
+        if (socket.connected) {
+            joinRoom();
+        } else {
+            socket.on("connect", joinRoom);
+        }
 
-    const handleIncoming = (data) => {
-        console.log("📩 incoming:", data);
+        const handleIncoming = (data) => {
+            console.log("📩 incoming:", data);
 
-        setMessages((prev) => {
-            if (data.message_id !== activeChat) return prev;
+            setMessages((prev) => {
+                if (data.message_id !== activeChat) return prev;
 
-            const exists = prev.find((m) => m.id === data.id);
-            if (exists) return prev;
-            return [...prev, data];
-        });
-    };
+                const exists = prev.find((m) => m.id === data.id);
+                if (exists) return prev;
+                return [...prev, data];
+            });
+        };
 
-    socket.off("receive_message", handleIncoming);
-    socket.on("receive_message", handleIncoming);
-
-    return () => {
         socket.off("receive_message", handleIncoming);
-        socket.off("connect", joinRoom);
-    };
-}, [activeChat]);
+        socket.on("receive_message", handleIncoming);
+
+        return () => {
+            socket.off("receive_message", handleIncoming);
+            socket.off("connect", joinRoom);
+        };
+    }, [activeChat]);
 
     useEffect(() => {
         if (!userId) return;
@@ -156,11 +156,11 @@ export default function ChatWidget({ userId }) {
 
     // =========  JOIN USSER  ==========
     useEffect(() => {
-    if (!userId) return;
+        if (!userId) return;
 
-    console.log("🔌 JOIN USER:", userId);
-    socket.emit("join_user", userId);
-}, [userId]);
+        console.log("🔌 JOIN USER:", userId);
+        socket.emit("join_user", userId);
+    }, [userId]);
 
     return (
         <>
