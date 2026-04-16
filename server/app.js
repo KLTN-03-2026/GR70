@@ -55,7 +55,7 @@ app.get('/api/ping', (req, res) => {
   res.send('Server is alive ✅');
 });
 OperationDaily();
-// CallAIEveryDays();
+CallAIEveryDays();
 
 app.use('/api/auth', authRouter);
 app.use(authenticate);
