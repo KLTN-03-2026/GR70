@@ -31,6 +31,9 @@ class AIServices {
                 const detailThreeNextDays = await historyWasteLessServices.DetailHistory3next(brand.id);
                 // lấy danh sách món ăn của hệ thống
                 const dishes = await dishesRepository.GetAllDishesTrueAI(brand.id);
+                if(!dishes || dishes.length === 0){
+                    continue
+                }
                 const prompt = await promtServices.generatePrompt({
                         location: location,
                         restaurant_type: restaurant_type,

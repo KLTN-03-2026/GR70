@@ -1,0 +1,57 @@
+const ApiSuccess = require("../../utils/ApiSuccess");
+const ApiError = require("../../utils/ApiError");
+const ManagerAllBrandRepository = require("../../repository/admin/ManagerAllBrandRepository");
+exports.getAllBrand = async (req, res,next) => {
+    try {
+        const brand = await ManagerAllBrandRepository.getAllBrand();
+        res.json(ApiSuccess.getSelect("Get all brand", brand));
+    } catch (error) {
+        return next(error);
+    }
+};
+exports.getDetailBrand = async (req, res, next) => {
+    try {
+        const brandID = req.params.brandID;
+        const year = new Date().getFullYear();
+        const [brand, dish, revenue] = await Promise.all([
+            ManagerAllBrandRepository.getDetailBrand(brandID),
+            ManagerAllBrandRepository.SumDishBrand(brandID),
+            ManagerAllBrandRepository.SumRevenueYearBrand(brandID, year)
+        ])
+        const result ={
+            brand: brand,
+            dish: dish,
+            revenue: revenue
+        }
+        res.json(ApiSuccess.getSelect("Get detail brand", result));
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.lockBrand = async (req, res, next) => {
+    try {
+        const brandID = req.params.brandID;
+        const checkStatus = await ManagerAllBrandRepository.checkStatusBrand(brandID);
+        if(checkStatus.status === false){
+            throw ApiError.Notification("Brand is locked");
+        }
+        const result = await ManagerAllBrandRepository.lockBrand(brandID);
+        res.json(ApiSuccess.updateStatus("Lock brand", result));
+    } catch (error) {
+        return next(error);
+    }
+};
+exports.unLockBrand = async (req, res, next) => {
+    try {
+        const brandID = req.params.brandID;
+        const checkStatus = await ManagerAllBrandRepository.checkStatusBrand(brandID);
+        if(checkStatus.status === true){
+            throw ApiError.Notification("Brand is not locked");
+        }
+        const result = await ManagerAllBrandRepository.unlockBrand(brandID);
+        res.json(ApiSuccess.updateStatus("UnLock brand", result));
+    } catch (error) {
+        return next(error);
+    }
+};

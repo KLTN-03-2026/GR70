@@ -1,4 +1,5 @@
 const {DetailMessageModel,MessageModel, UserModel} = require("../models/index");
+const pagination = require("../utils/pagination");
 const { Op } = require("sequelize");
 class ChatRepository {
     async chetMessage(id){
@@ -15,19 +16,29 @@ class ChatRepository {
         return result;
     }
     // lấy danh sách tin nhắn trong hội thoại
-    async getChatUser(messageId) {
-        const messages = await DetailMessageModel.findAll({
+    async getChatUser(messageId, options) {
+        return await pagination.getPagination({
+            model: DetailMessageModel,
+            attributes: ['id', 'message_id', 'content', 'user_id', 'status', 'created_at'],
             where: { message_id: messageId },
             order: [['created_at', 'DESC']],
-            limit: 30,
-            raw: true
-        });
-
-        return messages.reverse();
+            // raw: true
+            ...options
+        })
     }
     // ĐỔI trạng thái đã đọc
     async markAsRead(userID,messageId) {
-        const message = await DetailMessageModel.update({status:false},{where:{message_id:messageId,user_id:userID},raw:true});
+        const message = await DetailMessageModel.update(
+            {status:false},
+            {where:{
+                message_id:messageId,
+                user_id: {
+                    [Op.ne]: userID   // ❗ KHÁC user hiện tại
+                },
+                status: true
+            },
+            raw:true
+        });
         return message;
     }
     // lấy list danh sách của user
@@ -52,11 +63,18 @@ class ChatRepository {
                     where: { id: otherUserId },
                     raw: true
                 });
-
+                const otherUnReadCount = await DetailMessageModel.count({
+                    where: {
+                        message_id: item.id,
+                        user_id: otherUserId,
+                        status: true
+                    }
+                });
                 return {
                     id: item.id,
                     other_user_id: otherUserId,
-                    other_user_name: otherUser ? otherUser.name : null
+                    other_user_name: otherUser ? otherUser.name : null,
+                    other_unread_count:otherUnReadCount || 0
                 };
             })
         );

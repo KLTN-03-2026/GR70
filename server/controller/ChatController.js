@@ -30,7 +30,14 @@ exports.sendChatUser = async (req, res, next) => {
 exports.RoomMessage = async (req, res, next) => {
     try {
         const MessID = req.params.MessID;
-        const result = await ChatRepository.getChatUser(MessID);
+        const page = parseInt(req.query.page) || 1;
+        const size = parseInt(req.query.size) || 25;
+        const result = await ChatRepository.getChatUser(MessID,{
+            page,
+            size,
+            orderBy: req.query.orderBy || "created_at",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
+        });
         if(result.length===0) {
             return res.json(ApiSuccess.getSelect("Hiện tại chưa có tin nhắn nào, Mời bạn gưi tin nhắn", result));
         }

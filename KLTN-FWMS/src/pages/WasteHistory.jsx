@@ -45,6 +45,7 @@ export default function WasteHistory() {
         percentChange: 0,
     });
     const [hasFiltered, setHasFiltered] = useState(false);
+    const [selectedSuggestion, setSelectedSuggestion] = useState(null);
 
     // Hàm lọc dữ liệu thủ công
     const filterData = useCallback((rawData, selectedDate, selectedMonth) => {
@@ -423,35 +424,32 @@ export default function WasteHistory() {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm table-fixed">
                             <thead className="bg-gray-100 text-gray-600">
                                 <tr>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         NGÀY
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         TÊN MÓN
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         MÓN RA
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         MÓN DÙNG
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         MÓN DƯ
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         TỈ LỆ DƯ
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         CHI PHÍ
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold w-[10%]">
                                         GỢI Ý AI
-                                    </th>
-                                    <th className="p-4 text-left font-semibold">
-                                        THAO TÁC
                                     </th>
                                 </tr>
                             </thead>
@@ -459,7 +457,7 @@ export default function WasteHistory() {
                                 {loading ? (
                                     <tr>
                                         <td
-                                            colSpan="9"
+                                            colSpan="8"
                                             className="text-center p-8 text-gray-500"
                                         >
                                             <div className="flex flex-col items-center gap-2">
@@ -481,7 +479,7 @@ export default function WasteHistory() {
                                                 <td className="p-4 whitespace-nowrap">
                                                     {item.date}
                                                 </td>
-                                                <td className="p-4 font-medium text-gray-800 whitespace-nowrap">
+                                                <td className="p-4 font-medium text-gray-800 whitespace-normal break-words">
                                                     {item.dish_name}
                                                 </td>
                                                 <td className="p-4 whitespace-nowrap">
@@ -510,34 +508,55 @@ export default function WasteHistory() {
                                                     ).toLocaleString()}
                                                     đ
                                                 </td>
-                                                <td className="p-4 text-gray-600 text-sm max-w-xs truncate">
-                                                    {item.suggestion_note ||
-                                                        "Chưa có dữ liệu"}
-                                                </td>
-                                                <td className="p-4 whitespace-nowrap">
-                                                    <button
-                                                        onClick={() =>
-                                                            exportSingleToExcel(
-                                                                item,
-                                                            )
-                                                        }
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-xs font-medium hover:from-green-600 hover:to-green-700 transition-all shadow-sm"
-                                                    >
-                                                        <svg
-                                                            className="w-3.5 h-3.5"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
+                                                <td className="p-4 text-gray-600 text-sm">
+                                                    {item.suggestion_note &&
+                                                    item.suggestion_note
+                                                        .length > 80 ? (
+                                                        <button
+                                                            onClick={() =>
+                                                                setSelectedSuggestion(
+                                                                    item.suggestion_note,
+                                                                )
+                                                            }
+                                                            className="text-left hover:text-green-600 transition-colors flex items-start gap-1 w-full group"
                                                         >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                                            />
-                                                        </svg>
-                                                        Xuất
-                                                    </button>
+                                                            <span className="truncate flex-1">
+                                                                {item.suggestion_note.substring(
+                                                                    0,
+                                                                    80,
+                                                                )}
+                                                                ...
+                                                            </span>
+                                                            <svg
+                                                                className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400 group-hover:text-green-600 transition-colors"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                                />
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="leading-relaxed">
+                                                            {item.suggestion_note ||
+                                                                "Chưa có dữ liệu"}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
@@ -545,7 +564,7 @@ export default function WasteHistory() {
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan="9"
+                                            colSpan="8"
                                             className="text-center p-8 text-gray-400"
                                         >
                                             <div className="flex flex-col items-center gap-2">
@@ -582,6 +601,63 @@ export default function WasteHistory() {
                     </div>
                 </div>
             </div>
+            {/* Modal hiển thị chi tiết gợi ý AI */}
+            {selectedSuggestion && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+                    onClick={() => setSelectedSuggestion(null)}
+                >
+                    <div
+                        className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl animate-slideUp"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl">💡</span>
+                                <h3 className="font-bold text-lg text-gray-800">
+                                    Gợi ý từ AI
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => setSelectedSuggestion(null)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                            >
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+                            <div className="leading-relaxed text-gray-700 whitespace-pre-wrap break-words">
+                                {selectedSuggestion}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-3 flex justify-end">
+                            <button
+                                onClick={() => setSelectedSuggestion(null)}
+                                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all shadow-sm"
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
