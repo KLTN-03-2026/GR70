@@ -18,9 +18,14 @@ class AIServices {
             if(!brands || brands.length === 0){
                 return false
             }
-            const date = new Date().toISOString().split('T')[0];
+            const dateVN = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+                }).format(new Date());
             // tính coi phải cuối tuần không
-            const dayOfWeek = new Date(date).getDay();
+            const dayOfWeek = new Date(`${dateVN}T00:00:00+07:00`).getDay();
             const is_weekend = (dayOfWeek === 0 || dayOfWeek === 6) ? true : false;
             for(const brand of brands){
                 const location = brand.province;
@@ -49,6 +54,7 @@ class AIServices {
             }
             return "AI analysis completed successfully";
         } catch (error) {
+            console.log(error);
             throw error;
         }
     }
@@ -56,14 +62,19 @@ class AIServices {
         const t = await sequelize.transaction();
         try {
             const data = await this.parseAIResponse(result);
-            console.log(data);
-            
+            // console.log(data);
+            const dateVN = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+                }).format(new Date());
             await this.validateAIResult(data);
             const dataAI={
                 summary: data.summary,
                 risk_level: data.risk_level,
                 ai_customer_count: data.ai_customer,
-                date: new Date().toISOString().split('T')[0],
+                date: dateVN,
             };
             const AI= await AIRepository.createAi_Analysis(dataAI, brandID, { transaction: t });
                 for (const item of data.details) {
