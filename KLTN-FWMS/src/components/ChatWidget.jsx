@@ -511,15 +511,13 @@ export default function ChatWidget({ userId }) {
                                     <div
                                         key={chat.id}
                                         onClick={() => handleSelectChat(chat.id)}
-                                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-200 ${
-                                            isSameId(activeChat, chat.id) ? "bg-gray-300" : ""
-                                        }`}
+                                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-200 ${isSameId(activeChat, chat.id) ? "bg-gray-100" : ""
+                                            }`}
                                     >
-                                        <img
-                                            src={`https://i.pravatar.cc/40?u=${chat.other_user_id}`}
-                                            className="w-8 h-8 rounded-full"
-                                            alt={chat.other_user_name || "avatar"}
-                                        />
+
+                                        <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                            {chat.other_user_name?.charAt(0)}
+                                        </div>
 
                                         <div className="flex-1 min-w-0">
                                             <div className="text-xs font-medium truncate">
@@ -588,11 +586,9 @@ export default function ChatWidget({ userId }) {
                                     </div>
                                 ) : (
                                     <div key={msg.id} className="flex items-end gap-2">
-                                        <img
-                                            src={`https://i.pravatar.cc/30?u=${msg.user_id}`}
-                                            className="w-6 h-6 rounded-full"
-                                            alt="avatar"
-                                        />
+                                        <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                            {activeChatInfo?.other_user_name?.charAt(0)}
+                                        </div>
                                         <div className="bg-white px-3 py-2 rounded-xl max-w-[70%] break-words">
                                             {msg.content}
                                         </div>
