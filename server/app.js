@@ -55,7 +55,7 @@ app.get('/api/ping', (req, res) => {
   const user= UserModel.findByPk('94292bfd-19e8-4079-b67f-a2f22961738b');
   res.send('Server is alive ✅');
 });
-OperationDaily();
+// OperationDaily();
 CallAIEveryDays();
 
 app.use('/api/auth', authRouter);

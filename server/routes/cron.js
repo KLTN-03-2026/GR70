@@ -16,7 +16,7 @@ const OperationDaily = async () => {
     });
 }
 const CallAIEveryDays= async () => {
-    cron.schedule('0 3 * * *', async () => {
+    cron.schedule('0 2 * * *', async () => {
     // cron.schedule('* * * * *', async () => {
         try {
             const result = await AIServices.serviceAIEveryDays();

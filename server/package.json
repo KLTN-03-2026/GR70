@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "jest"
   },
   "dependencies": {
     "@google/genai": "^1.47.0",
@@ -26,5 +27,8 @@
     "socket.io": "^4.8.3",
     "vietnamese-lunar-calendar": "^0.0.6",
     "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0"
   }
 }

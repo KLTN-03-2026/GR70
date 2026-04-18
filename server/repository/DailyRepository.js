@@ -6,11 +6,23 @@ const {
 const sequelize = require("../config/connectData");
 const { Op, fn, col } = require("sequelize");
 class DailyRepository {
-  async DailyOperation(brandID) {
+  async checkDailyOperation(brandID, datevn) {
+    return await DailyOperationModel.findOne({
+      where: {
+        brand_id: brandID,
+        operation_date: datevn,
+      },
+      raw: true,
+    });
+  }
+  async DailyOperation(brandID, datevn) {
     return await DailyOperationModel.create({
       brand_id: brandID,
-      operation_date: sequelize.literal("CURRENT_DATE"),
+      operation_date: datevn,
       customer_count: 0,
+    },
+    {
+      raw: true,
     });
   }
   async TakeIDOperation(brandID) {
@@ -96,17 +108,10 @@ class DailyRepository {
     });
   }
   // cập nhập số lượng khách hàng trong ngày
-  async UpdateCustomerCount(brandID, customer_count) {
-    const today = new Date().toISOString().split("T")[0];
-    const operation = await DailyOperationModel.findOne({
-      where: { operation_date: today, brand_id: brandID },
-    });
-    if (!operation) {
-      throw new Error("Daily operation not found for today");
-    }
+  async UpdateCustomerCount(DailyID, customer_count) {
     return await DailyOperationModel.update(
       { customer_count: customer_count },
-      { where: { id: operation.id } },
+      { where: { id: DailyID } },
     );
   }
   // lấy dữ liệu lịch sử 7 ngày gần nhất
