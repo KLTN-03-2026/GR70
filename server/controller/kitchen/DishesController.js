@@ -8,6 +8,7 @@ const DailyService = require("../../services/DailyServices");
 const sequelize = require("../../config/connectData");
 const { log } = require("winston");
 const IngredientServices = require("../../services/IngredientServices");
+const DailyServices = require("../../services/DailyServices");
 // tạo món ăn mới cho kitchen
 exports.CreateDishesForKitchen = async function (req, res, next) {
   const t = await sequelize.transaction();
@@ -77,7 +78,8 @@ exports.CreateDishesOutput = async function (req, res, next) {
       throw ApiError.ValidationError("Missing required field brandID");
     }
     // tìm kiếm ngày hiện tại lấy id ở operation_daily
-    const TakeIDOperation = await DailyRepository.TakeIDOperation(brandID);
+    // const TakeIDOperation = await DailyRepository.TakeIDOperation(brandID);
+    const TakeIDOperation = await DailyServices.checkDailyOperation(brandID);
     // console.log("take", TakeIDOperation);
     if (!TakeIDOperation) {
       throw ApiError.ValidationError("NotFound operation_daily for today");
