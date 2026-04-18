@@ -103,8 +103,7 @@ exports.LockKitchen = async function (req, res, next) {
     const userID = req.params.id;
     const checkuser = await CheckServices.checkUserActive(userID);
     if (!checkuser) {
-        console.log("checkusser");
-        
+        // console.log("checkusser");
       throw ApiError.Unauthorized("User is not active");
     }
     if (checkuser.roles.some((role) => role.name === "Manager" || role.name === "Admin",)) {
