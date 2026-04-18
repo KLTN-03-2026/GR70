@@ -355,41 +355,6 @@ const SurplusDetailPanel = ({
                         ))}
                     </tbody>
                 </table>
-                <div className="px-5 py-4 border-t flex justify-between items-center">
-                    <p className="text-sm text-[#8b8b8b]">
-                        Hiển thị {startIndex + 1}-{endIndex} trên {totalItems}{" "}
-                        món
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => onPageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        {[...Array(totalPages)].map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => onPageChange(i + 1)}
-                                className={`px-3 py-1 rounded ${
-                                    currentPage === i + 1
-                                        ? "bg-[#10bc5d] text-white"
-                                        : "hover:bg-gray-100"
-                                }`}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
-                        <button
-                            onClick={() => onPageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                </div>
             </div>
         );
     }
