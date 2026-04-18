@@ -24,11 +24,19 @@ kitchenApi.interceptors.request.use(
 
 export const kitchenDishAPI = {
     // GET /kitchen/get-dishes-output/{brandID}
-    getDishesOutput: async (brandId, date = null) => {
+    getDishesOutput: async (brandId, date = null, page = 1, size = 5) => {
         let url = `/kitchen/get-dishes-output/${brandId}`;
-        if (date) {
-            url += `?date=${date}`;
+        const params = new URLSearchParams();
+
+        if (date) params.append("date", date);
+        if (page) params.append("page", page);
+        if (size) params.append("size", size);
+
+        if (params.toString()) {
+            url += `?${params.toString()}`;
         }
+
+        console.log("📡 API URL:", url);
         const response = await kitchenApi.get(url);
         return response.data;
     },
@@ -46,45 +54,23 @@ export const kitchenDishAPI = {
 
     // POST /kitchen/create-dishes-daily/{brandID}
     createDishesDaily: async (brandId, data) => {
-        console.log("=== CREATE DISHES DAILY ===");
-        console.log("Brand ID:", brandId);
-        console.log("Data gửi đi:", data);
-        console.log("Data type:", typeof data);
-        console.log("Data stringify:", JSON.stringify(data));
-
-        try {
-            const response = await kitchenApi.post(
-                `/kitchen/create-dishes-daily/${brandId}`,
-                data,
-            );
-            console.log("Response success:", response.data);
-            return response.data;
-        } catch (error) {
-            console.error("API Error:", error);
-            console.error("Error response:", error.response?.data);
-            console.error("Error status:", error.response?.status);
-            throw error;
-        }
+        const response = await kitchenApi.post(
+            `/kitchen/create-dishes-daily/${brandId}`,
+            data,
+        );
+        return response.data;
     },
 
     // POST /kitchen/create-dishes-new/{brandID}
     createDishesNew: async (brandId, data) => {
-        try {
-            const response = await kitchenApi.post(
-                `/kitchen/create-dishes-new/${brandId}`,
-                data,
-            );
-            return response.data;
-        } catch (error) {
-            console.error(
-                "Error response from createDishesNew:",
-                error.response?.data,
-            );
-            throw error;
-        }
+        const response = await kitchenApi.post(
+            `/kitchen/create-dishes-new/${brandId}`,
+            data,
+        );
+        return response.data;
     },
 
-    //PUT /kitchen/update-dishes-output/{dailyDetailId}
+    // PUT /kitchen/update-dishes-output/{dailyDetailId}
     updateDishesOutput: async (dailyDetailId, data) => {
         const response = await kitchenApi.put(
             `/kitchen/update-dishes-output/${dailyDetailId}`,
@@ -92,34 +78,6 @@ export const kitchenDishAPI = {
         );
         return response.data;
     },
-
-    // updateDishesOutput: async (dailyDetailId, data) => {
-    //     try {
-    //         console.log("=== UPDATE DISHES OUTPUT ===");
-    //         console.log("DailyDetailId:", dailyDetailId);
-    //         console.log("Data to send:", data);
-
-    //         // Kiểm tra format dữ liệu
-    //         const formattedData = {
-    //             quantity_prepared: Number(data.quantity_prepared),
-    //             quantity_wasted: Number(data.quantity_wasted || 0),
-    //         };
-    //         console.log("Formatted data:", formattedData);
-
-    //         const response = await apiClient.put(
-    //             `/kitchen/update-dishes-output/${dailyDetailId}`,
-    //             formattedData,
-    //         );
-
-    //         console.log("Update response:", response);
-    //         return response.data;
-    //     } catch (error) {
-    //         console.error("Update dishes output error:", error);
-    //         console.error("Error response:", error.response);
-    //         console.error("Error data:", error.response?.data);
-    //         throw error;
-    //     }
-    // },
 
     // PUT /kitchen/update-dishes-leftover/{dailyDetailId}
     updateDishesLeftover: async (dailyDetailId, data) => {

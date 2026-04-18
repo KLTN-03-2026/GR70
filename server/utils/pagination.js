@@ -27,8 +27,7 @@ async function getPagination({
     where.is_active = filters.isActive;
   }
   if(filters.status===false || filters.status===true){
-    console.log("status3: ",filters.status);
-    
+    // console.log("status3: ",filters.status);
     where.status=filters.status
   }
   if(filters.category){

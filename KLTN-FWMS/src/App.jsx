@@ -1,11 +1,13 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Routes, Route ,Navigate} from "react-router-dom";
 import { Toaster } from "sonner";
+
 
 // Layouts
 import Layout from "./components/Layout/Layout";
 import KitchenLayout from "./components/Layout/KitchenLayout";
 import { LayoutAdmin } from "./components/Layout/LayoutAdmin";
+
 
 // Routes bảo vệ
 import PrivateRoute from "./components/PrivateRoute";
@@ -31,6 +33,7 @@ import ManagerProfile from "./pages/ManagerProfile";
 import KitchenDashboard from "./pages/kitchen/KitchenDashboard";
 import SurplusDishes from "./pages/kitchen/SurplusDishes/SurplusDishes";
 import ProfilePage from "./pages/kitchen/ProfilePage";
+import Manager_Dish_Kitchen from "./pages/kitchen/ServedDishes/Manager_Dish_Kitchen";
 
 // Components
 
@@ -38,14 +41,15 @@ import WasteReportPage from "./components/WasteReportPage";
 
 // Admin Pages
 import { AdminDashboard } from "./pages/Admin/AdminDashboard";
+
 import Accountmanagement from "./pages/Admin/Accountmanagement";
 
-// Widget
-import ChatWidget from "./components/ChatWidget";
-import Manager_Dish_Kitchen from "./pages/kitchen/ServedDishes/Manager_Dish_Kitchen";
+import { StoreManager } from "./pages/Admin/StoreManager";
 
 function App() {
     const token = localStorage.getItem("token");
+
+
     return (
         <>
             <Toaster position="top-right" richColors />
@@ -105,25 +109,22 @@ function App() {
                         />
                         <Route path="profile" element={<ProfilePage />} />
                         <Route path="waste-base" element={<WasteReportPage />} />
-                        <Route path="manager-dish" element={<Manager_Dish_Kitchen/>} />
+                        <Route path="manager-dish" element={<Manager_Dish_Kitchen />} />
                     </Route>
 
                     {/* Admin */}
-                    <Route
-                        path="/admin"
-                        element={
-                            <AdminRoute>
-                                <LayoutAdmin />
-                            </AdminRoute>
-                        }
-                    >
+                    <Route path="/admin" element={<AdminRoute> <LayoutAdmin /></AdminRoute>} >
+                        <Route index element={<Navigate to="dashboard" replace />} />
                         <Route path="dashboard" element={<AdminDashboard />} />
+
                          <Route path="user" element={<Accountmanagement />} />
+
+                        <Route path="storeManager" element={<StoreManager />} />
+                        
+
+
                     </Route>
                 </Routes>
-
-                {/* Global Widget */}
-                {!token && <ChatWidget/>}
             </Router>
         </>
     );

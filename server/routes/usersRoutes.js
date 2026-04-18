@@ -6,6 +6,7 @@ var CustomerController = require('../controller/kitchen/CustomerController');
 /* GET users listing. */
 // cập nhật số lượng khách hàng trong ngày
 router.put('/update-customer-count',authorize(["Manager"]), CustomerController.UpdateCustomerCount);
+router.get('/get-customer-count',authorize(["Manager"]), CustomerController.GetCustomerCount);
 /* GET users listing. */
 router.post('/register-kitchen/:id', authorize(["Manager", "Admin"]), UserController.RegisterKitchen);
 router.put('/update-kitchen/:id', UserController.UpdateKitchen);

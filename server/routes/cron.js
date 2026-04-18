@@ -6,21 +6,27 @@ const OperationDaily = async () => {
     // cron.schedule('* * * * *', async () => {
         try {
             const result = await CronServices.OperationDaily();
-            console.log('[CRON] Xong:', result);
+            // console.log('[CRON] Xong:', result);
         } catch (error) {
             console.log(error);
         }
+    },{
+        scheduled: true,
+        timezone: "Asia/Ho_Chi_Minh"
     });
 }
 const CallAIEveryDays= async () => {
-    cron.schedule('0 3 * * *', async () => {
+    cron.schedule('0 2 * * *', async () => {
     // cron.schedule('* * * * *', async () => {
         try {
             const result = await AIServices.serviceAIEveryDays();
-            console.log('[CRON] Xong AI:', result);
+            // console.log('[CRON] Xong AI:', result);
         } catch (error) {
             console.log(error);
         }
+    },{
+        scheduled: true,
+        timezone: "Asia/Ho_Chi_Minh"
     });
 }
 module.exports = { OperationDaily, CallAIEveryDays };

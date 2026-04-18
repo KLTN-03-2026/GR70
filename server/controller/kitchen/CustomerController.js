@@ -2,6 +2,7 @@ const ApiError = require("../../utils/ApiError");
 const ApiSuccess = require("../../utils/ApiSuccess");
 const CheckServices = require("../../services/CheckServices");
 const DailyRepository = require("../../repository/DailyRepository");
+const DailyServices = require("../../services/DailyServices");
 // cập nhập số lượng khách hàng trong ngày
 exports.UpdateCustomerCount = async function (req, res, next) {
   try {
@@ -11,8 +12,19 @@ exports.UpdateCustomerCount = async function (req, res, next) {
       throw ApiError.ValidationError("Customer count must be a positive number");
     }
     await CheckServices.checkBrand(brandID);
-    const updateCustomer = await DailyRepository.UpdateCustomerCount(brandID, customer_count);
+    const checkDailyOperation = await DailyServices.checkDailyOperation(brandID);
+    const updateCustomer = await DailyRepository.UpdateCustomerCount(checkDailyOperation, customer_count);
     return res.json(ApiSuccess.updated("Customer count updated successfully"));
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.GetCustomerCount = async function (req, res, next) {
+  try {
+    const brandID = req.user.brandID;
+    const customer_count = await DailyRepository.GetCustomerCount(brandID);
+    return res.json(ApiSuccess.getSelect("Customer count", customer_count));
   } catch (error) {
     return next(error);
   }

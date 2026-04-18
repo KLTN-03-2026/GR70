@@ -19,7 +19,9 @@ exports.register=async (req, res, next) => {
         const data =req.body;
         const brand={
             name: data.nameBrand,
-            address: data.addressBrand
+            address: data.addressBrand,
+            rolebrand: data.rolebrand,
+            province: data.province
         }
         if(!brand.name || !brand.address){
             throw ApiError.ValidationError("Brand name and address are required");
