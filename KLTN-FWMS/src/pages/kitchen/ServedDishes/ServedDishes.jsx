@@ -16,7 +16,6 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
     const [activeTab, setActiveTab] = useState("all");
     const [selectedDish, setSelectedDish] = useState(null);
     const [quantity, setQuantity] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
     const [showAddForm, setShowAddForm] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -27,7 +26,11 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
         propSelectedDate || new Date(),
     );
 
-    const itemsPerPage = 5;
+    // ========== PHÂN TRANG - LẤY TỪ API ==========
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [pageSize] = useState(5); // 5 items mỗi trang
 
     // Cập nhật selectedDate khi prop thay đổi
     useEffect(() => {
@@ -101,27 +104,36 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
         return surplusItem ? surplusItem.waste : 0;
     };
 
-    // Fetch dishes với ngày được chọn
+    // ========== FETCH DISHES VỚI PHÂN TRANG TỪ API ==========
     const fetchDishes = useCallback(async () => {
         if (!brandId) return;
         setLoading(true);
         setError(null);
         try {
             const formattedDate = selectedDate.toISOString().split("T")[0];
+
+            // Gọi API với page và size
             const response = await kitchenDishAPI.getDishesOutput(
                 brandId,
                 formattedDate,
+                currentPage, // Trang hiện tại
+                pageSize, // 5 items mỗi trang
             );
 
+            console.log("ServedDishes API Response:", response);
+
             if (response.success && response.data) {
-                const formattedDishes = response.data.map((item) => ({
+                // Lấy mảng từ response.data.data
+                const dishesArray = response.data.data || [];
+
+                const formattedDishes = dishesArray.map((item) => ({
                     id: item.id,
                     dailyDetailId: item.id,
                     name: item.dish?.name || "Unknown",
                     served: item.quantity_prepared || 0,
                     price: item.dish?.price || 0,
                     status: item.quantity_wasted > 0 ? "closed" : "active",
-                    category: item.dish?.category || "Món chính",
+                    category: item.dish?.dish_category?.name || "Món chính",
                     ingredients: item.dish?.ingredients || [],
                     revenue_cost: parseFloat(item.revenue_cost) || 0,
                     waste_cost: parseFloat(item.waste_cost) || 0,
@@ -133,7 +145,12 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                     dishId: item.dish?.id,
                     hasWaste: item.quantity_wasted > 0,
                 }));
+
                 setDishes(formattedDishes);
+
+                // Lấy thông tin phân trang từ API
+                setTotalPages(response.data.totalPages || 1);
+                setTotalItems(response.data.total || 0);
             } else {
                 setError(response.message || "Không thể tải dữ liệu");
             }
@@ -145,29 +162,24 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
         } finally {
             setLoading(false);
         }
-    }, [brandId, selectedDate]);
+    }, [brandId, selectedDate, currentPage, pageSize]);
+
+    // Reset về trang 1 khi đổi ngày
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedDate]);
 
     // Fetch master dishes khi component mount
     useEffect(() => {
         fetchAllMasterDishes();
     }, [fetchAllMasterDishes]);
 
-    // Fetch khi brandId hoặc selectedDate thay đổi
+    // Fetch khi brandId, selectedDate, hoặc currentPage thay đổi
     useEffect(() => {
         if (brandId) {
             fetchDishes();
         }
-    }, [brandId, selectedDate, fetchDishes]);
-
-    // Auto refresh mỗi 30 giây
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (brandId && !loading) {
-                fetchDishes();
-            }
-        }, 30000);
-        return () => clearInterval(interval);
-    }, [brandId, loading, fetchDishes]);
+    }, [brandId, selectedDate, currentPage, fetchDishes]);
 
     const handleRefresh = () => {
         fetchDishes();
@@ -177,23 +189,92 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
     const formatPrice = (price) =>
         new Intl.NumberFormat("vi-VN").format(price) + "₫";
 
-    const filteredDishes = dishes;
-    const totalItems = filteredDishes.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentDishes = filteredDishes.slice(
-        startIndex,
-        startIndex + itemsPerPage,
-    );
+    // ========== FILTER THEO TAB (client-side filter) ==========
+    const filteredDishes = dishes.filter((dish) => {
+        if (activeTab === "active") return dish.status === "active";
+        if (activeTab === "closed") return dish.status === "closed";
+        return true;
+    });
+
+    // ========== XỬ LÝ CHUYỂN TRANG ==========
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    // ========== RENDER PHÂN TRANG ==========
+    const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
+        const startItem = (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+
+        // Tạo mảng số trang hiển thị (tối đa 5 số)
+        const getPageNumbers = () => {
+            const pages = [];
+            const maxVisible = 5;
+
+            if (totalPages <= maxVisible) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else if (currentPage <= 3) {
+                for (let i = 1; i <= maxVisible; i++) pages.push(i);
+            } else if (currentPage >= totalPages - 2) {
+                for (let i = totalPages - maxVisible + 1; i <= totalPages; i++)
+                    pages.push(i);
+            } else {
+                for (let i = currentPage - 2; i <= currentPage + 2; i++)
+                    pages.push(i);
+            }
+            return pages;
+        };
+
+        return (
+            <div className="px-5 py-4 border-t flex justify-between items-center">
+                <p className="text-sm text-[#8b8b8b]">
+                    Hiển thị {startItem}-{endItem} trên {totalItems} món
+                </p>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+
+                    {getPageNumbers().map((pageNum) => (
+                        <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-1 rounded ${
+                                currentPage === pageNum
+                                    ? "bg-[#10bc5d] text-white"
+                                    : "hover:bg-gray-100"
+                            }`}
+                        >
+                            {pageNum}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     const handleQuantityChange = (delta) => {
         setQuantity((prev) => Math.max(0, prev + delta));
     };
 
-    // KIỂM TRA VÀ THÔNG BÁO KHI NHẤN LƯU - NẾU CÓ MÓN DƯ THÌ BÁO LỖI
     const handleSaveReport = async () => {
         if (selectedDish) {
-            // Kiểm tra từ cả dish.hasWaste và surplusData
             const hasWaste =
                 selectedDish.hasWaste ||
                 selectedDish.quantity_wasted > 0 ||
@@ -270,7 +351,6 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
             );
 
             if (existingDailyDish) {
-                // Kiểm tra nếu món đã có món dư
                 const hasWaste =
                     existingDailyDish.hasWaste ||
                     existingDailyDish.quantity_wasted > 0 ||
@@ -363,7 +443,6 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
         }
     };
 
-    // Mở form chi tiết - luôn cho phép mở dù có món dư hay không
     const handleEditClick = (dish) => {
         setSelectedDish(dish);
         setQuantity(dish.served);
@@ -429,7 +508,7 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                             setActiveTab(tab);
                             setCurrentPage(1);
                         }}
-                        totalAll={dishes.length}
+                        totalAll={totalItems} // Dùng total từ API
                         onAddNew={() => setShowAddForm(true)}
                         disabled={
                             selectedDate.toDateString() !==
@@ -460,8 +539,7 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentDishes.map((dishItem) => {
-                                    // Kiểm tra món có món dư không (chỉ để hiển thị số lượng)
+                                {filteredDishes.map((dishItem) => {
                                     const wasteQty =
                                         dishItem.quantity_wasted > 0
                                             ? dishItem.quantity_wasted
@@ -535,49 +613,11 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                         </table>
 
                         {/* PHÂN TRANG */}
-                        {totalPages > 1 && (
-                            <div className="px-5 py-4 border-t flex justify-between items-center">
-                                <p className="text-sm text-[#8b8b8b]">
-                                    Hiển thị {startIndex + 1}-
-                                    {Math.min(
-                                        startIndex + itemsPerPage,
-                                        totalItems,
-                                    )}{" "}
-                                    trên {totalItems} món
-                                </p>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() =>
-                                            setCurrentPage((p) =>
-                                                Math.max(1, p - 1),
-                                            )
-                                        }
-                                        disabled={currentPage === 1}
-                                        className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded"
-                                    >
-                                        <ChevronLeft size={18} />
-                                    </button>
-                                    <span className="px-3 py-1 rounded bg-[#10bc5d] text-white">
-                                        {currentPage}
-                                    </span>
-                                    <button
-                                        onClick={() =>
-                                            setCurrentPage((p) =>
-                                                Math.min(totalPages, p + 1),
-                                            )
-                                        }
-                                        disabled={currentPage === totalPages}
-                                        className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded"
-                                    >
-                                        <ChevronRight size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        {renderPagination()}
                     </div>
                 </div>
 
-                {/* PANEL CHI TIẾT - LUÔN HIỂN THỊ VÀ CHO PHÉP NHẬP SỐ LƯỢNG */}
+                {/* PANEL CHI TIẾT */}
                 {selectedDish && (
                     <DishDetailPanel
                         isDetail={true}
@@ -587,7 +627,6 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                         onSave={handleSaveReport}
                         onClose={() => setSelectedDish(null)}
                         formatPrice={formatPrice}
-                        // KHÔNG disable - vẫn cho phép nhập số lượng
                         isReadOnly={
                             selectedDate.toDateString() !==
                             new Date().toDateString()
