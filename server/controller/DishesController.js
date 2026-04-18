@@ -135,12 +135,26 @@ exports.ApproveDishes = async function (req, res, next) {
 exports.GetAllDishesTrue = async function (req, res, next) {
     try {
         const BrandID = req.user.brandID;
+        const userID = req.user.userId;
+        const page = parseInt(req.query.page) || 1;
+        const size = parseInt(req.query.size) || 10;
         if(!BrandID){
             throw ApiError.Unauthorized("Brand ID is required");
         }
         await CheckServices.checkBrand(BrandID);
-        const getAllDishes = await DishesRepository.GetAllDishesTrue(BrandID);
+        const checkRole = await CheckServices.checkRole(userID);
+        if(checkRole === "Manager" || checkRole === "admin"){
+            const getAllDishes = await DishesRepository.GetAllDishesTrue(BrandID,{
+            page,
+            size,
+            orderBy: req.query.orderBy || "created_at",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
+        });
         return res.json(ApiSuccess.getSelect("Dishes list", getAllDishes));
+        }else{
+            const getAllDishes = await DishesRepository.GetAllDishesTrueKitchenn(BrandID);
+            return res.json(ApiSuccess.getSelect("Dishes list", getAllDishes));
+        }
     } catch (error) {
         return next(error);
     }

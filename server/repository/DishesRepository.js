@@ -1,5 +1,5 @@
 const {DishModel, DishRecipeModel, DishCategoryModel, UserModel, IngredientModel, DailyDetailModel} = require("../models/index");
-
+const pagination = require("../utils/pagination");
 
 class DishesRepository {
     async CreateDishes(data, brandID, userID, options={}) {
@@ -45,17 +45,26 @@ class DishesRepository {
         }
     }
     // lấy tất cả món ăn theo status true
-    async GetAllDishesTrue(brandID) {
-        try {            
+    async GetAllDishesTrue(brandID,options) {
+        return pagination.getPagination({
+            model: DishModel,
+            attributes: ['id', 'name', 'price', 'des', 'status'],
+            where: { status: true, brand_id: brandID },
+            include: [{
+              model:   DishCategoryModel,
+              attributes: ['name']
+            },{
+                model: UserModel,
+                attributes: ['name']
+            }],
+            ...options
+        })
+    }
+    async GetAllDishesTrueKitchenn(brandID) {
+        try {
             const dishes = await DishModel.findAll({
+                 attributes: ['id', 'name'],
                  where: { status: true, brand_id: brandID },
-                    include: [{
-                      model:   DishCategoryModel,
-                      attributes: ['name']
-                    },{
-                        model: UserModel,
-                        attributes: ['name']
-                    }]
                 });
             return dishes;
         } catch (error) {

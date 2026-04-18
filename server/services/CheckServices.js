@@ -129,5 +129,17 @@ class CheckServices {
             throw error;
         }
     }
+    async checkRole(id){
+        try {
+            const role = await CheckRepository.checkRole(id);
+            if(!role){
+                throw ApiError.NotFound("Role not found");
+            }
+            // console.log(role);
+            return role?.roles?.name
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 module.exports = new CheckServices();
