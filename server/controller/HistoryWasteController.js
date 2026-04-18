@@ -26,8 +26,8 @@ exports.SumWasteByMonthCompare = async (req, res, next) => {
     };
     const Current = await DailyRepository.SumWasteByMonth(brandID);
     const Previous = await DailyRepository.SumWasteByMonth(brandID, month);
-    console.log("Current", Current.total_waste);
-    console.log("Previous", Previous.total_waste);
+    // console.log("Current", Current.total_waste);
+    // console.log("Previous", Previous.total_waste);
 
     let result =
       (Number(Current.total_waste) / Number(Previous.total_waste)) * 100;
@@ -62,8 +62,8 @@ exports.ListWasteByIngredient = async (req, res, next) => {
       await AIRepository.getAi_Analysis_Waste_By_BrandID(brandID);
     const resultDaily = await DailyRepository.ListWasteByIngredient(brandID,month);
 
-    console.log("ai", JSON.stringify(resultAI || [], null, 2));
-    console.log("daily", JSON.stringify(resultDaily || [], null, 2));
+    // console.log("ai", JSON.stringify(resultAI || [], null, 2));
+    // console.log("daily", JSON.stringify(resultDaily || [], null, 2));
 
     const aiMap = {};
 
@@ -84,7 +84,7 @@ exports.ListWasteByIngredient = async (req, res, next) => {
       };
     });
 
-    console.log("aiMap", aiMap);
+    // console.log("aiMap", aiMap);
 
     const result = resultDaily
       .filter(
@@ -102,7 +102,7 @@ exports.ListWasteByIngredient = async (req, res, next) => {
         const key = `${date}__${dishId}`;
         const aiData = aiMap[key] || null;
 
-        console.log("merge key:", key, "=>", aiData);
+        // console.log("merge key:", key, "=>", aiData);
 
         return {
           date,
@@ -123,7 +123,7 @@ exports.ListWasteByIngredient = async (req, res, next) => {
         return (a.dish_name || "").localeCompare(b.dish_name || "");
       });
 
-    console.log("merged result", JSON.stringify(result, null, 2));
+    // console.log("merged result", JSON.stringify(result, null, 2));
 
     return res.json(ApiSuccess.getSelect("List waste by ingredient", result));
   } catch (error) {
