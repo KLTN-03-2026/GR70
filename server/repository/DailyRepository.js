@@ -2,9 +2,12 @@ const {
   DailyOperationModel,
   DailyDetailModel,
   DishModel,
+  DishCategoryModel,
 } = require("../models/index");
 const sequelize = require("../config/connectData");
 const { Op, fn, col } = require("sequelize");
+const pagination = require("../utils/pagination");
+const { log } = require("winston");
 class DailyRepository {
   async checkDailyOperation(brandID, datevn) {
     return await DailyOperationModel.findOne({
@@ -76,15 +79,9 @@ class DailyRepository {
     );
   }
   // lấy danh sách món ra theo ngày
-  async GetDishesOutputByDate(brandID) {
-    const today = new Date().toISOString().split("T")[0];
-    const operation = await DailyOperationModel.findOne({
-      where: { operation_date: today, brand_id: brandID },
-    });
-    if (!operation) {
-      return [];
-    }
-    return await DailyDetailModel.findAll({
+  async GetDishesOutputByDate(dailyID,options) {
+    const test =await pagination.getPagination({
+      model: DailyDetailModel,
       attributes: [
         "id",
         "quantity_prepared",
@@ -92,14 +89,22 @@ class DailyRepository {
         "revenue_cost",
         "waste_cost",
       ],
-      where: { daily_id: operation.id },
+      where: { daily_id: dailyID },
       include: [
         {
           model: DishModel,
           attributes: ["name"],
+          include: [
+            {
+              model: DishCategoryModel,
+              attributes: ["name"],
+            }
+          ]
         },
       ],
-    });
+      ...options
+    })
+    return test
   }
   // kiểm tra xem món ăn đó đã được tạo món ra trong ngày chưa, nếu có rồi thì không được tạo nữa
   async CheckDishesOutputByDishID(dishes_id, dailyID) {

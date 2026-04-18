@@ -51,7 +51,7 @@ class DailyServices {
         // check ngày hôm nay đã có chưa, nếu chưa thì tạo
     async checkDailyOperation(brandID){
         try {
-            const dailyDate = this.formatDate();
+            const dailyDate =await this.formatDate();
             const daily = await DailyRepository.checkDailyOperation(brandID, dailyDate);
             if(!daily){
                 const creatDaily=await DailyRepository.DailyOperation( brandID, dailyDate);

@@ -273,6 +273,8 @@ exports.UpdateDishesOutput = async function (req, res, next) {
 exports.GetDishesOutputByDate = async function (req, res, next) {
   try {
     const brandID = req.params.brandID;
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
     if (!brandID) {
       throw ApiError.ValidationError("Missing required field brandID");
     }
@@ -280,7 +282,13 @@ exports.GetDishesOutputByDate = async function (req, res, next) {
     if (!checkBrand) {
       throw ApiError.ValidationError("Brand not found with id: " + brandID);
     }
-    const dishesOutput = await DailyRepository.GetDishesOutputByDate(brandID);
+    const checkDaily = await DailyServices.checkDailyOperation(brandID);
+    const dishesOutput = await DailyRepository.GetDishesOutputByDate(checkDaily,{
+      page,
+      size,
+      orderBy: req.query.orderBy || "id",
+      order: req.query.orderType === "1" ? "ASC" : "DESC",
+    });
     return res.json(ApiSuccess.getSelect("Dishes Output list", dishesOutput));
   } catch (error) {
     return next(error);
