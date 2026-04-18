@@ -38,6 +38,7 @@ import WasteReportPage from "./components/WasteReportPage";
 
 // Admin Pages
 import { AdminDashboard } from "./pages/Admin/AdminDashboard";
+import Accountmanagement from "./pages/Admin/Accountmanagement";
 
 // Widget
 import ChatWidget from "./components/ChatWidget";
@@ -117,6 +118,7 @@ function App() {
                         }
                     >
                         <Route path="dashboard" element={<AdminDashboard />} />
+                         <Route path="user" element={<Accountmanagement />} />
                     </Route>
                 </Routes>
 
