@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { getUserInfo } from "../utils/auth";
 import ViewFood from "../components/FoodView";
 
+
+
 import {
   getAllDishes,
   getAllDishesFalse,
@@ -12,6 +14,7 @@ import {
   getCategoryDishes,
   getIngredientsByBrand,
   getRecipesByDish,
+  getDishDetail,
 } from "../services/dishService";
 
 // ─── Toast ─────────────────────────────────────────────────────────────────
@@ -49,10 +52,7 @@ function useToast() {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
-  const remove = useCallback(
-    (id) => setToasts((prev) => prev.filter((t) => t.id !== id)),
-    []
-  );
+  const remove = useCallback((id) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
   return { toasts, add, remove };
 }
 
@@ -154,7 +154,6 @@ function ConfirmLockModal({ item, onClose, onConfirm }) {
   );
 }
 
-
 // ─── Food Form Modal ─────────────────────────────────────────────────────────
 function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, showToast }) {
   const userInfo = getUserInfo();
@@ -166,11 +165,9 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
   const [categories, setCategories] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
   const [dishRecipes, setDishRecipes] = useState([]);
-  const [fetchReady, setFetchReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch danh mục + nguyên liệu
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -182,30 +179,34 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
         setIngredientsList(Array.isArray(ingRes?.data) ? ingRes.data : []);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
-      } finally {
-        setFetchReady(true);
       }
     };
     fetchData();
   }, []);
 
-  // Load món ăn + công thức nguyên liệu
   useEffect(() => {
     if (!isEdit || !initial?.id) {
       setDishRecipes([]);
       return;
     }
 
+    const resolvedCategoryId =
+      initial.dish_category_id ||
+      initial.dish_category?.id ||
+      categories.find((c) => c.name === initial.dish_category?.name)?.id ||
+      "";
+
     setForm({
-      category: String(initial.dish_category_id || initial.dish_category?.id || ""),
+      category: String(resolvedCategoryId),
       name: initial.name || "",
       des: initial.des || "",
     });
 
     setPriceRaw(initial.price ? String(initial.price) : "");
-    setPriceDisplay(initial.price ? Number(initial.price).toLocaleString("vi-VN") + " ₫" : "");
+    setPriceDisplay(
+      initial.price ? Number(initial.price).toLocaleString("vi-VN") + " ₫" : ""
+    );
 
-    // Gọi API lấy recipes
     const loadRecipes = async () => {
       try {
         const res = await getRecipesByDish(initial.id);
@@ -217,9 +218,7 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
             ingredient_id: String(r.ingredient_id ?? ""),
             quantity: r.quantity != null ? String(r.quantity) : "",
           }));
-
           setDishRecipes(normalized);
-          console.log("✅ Loaded recipes:", normalized);
         } else {
           setDishRecipes([]);
         }
@@ -229,9 +228,9 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
       }
     };
 
-
     loadRecipes();
-  }, [isEdit, initial?.id]);
+  }, [isEdit, initial?.id, categories]);
+
 
   const handleInputChange = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -248,11 +247,7 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
   };
 
   const handleAddIngredient = () =>
-    setDishRecipes((prev) => [
-      ...prev,
-      { id: "", ingredient_id: "", quantity: "" },
-    ]);
-
+    setDishRecipes((prev) => [...prev, { id: "", ingredient_id: "", quantity: "" }]);
 
   const handleRemoveIngredient = (index) =>
     setDishRecipes((prev) => prev.filter((_, i) => i !== index));
@@ -278,6 +273,28 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
         quantity: Number(r.quantity),
       }));
 
+    if (validRecipes.length < 2) {
+      setError("Món ăn phải có ít nhất 2 nguyên liệu.");
+      return;
+    }
+
+    const hasInvalidQuantity = validRecipes.some(
+      (r) => Number.isNaN(r.quantity) || r.quantity <= 0
+    );
+
+    if (hasInvalidQuantity) {
+      setError("Số lượng nguyên liệu phải lớn hơn 0.");
+      return;
+    }
+
+    const ingredientIds = validRecipes.map((r) => String(r.ingredient_id));
+    const hasDuplicateIngredient = new Set(ingredientIds).size !== ingredientIds.length;
+
+    if (hasDuplicateIngredient) {
+      setError("Không được chọn trùng nguyên liệu trong cùng một món ăn.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -291,14 +308,6 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           dish_recipes: validRecipes,
         });
         showToast("Cập nhật món ăn thành công!");
-
-        // Reload recipes sau khi lưu
-        const res = await getRecipesByDish(initial.id);
-        const newRecipes = (res?.data || []).map((r) => ({
-          ingredient_id: String(r.ingredient_id ?? ""),
-          quantity: r.quantity != null ? String(r.quantity) : "",
-        }));
-        setDishRecipes(newRecipes);
       } else {
         await createDish(brandId, userId, {
           dish_category_id: form.category,
@@ -320,6 +329,7 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
       setLoading(false);
     }
   };
+
 
   return (
     <Modal title={isEdit ? "Cập nhật món ăn" : "Thêm món ăn mới"} onClose={onClose}>
@@ -388,7 +398,6 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           />
         </div>
 
-        {/* Nguyên liệu */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <label className={labelClass} style={{ marginBottom: 0 }}>Công thức nguyên liệu</label>
@@ -468,43 +477,154 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
   );
 }
 
+function Pagination({ page, totalPages, total, pageSize, onChange, label }) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-white">
+      <span className="text-xs text-slate-500">
+        Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} / {total} {label}
+      </span>
+
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onChange(1)}
+          disabled={page === 1}
+          className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+        >
+          «
+        </button>
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+        >
+          ‹
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+          .reduce((acc, p, idx, arr) => {
+            if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+            acc.push(p);
+            return acc;
+          }, [])
+          .map((p, idx) =>
+            p === "..." ? (
+              <span key={`ellipsis-${idx}`} className="px-2 text-xs text-slate-400">…</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onChange(p)}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={
+                  page === p
+                    ? { background: "var(--color-primary)", color: "#fff" }
+                    : { color: "var(--color-text-2)" }
+                }
+              >
+                {p}
+              </button>
+            )
+          )}
+
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page === totalPages}
+          className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+        >
+          ›
+        </button>
+        <button
+          onClick={() => onChange(totalPages)}
+          disabled={page === totalPages}
+          className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+        >
+          »
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main FoodsPage ──────────────────────────────────────────────────────────
 export default function FoodsPage() {
   const userInfo = getUserInfo();
-  const userId =
-    userInfo?.userId || userInfo?.id || localStorage.getItem("userId");
-  const brandId =
-    userInfo?.brandID || userInfo?.brandId || localStorage.getItem("brandID");
+  const userId = userInfo?.userId || userInfo?.id || localStorage.getItem("userId");
+  const brandId = userInfo?.brandID || userInfo?.brandId || localStorage.getItem("brandID");
 
   const { toasts, add: showToast, remove: removeToast } = useToast();
+
+  const ITEMS_PER_PAGE = 10;
 
   const [foods, setFoods] = useState([]);
   const [pending, setPending] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
   const [modal, setModal] = useState(null);
 
-  const fetchFoods = useCallback(async () => {
+  const [foodPage, setFoodPage] = useState(1);
+  const [foodTotal, setFoodTotal] = useState(0);
+  const [foodTotalPages, setFoodTotalPages] = useState(1);
+
+  const [pendingPage, setPendingPage] = useState(1);
+  const [pendingTotal, setPendingTotal] = useState(0);
+  const [pendingTotalPages, setPendingTotalPages] = useState(1);
+
+  const [loadingFoods, setLoadingFoods] = useState(true);
+  const [loadingPending, setLoadingPending] = useState(true);
+
+  const fetchFoods = useCallback(async (page = 1) => {
     try {
-      const [activeRes, pendingRes] = await Promise.all([
-        getAllDishes(),
-        getAllDishesFalse(),
-      ]);
-      setFoods(Array.isArray(activeRes?.data) ? activeRes.data : []);
-      setPending(Array.isArray(pendingRes?.data) ? pendingRes.data : []);
+      setLoadingFoods(true);
+      const activeRes = await getAllDishes(page, ITEMS_PER_PAGE);
+      const payload = activeRes?.data ?? {};
+      const list = Array.isArray(payload?.data) ? payload.data : [];
+
+      setFoods(list);
+      setFoodTotal(Number(payload?.total) || 0);
+      setFoodTotalPages(Math.max(1, Number(payload?.totalPages) || 1));
+      setFoodPage(Number(payload?.page) || page);
     } catch {
+      setFoods([]);
+      setFoodTotal(0);
+      setFoodTotalPages(1);
       showToast("Lỗi tải danh sách món ăn", "error");
+    } finally {
+      setLoadingFoods(false);
     }
-  }, []);
+  }, [showToast]);
+
+  const fetchPendingFoods = useCallback(async (page = 1) => {
+    try {
+      setLoadingPending(true);
+      const pendingRes = await getAllDishesFalse(page, ITEMS_PER_PAGE);
+      const payload = pendingRes?.data ?? {};
+      const list = Array.isArray(payload?.data) ? payload.data : [];
+
+      setPending(list);
+      setPendingTotal(Number(payload?.total) || 0);
+      setPendingTotalPages(Math.max(1, Number(payload?.totalPages) || 1));
+      setPendingPage(Number(payload?.page) || page);
+    } catch {
+      setPending([]);
+      setPendingTotal(0);
+      setPendingTotalPages(1);
+      showToast("Lỗi tải danh sách chờ duyệt", "error");
+    } finally {
+      setLoadingPending(false);
+    }
+  }, [showToast]);
 
   useEffect(() => {
-    fetchFoods();
-  }, [fetchFoods]);
-
+    fetchFoods(1);
+    fetchPendingFoods(1);
+  }, [fetchFoods, fetchPendingFoods]);
 
   const handleLock = async (id) => {
     try {
       await deleteDish(id);
-      await fetchFoods(); // refetch để tab "Chờ duyệt" cũng cập nhật
+      await fetchFoods(foodPage);
+      await fetchPendingFoods(pendingPage);
       showToast("Đã khóa món ăn thành công.");
     } catch (err) {
       const msg = err?.response?.data?.message || "";
@@ -520,12 +640,10 @@ export default function FoodsPage() {
     try {
       await approveDish(id);
       showToast("Duyệt món ăn thành công!");
-      fetchFoods();
+      await fetchFoods(foodPage);
+      await fetchPendingFoods(pendingPage);
     } catch (err) {
-      showToast(
-        "Duyệt thất bại: " + (err?.response?.data?.message || ""),
-        "error"
-      );
+      showToast("Duyệt thất bại: " + (err?.response?.data?.message || ""), "error");
     }
   };
 
@@ -533,12 +651,10 @@ export default function FoodsPage() {
     try {
       await deleteDish(id);
       showToast("Đã từ chối và xóa món ăn.");
-      fetchFoods();
+      await fetchFoods(foodPage);
+      await fetchPendingFoods(pendingPage);
     } catch (err) {
-      showToast(
-        "Từ chối thất bại: " + (err?.response?.data?.message || ""),
-        "error"
-      );
+      showToast("Từ chối thất bại: " + (err?.response?.data?.message || ""), "error");
     }
   };
 
@@ -553,11 +669,11 @@ export default function FoodsPage() {
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.97) translateY(6px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
+          to { opacity: 1; transform: translateY(0); }
         }
         select { appearance: auto; }
       `}</style>
@@ -567,7 +683,6 @@ export default function FoodsPage() {
         style={{ background: "#f6f8f7", fontFamily: "'Nunito', sans-serif" }}
       >
         <main className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
           <header className="bg-white border-b border-slate-200 px-8 sticky top-0 z-10">
             <div className="flex justify-between items-center pt-6 pb-4">
               <h2
@@ -585,14 +700,11 @@ export default function FoodsPage() {
                 onClick={() => setModal("add")}
                 className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition-all"
                 style={{
-                  background:
-                    "linear-gradient(135deg, var(--color-primary), #0da04f)",
+                  background: "linear-gradient(135deg, var(--color-primary), #0da04f)",
                   boxShadow: "0 4px 12px rgba(16,188,93,0.25)",
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                  add
-                </span>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
                 Thêm món ăn mới
               </button>
             </div>
@@ -600,7 +712,7 @@ export default function FoodsPage() {
             <div className="flex gap-6">
               {[
                 { key: "list", label: "Danh sách món ăn" },
-                { key: "pending", label: "Chờ duyệt", badge: pending.length },
+                { key: "pending", label: "Chờ duyệt", badge: pendingTotal },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -630,7 +742,6 @@ export default function FoodsPage() {
           </header>
 
           <div className="p-8 space-y-8 max-w-7xl mx-auto w-full">
-            {/* Tab: Danh sách */}
             {activeTab === "list" && (
               <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -651,7 +762,7 @@ export default function FoodsPage() {
                       color: "var(--color-primary)",
                     }}
                   >
-                    {foods.length} món
+                    {loadingFoods ? "..." : `${foodTotal} món`}
                   </span>
                 </div>
 
@@ -713,9 +824,7 @@ export default function FoodsPage() {
                             className="text-xs px-3 py-1 rounded-full font-semibold"
                             style={{ background: "#f1f5f4", color: "var(--color-text-2)" }}
                           >
-                            {item.dish_category?.name ||
-                              item.category?.name ||
-                              "Chưa phân loại"}
+                            {item.dish_category?.name || item.category?.name || "Chưa phân loại"}
                           </span>
                         </td>
 
@@ -745,18 +854,12 @@ export default function FoodsPage() {
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{
-                                background:
-                                  item.status === true
-                                    ? "var(--color-primary)"
-                                    : "#9ca3af",
+                                background: item.status === true ? "var(--color-primary)" : "#9ca3af",
                               }}
                             />
                             <span
                               style={{
-                                color:
-                                  item.status === true
-                                    ? "var(--color-primary)"
-                                    : "var(--color-text-3)",
+                                color: item.status === true ? "var(--color-primary)" : "var(--color-text-3)",
                               }}
                             >
                               {item.status === true ? "Hoạt động" : "Tạm dừng"}
@@ -808,7 +911,7 @@ export default function FoodsPage() {
                       </tr>
                     ))}
 
-                    {foods.length === 0 && (
+                    {!loadingFoods && foods.length === 0 && (
                       <tr>
                         <td
                           colSpan={6}
@@ -822,139 +925,156 @@ export default function FoodsPage() {
                   </tbody>
                 </table>
 
+                <Pagination
+                  page={foodPage}
+                  totalPages={foodTotalPages}
+                  total={foodTotal}
+                  pageSize={ITEMS_PER_PAGE}
+                  onChange={fetchFoods}
+                  label="món"
+                />
               </section>
             )}
 
-            {/* Tab: Chờ duyệt */}
             {activeTab === "pending" && (
-              <section className="space-y-4">
-                <h3
-                  style={{
-                    fontFamily: "'Arimo', sans-serif",
-                    fontSize: 20,
-                    fontWeight: 700,
-                    color: "var(--color-text-1)",
-                    margin: 0,
-                  }}
-                >
-                  Danh sách chờ duyệt
-                </h3>
-
-                {pending.length === 0 ? (
-                  <div
-                    className="bg-white rounded-xl border border-slate-200 p-12 text-center text-sm"
-                    style={{ color: "var(--color-text-3)" }}
+              <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3
+                    style={{
+                      fontFamily: "'Arimo', sans-serif",
+                      fontWeight: 700,
+                      color: "var(--color-text-1)",
+                      margin: 0,
+                    }}
                   >
-                    Không có món nào chờ duyệt
-                  </div>
-                ) : (
-                  pending.map((item) => (
+                    Danh sách chờ duyệt
+                  </h3>
+                  <span
+                    className="text-xs font-bold px-2.5 py-1 rounded-full"
+                    style={{
+                      background: "rgba(245,158,11,0.12)",
+                      color: "#d97706",
+                    }}
+                  >
+                    {loadingPending ? "..." : `${pendingTotal} món`}
+                  </span>
+                </div>
+
+                <div className="space-y-4 p-6">
+                  {!loadingPending && pending.length === 0 ? (
                     <div
-                      key={item.id}
-                      className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex justify-between items-center gap-4"
+                      className="rounded-xl border border-slate-200 p-12 text-center text-sm"
+                      style={{ color: "var(--color-text-3)" }}
                     >
-                      <div className="flex gap-4 items-center">
-                        <div
-                          className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ background: "rgba(16,188,93,0.06)" }}
-                        >
-                          <span
-                            className="material-symbols-outlined"
-                            style={{ fontSize: 36, color: "var(--color-primary)" }}
+                      Không có món nào chờ duyệt
+                    </div>
+                  ) : (
+                    pending.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex justify-between items-center gap-4"
+                      >
+                        <div className="flex gap-4 items-center">
+                          <div
+                            className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background: "rgba(16,188,93,0.06)" }}
                           >
-                            restaurant
-                          </span>
-                        </div>
-                        <div>
-                          <h5
-                            style={{
-                              fontFamily: "'Arimo', sans-serif",
-                              fontSize: 16,
-                              fontWeight: 600,
-                              color: "var(--color-text-1)",
-                              margin: 0,
-                            }}
-                          >
-                            {item.name}
-                          </h5>
-                          <p
-                            className="text-xs mt-1"
-                            style={{ color: "var(--color-text-3)" }}
-                          >
-                            {item.des || "Không có mô tả"}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2">
                             <span
-                              className="text-xs font-bold px-2.5 py-1 rounded-lg"
-                              style={{
-                                background: "rgba(16,188,93,0.1)",
-                                color: "var(--color-primary)",
-                              }}
+                              className="material-symbols-outlined"
+                              style={{ fontSize: 36, color: "var(--color-primary)" }}
                             >
-                              {Number(item.price).toLocaleString("vi-VN")}đ
-                            </span>
-                            <span
-                              className="text-xs"
-                              style={{ color: "var(--color-text-2)" }}
-                            >
-                              {item.dish_category?.name ||
-                                item.category?.name ||
-                                "Chưa phân loại"}
+                              restaurant
                             </span>
                           </div>
+                          <div>
+                            <h5
+                              style={{
+                                fontFamily: "'Arimo', sans-serif",
+                                fontSize: 16,
+                                fontWeight: 600,
+                                color: "var(--color-text-1)",
+                                margin: 0,
+                              }}
+                            >
+                              {item.name}
+                            </h5>
+                            <p className="text-xs mt-1" style={{ color: "var(--color-text-3)" }}>
+                              {item.des || "Không có mô tả"}
+                            </p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <span
+                                className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                                style={{
+                                  background: "rgba(16,188,93,0.1)",
+                                  color: "var(--color-primary)",
+                                }}
+                              >
+                                {Number(item.price).toLocaleString("vi-VN")}đ
+                              </span>
+                              <span className="text-xs" style={{ color: "var(--color-text-2)" }}>
+                                {item.dish_category?.name || item.category?.name || "Chưa phân loại"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 flex-shrink-0">
+                          <button
+                            onClick={() => handleReject(item.id)}
+                            className="px-5 py-2 rounded-xl text-sm font-bold border-2 transition-all hover:bg-red-50"
+                            style={{ borderColor: "#ef4444", color: "#ef4444" }}
+                          >
+                            Từ chối
+                          </button>
+                          <button
+                            onClick={() => handleApprove(item.id)}
+                            className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
+                            style={{
+                              background: "linear-gradient(135deg, var(--color-primary), #0da04f)",
+                            }}
+                          >
+                            Duyệt món
+                          </button>
                         </div>
                       </div>
+                    ))
+                  )}
+                </div>
 
-                      <div className="flex gap-3 flex-shrink-0">
-                        <button
-                          onClick={() => handleReject(item.id)}
-                          className="px-5 py-2 rounded-xl text-sm font-bold border-2 transition-all hover:bg-red-50"
-                          style={{ borderColor: "#ef4444", color: "#ef4444" }}
-                        >
-                          Từ chối
-                        </button>
-                        <button
-                          onClick={() => handleApprove(item.id)}
-                          className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, var(--color-primary), #0da04f)",
-                          }}
-                        >
-                          Duyệt món
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
+                <Pagination
+                  page={pendingPage}
+                  totalPages={pendingTotalPages}
+                  total={pendingTotal}
+                  pageSize={ITEMS_PER_PAGE}
+                  onChange={fetchPendingFoods}
+                  label="món"
+                />
               </section>
             )}
           </div>
         </main>
       </div>
 
-      {/* Modals */}
       {modal === "add" && (
         <FoodFormModal
           onClose={() => setModal(null)}
-          onSave={fetchFoods}
+          onSave={() => fetchFoods(foodPage)}
           isEdit={false}
           brandId={brandId}
           userId={userId}
           showToast={showToast}
         />
       )}
+
       {modal?.type === "viewIngredients" && (
-        <ViewFood
-          food={modal.item}
-          onClose={() => setModal(null)}
-        />
+        <ViewFood food={modal.item} onClose={() => setModal(null)} />
       )}
+
       {modal?.type === "edit" && modal.item && (
         <FoodFormModal
           initial={modal.item}
           onClose={() => setModal(null)}
-          onSave={fetchFoods}
+          onSave={() => fetchFoods(foodPage)}
           isEdit={true}
           brandId={brandId}
           userId={userId}

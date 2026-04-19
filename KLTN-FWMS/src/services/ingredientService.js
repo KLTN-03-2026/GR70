@@ -43,7 +43,9 @@ export const getCategoryIngredients = async () => {
     return res.data;
 };
 
-export const getIngredientTransactions = async () => {
-    const res = await api.get("ingredients/get-ingredient-transaction");
+export const getIngredientTransactions = async (page = 1, size = 10) => {
+    const res = await api.get("ingredients/get-ingredient-transaction", {
+        params: { page, size }
+    });
     return res.data;
 };
