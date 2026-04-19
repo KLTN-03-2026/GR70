@@ -7,7 +7,8 @@ async function getPagination({
   page = 1,
   size = 10,
   filters = {},  // { search, isActive, fromDate, toDate }
-  orderBy = "create_at",
+  orderClaude=null,
+  orderBy = "",
   order = "ASC",
   searchFields = ["name"], // cột được tìm kiếm khi có search
   where = {} , // custom where thêm ngoài filters
@@ -39,10 +40,13 @@ async function getPagination({
   if (filters.toDate) {
     where.createdAt = { ...(where.createdAt || {}), [Op.lte]: filters.toDate };
   }
+  if(filters.rolebrand){
+    where.rolebrand=filters.rolebrand
+  }
   const queryOptions = {
     attributes,
     where,
-    order: [[orderBy, order]],
+    order: orderClaude || [[orderBy, order]],
     limit,
     offset,
     include,
