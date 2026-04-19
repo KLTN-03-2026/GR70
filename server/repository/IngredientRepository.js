@@ -8,7 +8,7 @@ const {
 } = require("../models/index");
 const sequelize = require("../config/connectData");
 const pagination = require("../utils/pagination");
-const { where } = require("sequelize");
+// const { where } = require("sequelize");
 class IngredientRepository {
   async createIngredient(data, brandID) {
     return await IngredientModel.create({ ...data, brand_id: brandID });
@@ -67,17 +67,19 @@ class IngredientRepository {
   async getIngredientsByBrandID(brandID, options) {
     return await pagination.getPagination({
       model: IngredientModel,
-      attributes: ['id', 'name', 'unit', 'current_stock', 'minimum_stock'],
+      attributes: ['id', 'name', 'unit', 'current_stock', 'minimum_stock',
+          [
+        sequelize.literal(`EXISTS (
+          SELECT 1
+          FROM dish_recipes dr
+          WHERE dr.ingredient_id = "ingredients"."id"
+        )`),
+        'haveDish'
+      ]
+      ],
       include: [{
           model: IngredientCategoryModel,
           attributes: ['name']
-      },{
-        model: DishRecipeModel,
-        attributes: [],
-        include: [{
-            model: DishModel,
-            attributes: ["name"],
-        }]
       }],
       where: { brand_id: brandID },
       searchFields: [
