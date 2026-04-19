@@ -158,11 +158,22 @@ exports.GetIngredient = async function (req, res, next) {
 exports.GetIngredientsByBrandID = async function (req, res, next) {
   try {
     const brandID = req.user.brandID;
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
+    const filters = {
+      search: req.query.search || "",
+      category: req.query.category || undefined,
+    }
     if (!brandID) {
       throw ApiError.ValidationError("Missing required field: brandID");
     }
-    const getIngredientsByBrandID =
-      await IngredientsRepository.getIngredientsByBrandID(brandID);
+    const getIngredientsByBrandID = await IngredientsRepository.getIngredientsByBrandID(brandID,{
+      page,
+      size,
+      filters,
+      orderBy: req.query.orderBy || "id",
+      order: req.query.orderType === "1" ? "ASC" : "DESC",
+    });
     return res.json(
       ApiSuccess.getSelect("Ingredients list", getIngredientsByBrandID),
     );

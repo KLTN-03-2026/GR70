@@ -15,7 +15,6 @@ async function getPagination({
 }) {
   const limit = size;
   const offset = (page - 1) * size;
-
   // --- Build dynamic conditions ---
   // console.log(filters);
   if (filters.search) {
@@ -31,7 +30,7 @@ async function getPagination({
     where.status=filters.status
   }
   if(filters.category){
-    where.category_id=filters.category
+    where.ingredient_category_id=filters.category
   }
   if (filters.fromDate) {
     where.createdAt = { ...(where.createdAt || {}), [Op.gte]: filters.fromDate };

@@ -2,7 +2,9 @@ const {
   IngredientModel,
   IngredientStockTransactionModel,
   IngredientCategoryModel,
-  UserModel
+  UserModel,
+  DishRecipeModel,
+  DishModel,
 } = require("../models/index");
 const sequelize = require("../config/connectData");
 const pagination = require("../utils/pagination");
@@ -62,12 +64,27 @@ class IngredientRepository {
     return await IngredientModel.update({ current_stock: quantity }, { where: { id: ingredientID }, ...option });
   }
   // get tất cả nguyên liệu của một thương hiệu
-  async getIngredientsByBrandID(brandID) {
-    return await IngredientModel.findAll({ where: { brand_id: brandID }, include: [{
-        model: IngredientCategoryModel,
-        attributes: ['id', 'name']
-    }] 
-  });
+  async getIngredientsByBrandID(brandID, options) {
+    return await pagination.getPagination({
+      model: IngredientModel,
+      attributes: ['id', 'name', 'unit', 'current_stock', 'minimum_stock'],
+      include: [{
+          model: IngredientCategoryModel,
+          attributes: ['name']
+      },{
+        model: DishRecipeModel,
+        attributes: [],
+        include: [{
+            model: DishModel,
+            attributes: ["name"],
+        }]
+      }],
+      where: { brand_id: brandID },
+      searchFields: [
+        'name',
+      ],
+      ...options
+    })
   }
   // lịch sử nguyên liệu
   async getIngredientTransaction(brandID,options) {
