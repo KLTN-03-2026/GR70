@@ -87,6 +87,49 @@ export const kitchenDishAPI = {
         );
         return response.data;
     },
+
+    // API dashboard
+    // GET /dashboard/kitchen/get-report-pay-yesterday
+    getReportPayYesterday: async () => {
+        try {
+            const response = await kitchenApi.get(
+                "/dashboard/kitchen/get-report-pay-yesterday",
+            );
+            console.log("Report pay yesterday:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching pay yesterday report:", error);
+            throw error;
+        }
+    },
+
+    // GET /dashboard/kitchen/get-report-leftover-dishes
+    getReportLeftoverDishes: async () => {
+        try {
+            const response = await kitchenApi.get(
+                "/dashboard/kitchen/get-report-leftover-dishes",
+            );
+            console.log("Report leftover dishes:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching leftover dishes report:", error);
+            throw error;
+        }
+    },
+
+    // GET /dashboard/kitchen/get-report-warning-dishes
+    getReportWarningDishes: async () => {
+        try {
+            const response = await kitchenApi.get(
+                "/dashboard/kitchen/get-report-warning-dishes",
+            );
+            console.log("Report warning dishes:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching warning dishes report:", error);
+            throw error;
+        }
+    },
 };
 
 export default kitchenApi;
