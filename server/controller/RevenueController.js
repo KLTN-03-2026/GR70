@@ -27,8 +27,15 @@ exports.SumRevenueByMonth = async function (req, res, next) {
 exports.TransactionByMonth = async function (req, res, next) {
     try {
         const brandID = req.user.brandID;
+        const page = parseInt(req.query.page) || 1;
+        const size = parseInt(req.query.size) || 15;
         const month = await DailyServices.checkMonth();
-        const result = await DailyRepository.TransactionByMonth(brandID, month);
+        const result = await DailyRepository.TransactionByMonth(brandID, month,{
+            page,
+            size,
+            orderBy: req.query.orderBy || "id",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
+        });
         return res.json(ApiSuccess.getSelect("Transaction by month", result));
     } catch (error) {
         return next(error);

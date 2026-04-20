@@ -3,7 +3,20 @@ const ApiError = require("../../utils/ApiError");
 const ManagerAllBrandRepository = require("../../repository/admin/ManagerAllBrandRepository");
 exports.getAllBrand = async (req, res,next) => {
     try {
-        const brand = await ManagerAllBrandRepository.getAllBrand();
+        const page = req.query.page || 1;
+        const size = req.query.size || 10;
+        const filters ={
+            search: req.query.search || "",
+            status: req.query.status || undefined,
+            province: req.query.province || undefined
+        }
+        const brand = await ManagerAllBrandRepository.getAllBrand({
+            page,
+            size,
+            filters,
+            // orderBy: req.query.orderBy || "id",
+            // order: req.query.orderType === "1" ? "ASC" : "DESC",
+        });
         res.json(ApiSuccess.getSelect("Get all brand", brand));
     } catch (error) {
         return next(error);

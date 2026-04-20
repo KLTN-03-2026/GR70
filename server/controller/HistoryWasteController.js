@@ -58,8 +58,7 @@ exports.ListWasteByIngredient = async (req, res, next) => {
   try {
     const brandID = req.user.brandID;
     const month = await DailyServices.checkMonth();
-    const resultAI =
-      await AIRepository.getAi_Analysis_Waste_By_BrandID(brandID);
+    const resultAI = await AIRepository.getAi_Analysis_Waste_By_BrandID(brandID);
     const resultDaily = await DailyRepository.ListWasteByIngredient(brandID,month);
 
     // console.log("ai", JSON.stringify(resultAI || [], null, 2));

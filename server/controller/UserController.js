@@ -147,10 +147,17 @@ exports.UnlockKitchen = async function (req, res, next) {
 exports.GetKitchenStaff = async function (req, res, next) {
   try {
     const brandID = req.user.brandID;
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
     if(!brandID){
         throw ApiError.Unauthorized("Brand ID is required");
     }
-    const getKitchenStaff = await UserRepository.getKitchenStaff(brandID);
+    const getKitchenStaff = await UserRepository.getKitchenStaff(brandID,{
+      page,
+      size,
+      orderBy: req.query.orderBy || "created_at",
+      order: req.query.orderType === "1" ? "ASC" : "DESC",
+    });
     return res.json(ApiSuccess.getSelect("Kitchen staff list", getKitchenStaff));
   } catch (error) {
     return next(error);
