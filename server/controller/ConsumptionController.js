@@ -30,8 +30,17 @@ exports.ListCustomerInMonth = async (req, res, next) => {
 exports.GetDishesOutputByDate = async function (req, res, next) {
     try {
         const brandID = req.user.brandID;
+        const page = parseInt(req.query.page) || 1;
+        const size = parseInt(req.query.size) || 10;
+        const operation_date =req.query.operation_date;
+        const category = req.query.category || undefined;
         const sumDish = await DishesRepository.SumDishesOutputByDate(brandID);
-        const dishesOutput = await DailyRepository.GetDishesOutputByLastDate(brandID);
+        const dishesOutput = await DailyRepository.GetDishesOutputByLastDate(brandID, operation_date,category,{
+            page,
+            size,
+            orderBy: req.query.orderBy || "id",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
+        });
         const result ={
             sumDish: sumDish,
             dishesOutput: dishesOutput

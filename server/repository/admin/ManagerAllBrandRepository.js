@@ -1,8 +1,10 @@
 const {BrandModel, UserModel,DishModel,DailyOperationModel,DailyDetailModel,RoleModel} = require("../../models/index");
 const { Op } = require('sequelize');
+const pagination = require('../../utils/pagination');
 class ManagerAllBrandRepository {
-    async getAllBrand() {
-        return await BrandModel.findAll({
+    async getAllBrand(options) {
+        return await pagination.getPagination({
+            model: BrandModel,
             attributes: ['id', 'name', 'address', 'province', 'status','rolebrand'],
             include: [{
                 model: UserModel,
@@ -12,7 +14,10 @@ class ManagerAllBrandRepository {
                     attributes: [],
                     where: { name: "Manager" }
                 }]
-            }]
+            }],
+            orderClaude: [[UserModel, 'created_at', "DESC"]],
+            searchFields: ['name'],
+            ...options
         });
     }
     async getDetailBrand(id) {
@@ -25,9 +30,10 @@ class ManagerAllBrandRepository {
                 include: [{
                     model: RoleModel,
                     attributes: [],
-                    where: { name: "Manager" }
+                    where: { name: "Manager"}
                 }]
-            }]
+            }],
+            logging: console.log
         });
     }
     async SumDishBrand(id) {

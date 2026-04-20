@@ -43,6 +43,9 @@ async function getPagination({
   if(filters.rolebrand){
     where.rolebrand=filters.rolebrand
   }
+  if(filters.province){
+    where.province=filters.province
+  }
   const queryOptions = {
     attributes,
     where,
