@@ -176,9 +176,8 @@ export default function Dashboard() {
       console.log(error);
     }
   };
+
   const number_waste_percentage = parseFloat(Waste_Percentage);
-  
-  
 
   return (
     <>

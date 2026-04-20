@@ -33,7 +33,7 @@ const Revenue = () => {
     const [sum_Revenue_Yesterday, setSum_Revenue_Yesterday] = useState([]);
     const [sum_Revenue_Month, setSum_Revenue_Month] = useState([]);
     const [transactions_Revenue_Month, settransactions_Revenue_Month] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
 
     // gọi API
@@ -142,7 +142,7 @@ const Revenue = () => {
     };
 
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
+        <div className="p-8 ml-8 bg-gray-50 min-h-screen">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
@@ -248,7 +248,6 @@ const Revenue = () => {
                             <th className="text-left p-4 text-center">Số lượng</th>
                             <th className="text-left p-4">Số tiền</th>
                             {/* <th className="text-left p-4">Trạng thái</th> */}
-                            <th className="text-left p-4">Thao tác</th>
                         </tr>
                     </thead>
 
