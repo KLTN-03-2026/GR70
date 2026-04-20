@@ -50,8 +50,8 @@ exports.unLockBrand = async (req, res, next) => {
             throw ApiError.Notification("Brand is not locked");
         }
         const result = await ManagerAllBrandRepository.unlockBrand(brandID);
-        res.json(ApiSuccess.updateStatus("UnLock brand", result));
-    } catch (error) {
+        return next(error);
+    }catch (error) {
         return next(error);
     }
 };

@@ -1,5 +1,5 @@
 
-const { IngredientCategoryModel, DishCategoryModel, BrandModel, DishModel } = require("../models/index");
+const { IngredientCategoryModel, DishCategoryModel, BrandModel, DishModel, UserModel, RoleModel } = require("../models/index");
 class CheckRepository {
     async checkCategoryIngredient(id) {
         return await IngredientCategoryModel.findOne({where: {id: id}});
@@ -18,6 +18,19 @@ class CheckRepository {
     // check brand
     async checkBrand(id) {
         return await BrandModel.findOne({where: {id: id, status: true}});
+    }
+    // check role 
+    async checkRole(id) {
+        return await UserModel.findOne({
+            where: {id: id},
+            attributes: [],
+            include: [{
+                model: RoleModel,
+                attributes: ['name']
+            }],
+            raw: true,
+            nest: true
+        });
     }
 }
 

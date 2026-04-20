@@ -1,5 +1,6 @@
 const ApiError = require("../utils/ApiError");
 const DishesRepository = require("../repository/DishesRepository");
+const DailyRepository = require("../repository/DailyRepository");
 
 class DailyServices {
     // check giá món ăn
@@ -47,6 +48,31 @@ class DailyServices {
             throw error;
         }
         }
+        // check ngày hôm nay đã có chưa, nếu chưa thì tạo
+    async checkDailyOperation(brandID){
+        try {
+            const dailyDate =await this.formatDate();
+            const daily = await DailyRepository.checkDailyOperation(brandID, dailyDate);
+            if(!daily){
+                const creatDaily=await DailyRepository.DailyOperation( brandID, dailyDate);
+                // console.log(creatDaily.id);
+                return creatDaily.id
+            }
+            // console.log(daily.operation_date);
+            return daily.id
+        } catch (error) {
+            throw error
+        }
+    }
+    async formatDate(){
+        const vnDate = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+                }).format(new Date());
+        return vnDate
+    }
 }
 
 module.exports = new DailyServices();

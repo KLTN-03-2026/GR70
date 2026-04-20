@@ -464,6 +464,11 @@ export default function IngredientsPage() {
     const brandId = tokenPayload?.brandID || tokenPayload?.brandId || tokenPayload?.brand_id || null;
     const branchId = tokenPayload?.branchID || tokenPayload?.branchId || tokenPayload?.branch_id || null;
 
+    const [txPage, setTxPage] = useState(1);
+    const [txTotalPages, setTxTotalPages] = useState(1);
+    const [txTotal, setTxTotal] = useState(0);
+    const ITEMS_PER_PAGE = 10;
+
     const [ingredients, setIngredients] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -472,6 +477,7 @@ export default function IngredientsPage() {
     const [search, setSearch] = useState("");
     const [filterCat, setFilterCat] = useState("");
     const [toast, setToast] = useState(null);
+
     const [transactions, setTransactions] = useState([]);
     const [txLoading, setTxLoading] = useState(true);
 
@@ -498,12 +504,15 @@ export default function IngredientsPage() {
 
     useEffect(() => { fetchIngredients(); }, [fetchIngredients]);
 
-    const fetchTransactions = useCallback(async () => {
+    const fetchTransactions = useCallback(async (page = 1) => {
         setTxLoading(true);
         try {
-            const res = await getIngredientTransactions();
-            const list = Array.isArray(res?.data) ? res.data : [];
-            setTransactions(list);
+            const res = await getIngredientTransactions(page, ITEMS_PER_PAGE);
+            const { data: list, totalPages, total } = res.data;
+            setTransactions(Array.isArray(list) ? list : []);
+            setTxTotalPages(totalPages ?? 1);
+            setTxTotal(total ?? 0);
+            setTxPage(page);
         } catch (e) {
             console.error("Lỗi tải lịch sử:", e);
         } finally {
@@ -511,7 +520,7 @@ export default function IngredientsPage() {
         }
     }, []);
 
-    useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
+    useEffect(() => { fetchTransactions(1); }, [fetchTransactions]);
 
     // ── Helpers ────────────────────────────────────────────────────────────────
     const formatDate = (date) => {
@@ -543,9 +552,15 @@ export default function IngredientsPage() {
 
     const handleStockUpdate = (updated) => {
         setIngredients((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
-        fetchTransactions();
+        fetchTransactions(1); // reset về trang 1
         showToast("Nhập kho thành công!");
     };
+
+    const paginatedTransactions = transactions;
+
+    // console.log("transactions.length:", transactions.length);
+    // console.log("totalPages:", totalPages);
+    // console.log("txPage:", txPage);
 
     const uniqueCategories = [...new Set(ingredients.map((i) => i.category).filter((c) => c !== "—"))];
     const filtered = ingredients.filter((i) => {
@@ -702,6 +717,7 @@ export default function IngredientsPage() {
                             </div>
                         </section>
 
+
                         {/* ── Transaction History Table ── */}
                         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
@@ -709,14 +725,18 @@ export default function IngredientsPage() {
                                     Lịch sử nhập và xuất nguyên liệu
                                 </h3>
                                 <button
-                                    onClick={fetchTransactions}
+                                    onClick={() => fetchTransactions(1)}
                                     className="flex items-center gap-1.5 text-sm font-bold border px-3 py-1.5 rounded-lg hover:opacity-80 transition-all"
                                     style={{ borderColor: "var(--color-text-4)", color: "var(--color-text-2)" }}
                                 >
-                                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                        refresh
+                                    </span>
                                     Làm mới
                                 </button>
+
                             </div>
+
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead style={{ background: "#f8faf9" }}>
@@ -735,8 +755,7 @@ export default function IngredientsPage() {
                                                 <tr key={i}>
                                                     {[160, 140, 90, 80, 120].map((w, j) => (
                                                         <td key={j} className="px-6 py-4">
-                                                            <div className="h-4 rounded-lg animate-pulse"
-                                                                style={{ width: w, background: "#f1f5f2", marginLeft: j >= 2 ? "auto" : 0 }} />
+                                                            <div className="h-4 rounded-lg animate-pulse" style={{ width: w, background: "#f1f5f2", marginLeft: j >= 2 ? "auto" : 0 }} />
                                                         </td>
                                                     ))}
                                                 </tr>
@@ -747,9 +766,8 @@ export default function IngredientsPage() {
                                                     Chưa có lịch sử giao dịch
                                                 </td>
                                             </tr>
-                                        ) : [...transactions]
-                                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                                            .map((tx) => {
+                                        ) : (
+                                            paginatedTransactions.map((tx) => {
                                                 const badge = getTransactionTypeBadge(tx.type);
                                                 const isPositive = tx.type === "extra";
 
@@ -760,19 +778,15 @@ export default function IngredientsPage() {
                                                         </td>
                                                         <td className="px-6 py-4 text-sm font-medium text-slate-900">
                                                             {tx.ingredient?.name ?? "—"}
-                                                            <span className="ml-1.5 text-xs text-slate-400">
-                                                                ({tx.ingredient?.unit})
-                                                            </span>
+                                                            <span className="ml-1.5 text-xs text-slate-400">({tx.ingredient?.unit})</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
                                                             <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${badge.className}`}>
                                                                 {badge.label}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-sm text-right font-bold"
-                                                            style={{ color: isPositive ? "var(--color-primary)" : "#dc2626" }}>
-                                                            {isPositive ? "+" : "-"}
-                                                            {parseFloat(tx.quantity).toFixed(2)} {tx.ingredient?.unit}
+                                                        <td className="px-6 py-4 text-sm text-right font-bold" style={{ color: isPositive ? "var(--color-primary)" : "#dc2626" }}>
+                                                            {isPositive ? "+" : "-"}{parseFloat(tx.quantity).toFixed(2)} {tx.ingredient?.unit}
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
                                                             <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
@@ -783,12 +797,52 @@ export default function IngredientsPage() {
                                                     </tr>
                                                 );
                                             })
-                                        }
+                                        )}
                                     </tbody>
                                 </table>
+
+                                {/* Pagination Footer - Đặt NGAY SAU TABLE, vẫn trong overflow-x-auto */}
+                                {!txLoading && txTotalPages > 1 && (
+                                    <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-white">
+                                        <span className="text-xs text-slate-500">
+                                            Hiển thị {(txPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(txPage * ITEMS_PER_PAGE, txTotal)} / {txTotal} giao dịch
+                                        </span>
+
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => fetchTransactions(1)} disabled={txPage === 1} className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all">«</button>
+                                            <button onClick={() => fetchTransactions(txPage - 1)} disabled={txPage === 1} className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all">‹</button>
+
+                                            {Array.from({ length: txTotalPages }, (_, i) => i + 1)
+                                                .filter(p => p === 1 || p === txTotalPages || Math.abs(p - txPage) <= 1)
+                                                .reduce((acc, p, idx, arr) => {
+                                                    if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                                                    acc.push(p);
+                                                    return acc;
+                                                }, [])
+                                                .map((p, idx) =>
+                                                    p === "..." ? (
+                                                        <span key={`ellipsis-${idx}`} className="px-2 text-xs text-slate-400">…</span>
+                                                    ) : (
+                                                        <button
+                                                            key={p}
+                                                            onClick={() => fetchTransactions(p)}
+                                                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                                            style={txPage === p
+                                                                ? { background: "var(--color-primary)", color: "#fff" }
+                                                                : { color: "var(--color-text-2)" }}
+                                                        >
+                                                            {p}
+                                                        </button>
+                                                    )
+                                                )}
+
+                                            <button onClick={() => fetchTransactions(txPage + 1)} disabled={txPage === txTotalPages} className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all">›</button>
+                                            <button onClick={() => fetchTransactions(txTotalPages)} disabled={txPage === txTotalPages} className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all">»</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
-
                     </div>
                 </main>
             </div>

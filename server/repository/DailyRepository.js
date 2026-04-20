@@ -2,15 +2,30 @@ const {
   DailyOperationModel,
   DailyDetailModel,
   DishModel,
+  DishCategoryModel,
 } = require("../models/index");
 const sequelize = require("../config/connectData");
 const { Op, fn, col } = require("sequelize");
+const pagination = require("../utils/pagination");
+const { log } = require("winston");
 class DailyRepository {
-  async DailyOperation(brandID) {
+  async checkDailyOperation(brandID, datevn) {
+    return await DailyOperationModel.findOne({
+      where: {
+        brand_id: brandID,
+        operation_date: datevn,
+      },
+      raw: true,
+    });
+  }
+  async DailyOperation(brandID, datevn) {
     return await DailyOperationModel.create({
       brand_id: brandID,
-      operation_date: sequelize.literal("CURRENT_DATE"),
+      operation_date: datevn,
       customer_count: 0,
+    },
+    {
+      raw: true,
     });
   }
   async TakeIDOperation(brandID) {
@@ -64,15 +79,9 @@ class DailyRepository {
     );
   }
   // lấy danh sách món ra theo ngày
-  async GetDishesOutputByDate(brandID) {
-    const today = new Date().toISOString().split("T")[0];
-    const operation = await DailyOperationModel.findOne({
-      where: { operation_date: today, brand_id: brandID },
-    });
-    if (!operation) {
-      return [];
-    }
-    return await DailyDetailModel.findAll({
+  async GetDishesOutputByDate(dailyID,options) {
+    const test =await pagination.getPagination({
+      model: DailyDetailModel,
       attributes: [
         "id",
         "quantity_prepared",
@@ -80,14 +89,22 @@ class DailyRepository {
         "revenue_cost",
         "waste_cost",
       ],
-      where: { daily_id: operation.id },
+      where: { daily_id: dailyID },
       include: [
         {
           model: DishModel,
           attributes: ["name"],
+          include: [
+            {
+              model: DishCategoryModel,
+              attributes: ["name"],
+            }
+          ]
         },
       ],
-    });
+      ...options
+    })
+    return test
   }
   // kiểm tra xem món ăn đó đã được tạo món ra trong ngày chưa, nếu có rồi thì không được tạo nữa
   async CheckDishesOutputByDishID(dishes_id, dailyID) {
@@ -96,17 +113,10 @@ class DailyRepository {
     });
   }
   // cập nhập số lượng khách hàng trong ngày
-  async UpdateCustomerCount(brandID, customer_count) {
-    const today = new Date().toISOString().split("T")[0];
-    const operation = await DailyOperationModel.findOne({
-      where: { operation_date: today, brand_id: brandID },
-    });
-    if (!operation) {
-      throw new Error("Daily operation not found for today");
-    }
+  async UpdateCustomerCount(DailyID, customer_count) {
     return await DailyOperationModel.update(
       { customer_count: customer_count },
-      { where: { id: operation.id } },
+      { where: { id: DailyID } },
     );
   }
   // lấy dữ liệu lịch sử 7 ngày gần nhất

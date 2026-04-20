@@ -27,6 +27,7 @@ var AdminDashboardRouter = require('./routes/admin/dashboardRoutes');
 var ReportWasteRouter = require('./routes/reportWasteRoutes');
 var ChatRouter = require('./routes/chatRoutes');
 var ManagerAllBrandRouter = require('./routes/admin/ManagerAllBrandRoutes');
+var ManagerAcountRouter = require('./routes/admin/AcountRoutes');
 // cron
 const { OperationDaily, CallAIEveryDays } = require('./routes/cron');
 //test
@@ -55,7 +56,7 @@ app.get('/api/ping', (req, res) => {
   const user= UserModel.findByPk('94292bfd-19e8-4079-b67f-a2f22961738b');
   res.send('Server is alive ✅');
 });
-OperationDaily();
+// OperationDaily();
 CallAIEveryDays();
 
 app.use('/api/auth', authRouter);
@@ -78,6 +79,7 @@ app.use('/api/kitchen', KitchenRouter);
 //admin
 app.use('/api/admin/dashboard', AdminDashboardRouter);
 app.use('/api/admin', ManagerAllBrandRouter);
+app.use('/api/admin/account',ManagerAcountRouter);
 app.use(successHandler);
 app.use(errorsHandler);
 // catch 404 and forward to error handler

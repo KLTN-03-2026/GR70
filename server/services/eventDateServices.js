@@ -168,7 +168,7 @@ class EventDateServices {
     // hàm lấy thời tiết hiện tại của một thành phố
     async getWeather(city) {
         if(!city) {
-            console.log("ko có city");
+            // console.log("ko có city");
             return { condition: "Unknown" };
         }
         const apiKey = process.env.WEATHER_API_KEY;

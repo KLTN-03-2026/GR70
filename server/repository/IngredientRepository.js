@@ -2,11 +2,13 @@ const {
   IngredientModel,
   IngredientStockTransactionModel,
   IngredientCategoryModel,
-  UserModel
+  UserModel,
+  DishRecipeModel,
+  DishModel,
 } = require("../models/index");
 const sequelize = require("../config/connectData");
 const pagination = require("../utils/pagination");
-const { where } = require("sequelize");
+// const { where } = require("sequelize");
 class IngredientRepository {
   async createIngredient(data, brandID) {
     return await IngredientModel.create({ ...data, brand_id: brandID });
@@ -62,12 +64,29 @@ class IngredientRepository {
     return await IngredientModel.update({ current_stock: quantity }, { where: { id: ingredientID }, ...option });
   }
   // get tất cả nguyên liệu của một thương hiệu
-  async getIngredientsByBrandID(brandID) {
-    return await IngredientModel.findAll({ where: { brand_id: brandID }, include: [{
-        model: IngredientCategoryModel,
-        attributes: ['id', 'name']
-    }] 
-  });
+  async getIngredientsByBrandID(brandID, options) {
+    return await pagination.getPagination({
+      model: IngredientModel,
+      attributes: ['id', 'name', 'unit', 'current_stock', 'minimum_stock',
+          [
+        sequelize.literal(`EXISTS (
+          SELECT 1
+          FROM dish_recipes dr
+          WHERE dr.ingredient_id = "ingredients"."id"
+        )`),
+        'haveDish'
+      ]
+      ],
+      include: [{
+          model: IngredientCategoryModel,
+          attributes: ['name']
+      }],
+      where: { brand_id: brandID },
+      searchFields: [
+        'name',
+      ],
+      ...options
+    })
   }
   // lịch sử nguyên liệu
   async getIngredientTransaction(brandID,options) {

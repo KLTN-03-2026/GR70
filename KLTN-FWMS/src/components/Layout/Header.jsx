@@ -4,7 +4,7 @@ import { Bell, Search } from "lucide-react";
 const Header = () => {
     return (
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-            <div className="flex items-center gap-4 flex-1">
+            <div className="flex items-center gap-4 flex-1 ">
                 <div className="relative w-96">
                     <Search
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8B8B8B]"
