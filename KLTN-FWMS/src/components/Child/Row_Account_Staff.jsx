@@ -11,12 +11,14 @@ export const Row_Account_Staff = () => {
     const [countID, setcountID] = useState(null);
     //Filter
     const [filterStatus, setFilterStatus] = useState("all");
-
-    const filteredStaff = datastaff.filter((staff) => {
-        if (filterStatus === "active") return staff.status === true;
-        if (filterStatus === "locked") return staff.status === false;
-        return true; // all
-    });
+    
+    const filteredStaff = Array.isArray(datastaff)
+        ? datastaff.filter((staff) => {
+            if (filterStatus === "active") return staff.status === true;
+            if (filterStatus === "locked") return staff.status === false;
+            return true;
+        })
+        : [];
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -28,8 +30,10 @@ export const Row_Account_Staff = () => {
                         },
                     }
                 );
-                console.log(res.data);
-                setDatastaff(res.data.data);
+                console.log(res.data.data.data);
+                setDatastaff(
+                    Array.isArray(res.data.data.data) ? res.data.data.data : []
+                );
 
             } catch (err) {
                 console.log(err);
@@ -162,19 +166,19 @@ export const Row_Account_Staff = () => {
                     {/* Tabs */}
                     <div className="border-b border-slate-200 ">
                         <nav className="flex gap-8 transition-all duration-300">
-                            <button onClick={()=>setFilterStatus("all")} className={`${filterStatus === "all" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
+                            <button onClick={() => setFilterStatus("all")} className={`${filterStatus === "all" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
                                 Tất cả
                             </button>
-                            <button onClick={()=>setFilterStatus("active")} className={`${filterStatus === "active" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
+                            <button onClick={() => setFilterStatus("active")} className={`${filterStatus === "active" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
                                 Đang hoạt động
                             </button>
-                            <button onClick={()=>setFilterStatus("locked")} className={`${filterStatus === "locked" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
+                            <button onClick={() => setFilterStatus("locked")} className={`${filterStatus === "locked" ? "border-primary text-primary border-b-2" : "text-slate-500 hover:text-slate-700 border-b-2 border-[#0000]"} pb-3 text-sm`}>
                                 Đã khóa
                             </button>
                         </nav>
                     </div>
 
-                    
+
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="overflow-x-auto">
 
@@ -216,7 +220,7 @@ export const Row_Account_Staff = () => {
 
                                             <td className="px-3 py-4">
                                                 <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-bold ">
-                                                    {staff.roles[0].name}
+                                                    Nhân viên bếp
                                                 </span>
                                             </td>
 
@@ -231,13 +235,13 @@ export const Row_Account_Staff = () => {
                                             </td>
 
                                             <td className="px-3 py-4 text-right w-1">
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-center gap-2 transition-opacity">
                                                     <button key={staff.id} onClick={() => { setSelectedStaff(staff); setcountID(index + 1) }} className="p-2 hover:bg-slate-200 rounded-lg text-slate-600" title="Xem thông tin">
                                                         <span className="material-symbols-outlined text-[20px] mt-[6px]">visibility</span>
                                                     </button>
-                                                    <button onClick={() => setopenform_changekitchen(staff)} className="p-2 hover:bg-primary/10 rounded-lg text-primary" title="Chỉnh sửa">
+                                                    {/* <button onClick={() => setopenform_changekitchen(staff)} className="p-2 hover:bg-primary/10 rounded-lg text-primary" title="Chỉnh sửa">
                                                         <span className="material-symbols-outlined text-[20px] mt-[6px]">edit</span>
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>
@@ -363,10 +367,10 @@ export const Row_Account_Staff = () => {
                 {/* Detail Section (Simulated Sidebar Info) */}
                 {selectedStaff && (
                     <>
-                        <div className={`transition-all duration-300 ease-in-out w-[30%] bg-white absolute right-0 rounded-2xl shadow-sm border border-slate-200 group p-6`}>
+                        <div className={`transition-all duration-300 ease-in-out w-[30%] bg-white absolute right-0 rounded-2xl shadow-sm border border-slate-200 group p-6 mt-14`}>
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-slate-900">Xem thông tin cá nhân</h3>
-                                <button onClick={() => setopenform_changekitchen(selectedStaff)} className="text-primary hover:underline text-sm font-bold">Chỉnh sửa</button>
+                                {/* <button onClick={() => setopenform_changekitchen(selectedStaff)} className="text-primary hover:underline text-sm font-bold">Chỉnh sửa</button> */}
                             </div>
                             <div className="flex flex-col items-center text-center pb-6 border-b border-slate-100 mb-6">
                                 <div className="size-24 rounded-full bg-primary/10 flex items-center justify-center text-primary text-3xl font-black mb-4 border-4 border-white shadow-xl">
@@ -386,12 +390,16 @@ export const Row_Account_Staff = () => {
                                     <span className="text-sm text-slate-700 font-medium">{selectedStaff.email}</span>
                                 </div>
                                 <div className="flex flex-col">
+                                    <span className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Vai trò</span>
+                                    <span className="text-sm text-slate-700 font-medium">Nhân viên bếp</span>
+                                </div>
+                                <div className="flex flex-col">
                                     <span className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Số điện thoại</span>
                                     <span className="text-sm text-slate-700 font-medium">{selectedStaff.phone}</span>
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Ngày gia nhập</span>
-                                    <span className="text-sm text-slate-700 font-medium">15/03/2023</span>
+                                    <span className="text-sm text-slate-700 font-medium">{new Date(selectedStaff.created_at).toLocaleDateString("vi-VN")}</span>
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Địa chỉ</span>
