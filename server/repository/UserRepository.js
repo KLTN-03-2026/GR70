@@ -1,5 +1,6 @@
 
 const { UserModel, BrandModel, RoleModel } = require('../models/index');
+const pagination = require('../utils/pagination');
 class UserRepository {
     async InfoUser(id) {
         return await UserModel.findOne({
@@ -16,17 +17,20 @@ class UserRepository {
         return await UserModel.update({status: status}, { where: { id: id } });
     }
     // lấy danh sách nhân viên role Kitchen
-    async getKitchenStaff(brandID) {
-        return await UserModel.findAll({
+    async getKitchenStaff(brandID, options) {
+        return await pagination.getPagination({
+            model: UserModel,
             where: { brand_id: brandID },
-            attributes: ['id', 'name', 'email', 'phone', 'address', 'status'],
+            attributes: ['id', 'name', 'email', 'phone', 'address', 'status', "created_at"],
             include: [{
                 model: BrandModel,
                 attributes: ['id'],
             },{
                 model: RoleModel,
+                attributes:[],
                 where:{name: "Kitchen"},
             }],
+            ...options
         });
     }
 }

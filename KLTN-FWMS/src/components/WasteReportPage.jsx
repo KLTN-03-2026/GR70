@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -9,19 +10,67 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import { getWasteReport } from "../api/wasteReportApi";
 
 const WasteReportPage = () => {
   const [data, setData] = useState(null);
 
-  // 👉 gọi API
   useEffect(() => {
-    getWasteReport().then((res) => {
-      setData(res);
-    });
+    const token = localStorage.getItem("token");
+
+    const axiosConfig = {
+      headers: { Authorization: `Bearer ${token}` },
+    };
+
+    const BASE_URL = "https://system-waste-less-ai.onrender.com/api";
+
+    const fetchData = async () => {
+      try {
+        const [
+          revenueRes,
+          percentRes,
+          ingredientRes,
+          topRes,
+        ] = await Promise.all([
+          axios.get(`${BASE_URL}/report-waste/revenue-loss-by-month`, axiosConfig),
+          axios.get(`${BASE_URL}/report-waste/percent-loss-by-month`, axiosConfig),
+          axios.get(`${BASE_URL}/report-waste/precent-ingredient-by-month`, axiosConfig),
+          axios.get(`${BASE_URL}/report-waste/top-5-wasted-ingredients`, axiosConfig),
+        ]);
+
+        // 👉 GIỮ NGUYÊN FORMAT UI CŨ
+        const summary = {
+          wasteRate:
+            ingredientRes.data?.data?.waste_percentage || 0,
+
+          damageCost: Number(
+            revenueRes.data?.data?.[0]?.total_waste_cost || 0
+          ),
+
+          reductionRate:
+            percentRes.data?.data?.trend_percent || 0,
+        };
+
+       
+        const topWaste = (topRes.data?.data || []).map((item) => ({
+          name: item.ingredient_name,
+          amount: Number(item.total_wasted || 0),
+          unit: item.unit || "kg",
+          trend: 0, // API chưa có
+        }));
+
+        setData({
+          summary,
+          topWaste,
+        });
+      } catch (err) {
+        console.log("API lỗi:", err);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // 👉 fallback tránh lỗi khi chưa có data
+  // 👉 fallback
   const summary = data?.summary || {};
   const topWaste = data?.topWaste || [];
 
@@ -40,7 +89,7 @@ const WasteReportPage = () => {
         />
       </div>
 
-      {/* CARDS (đã bỏ totalWaste) */}
+      {/* CARDS */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow-sm">
           <p className="text-xs text-gray-500 mb-2">
@@ -59,7 +108,7 @@ const WasteReportPage = () => {
             ƯỚC TÍNH GIÁ TRỊ THIỆT HẠI
           </p>
           <h2 className="text-2xl font-bold">
-            {(summary.damageCost || 0).toLocaleString()} VND
+            {(summary.damageCost || 0).toLocaleString("vi-VN")} VND
           </h2>
         </div>
 
@@ -97,19 +146,17 @@ const WasteReportPage = () => {
 
             <tbody>
               {topWaste.map((item, index) => {
+                const trend = item.trend || 0;
+
                 const trendText =
-                  item.trend > 0
-                    ? `+${item.trend}%`
-                    : item.trend < 0
-                    ? `${item.trend}%`
+                  trend > 0
+                    ? `+${trend}%`
+                    : trend < 0
+                    ? `${trend}%`
                     : "0%";
 
                 const up =
-                  item.trend > 0
-                    ? true
-                    : item.trend < 0
-                    ? false
-                    : null;
+                  trend > 0 ? true : trend < 0 ? false : null;
 
                 return (
                   <tr key={index} className="border-t">
@@ -139,7 +186,7 @@ const WasteReportPage = () => {
           </table>
         </div>
 
-        {/* PIE TOP 5 */}
+        {/* PIE */}
         <div className="bg-white p-5 rounded-xl shadow-sm">
           <h3 className="font-semibold mb-4">
             Top 5 món ăn lãng phí nhiều nhất
@@ -156,7 +203,10 @@ const WasteReportPage = () => {
                   outerRadius={80}
                 >
                   {topWaste.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index]} />
+                    <Cell
+                      key={index}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
               </PieChart>
@@ -170,7 +220,9 @@ const WasteReportPage = () => {
                 <span className="flex items-center gap-2">
                   <span
                     className="w-3 h-3 rounded-full"
-                    style={{ background: COLORS[index] }}
+                    style={{
+                      background: COLORS[index % COLORS.length],
+                    }}
                   ></span>
                   {item.name}
                 </span>
