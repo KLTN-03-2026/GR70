@@ -1,10 +1,23 @@
 import api from "./api";
 
-// ====================== INGREDIENT SERVICES ======================
-export const getIngredients = async () => {
-    const res = await api.get("ingredients/get-ingredients-by-brand");
+export const getIngredients = async (
+    page = 1,
+    size = 10,
+    search = "",
+    category = ""
+) => {
+    const res = await api.get("ingredients/get-ingredients-by-brand", {
+        params: {
+            page,
+            size,
+            ...(search && { search }),
+            ...(category && { category }),
+        },
+    });
     return res.data;
 };
+
+
 export const createIngredient = async (brandId, data) => {
     const formData = new FormData();
     Object.entries({

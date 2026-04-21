@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "use-debounce";
 
 import {
     getIngredients,
@@ -466,8 +467,15 @@ export default function IngredientsPage() {
 
     const [txPage, setTxPage] = useState(1);
     const [txTotalPages, setTxTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
     const [txTotal, setTxTotal] = useState(0);
-    const ITEMS_PER_PAGE = 10;
+
+    const ITEMS_PER_PAGE = 10; // cho transaction
+
+    const [totalPages, setTotalPages] = useState(1);
+    const INGREDIENTS_PER_PAGE = 10; // cho ingredients
+
+
 
     const [ingredients, setIngredients] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -477,11 +485,15 @@ export default function IngredientsPage() {
     const [search, setSearch] = useState("");
     const [filterCat, setFilterCat] = useState("");
     const [toast, setToast] = useState(null);
+    const [page, setPage] = useState(1);
+
 
     const [transactions, setTransactions] = useState([]);
     const [txLoading, setTxLoading] = useState(true);
 
     const showToast = (message, type = "success") => setToast({ message, type });
+
+    const [debouncedSearch] = useDebounce(search, 500);
 
     useEffect(() => {
         getCategoryIngredients()
@@ -492,17 +504,28 @@ export default function IngredientsPage() {
     const fetchIngredients = useCallback(async () => {
         setLoading(true);
         setFetchError("");
+
         try {
-            const res = await getIngredients();
-            setIngredients(extractList(res).map(mapIngredient));
+            const res = await getIngredients(page, INGREDIENTS_PER_PAGE, debouncedSearch, filterCat);
+
+            const payload = res?.data ?? {};
+
+            setIngredients((payload.data || []).map(mapIngredient));
+            setTotal(payload.total || 0);
+            setTotalPages(payload.totalPages || 1);
         } catch (e) {
             setFetchError(e?.response?.data?.message ?? e.message);
+            console.error(e);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, debouncedSearch, filterCat]);
 
     useEffect(() => { fetchIngredients(); }, [fetchIngredients]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, filterCat]);
 
     const fetchTransactions = useCallback(async (page = 1) => {
         setTxLoading(true);
@@ -558,16 +581,11 @@ export default function IngredientsPage() {
 
     const paginatedTransactions = transactions;
 
-    // console.log("transactions.length:", transactions.length);
-    // console.log("totalPages:", totalPages);
-    // console.log("txPage:", txPage);
 
-    const uniqueCategories = [...new Set(ingredients.map((i) => i.category).filter((c) => c !== "—"))];
-    const filtered = ingredients.filter((i) => {
-        const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
-        const matchCat = !filterCat || i.category === filterCat;
-        return matchSearch && matchCat;
-    });
+    const filtered = ingredients;
+
+
+
 
     const thClass = "px-6 py-4 text-xs font-bold uppercase tracking-wider text-left";
     const tdClass = "px-6 py-4 text-sm";
@@ -631,92 +649,207 @@ export default function IngredientsPage() {
                                 />
                             </div>
                             <select
-                                value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
+                                value={filterCat}
+                                onChange={(e) => setFilterCat(e.target.value)}
                                 className="bg-slate-50 border border-transparent focus:border-green-300 text-sm rounded-xl px-4 py-2.5 focus:outline-none transition-all"
                                 style={{ color: "var(--color-text-2)" }}
                             >
                                 <option value="">Tất cả danh mục</option>
-                                {uniqueCategories.map((c) => <option key={c}>{c}</option>)}
+                                {categories.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name}
+                                    </option>
+                                ))}
                             </select>
+
                         </section>
 
-                        {/* ── Ingredients Table ── */}
+
+                        {/* ── Transaction Table ── */}
                         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                                 <h3 style={{ fontFamily: "'Arimo', sans-serif", fontWeight: 700, color: "var(--color-text-1)", margin: 0 }}>
                                     Danh sách nguyên liệu
                                 </h3>
-                                <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "rgba(16,188,93,0.1)", color: "var(--color-primary)" }}>
-                                    {loading ? "..." : `${filtered.length} mục`}
+                                <span
+                                    className="text-xs font-bold px-2.5 py-1 rounded-full"
+                                    style={{ background: "rgba(16,188,93,0.1)", color: "var(--color-primary)" }}
+                                >
+                                    {loading ? "..." : `${total} mục`}
                                 </span>
                             </div>
+
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead style={{ background: "#f8faf9" }}>
                                         <tr>
                                             {["Tên nguyên liệu", "Danh mục", "Tối thiểu", "Tồn kho", "Đơn vị", "Hành động"].map((h, i) => (
-                                                <th key={h} className={thClass} style={{ color: "var(--color-text-3)", textAlign: i >= 2 ? "right" : "left" }}>
+                                                <th
+                                                    key={h}
+                                                    className={thClass}
+                                                    style={{ color: "var(--color-text-3)", textAlign: i >= 2 ? "right" : "left" }}
+                                                >
                                                     {h}
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
+
                                     <tbody>
                                         {loading ? (
                                             Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                                        ) : filtered.length === 0 ? (
+                                        ) : ingredients.length === 0 ? (
                                             <tr>
                                                 <td colSpan={6} className="px-6 py-12 text-center text-sm" style={{ color: "var(--color-text-3)" }}>
                                                     {fetchError ? "Không thể tải dữ liệu" : "Không tìm thấy nguyên liệu nào"}
                                                 </td>
                                             </tr>
-                                        ) : filtered.map((item) => (
-                                            <tr key={item.id} className="hover:bg-slate-50/60 transition-colors" style={{ borderTop: "1px solid #f1f5f2" }}>
-                                                <td className={tdClass}>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(16,188,93,0.1)" }}>
-                                                            <span className="material-symbols-outlined" style={{ fontSize: 16, color: "var(--color-primary)" }}>nutrition</span>
+                                        ) : (
+                                            ingredients.map((item) => (
+                                                <tr key={item.id} className="hover:bg-slate-50/60 transition-colors" style={{ borderTop: "1px solid #f1f5f2" }}>
+                                                    <td className={tdClass}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(16,188,93,0.1)" }}>
+                                                                <span className="material-symbols-outlined" style={{ fontSize: 16, color: "var(--color-primary)" }}>nutrition</span>
+                                                            </div>
+                                                            <span className="font-semibold" style={{ color: "var(--color-text-1)" }}>{item.name}</span>
                                                         </div>
-                                                        <span className="font-semibold" style={{ color: "var(--color-text-1)" }}>{item.name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className={tdClass}>
-                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${getCategoryBadge(item.category)}`}>
-                                                        {item.category}
-                                                    </span>
-                                                </td>
-                                                <td className={tdClass} style={{ textAlign: "right" }}>
-                                                    <span className="font-bold inline-flex items-center gap-1" style={{ color: item.current_stock <= item.minimum_stock ? "#f97316" : "var(--color-primary)" }}>
-                                                        {Number(item.current_stock).toFixed(2)}
-                                                        {item.current_stock <= item.minimum_stock && (
-                                                            <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#f97316" }} title="Sắp hết hàng">warning</span>
-                                                        )}
-                                                    </span>
-                                                </td>
-                                                <td className={tdClass} style={{ textAlign: "center", color: "var(--color-text-2)" }}>
-                                                    {Number(item.minimum_stock).toFixed(2)}
-                                                </td>
-                                                <td className={tdClass} style={{ color: "var(--color-text-2)", textAlign: "center" }}>{item.unit}</td>
-                                                <td className={tdClass} style={{ textAlign: "right" }}>
-                                                    <div className="flex justify-end gap-1.5">
-                                                        <button onClick={() => setModal({ type: "addStock", item })} className="p-2 rounded-lg hover:bg-emerald-50 transition-colors" title="Nhập kho">
-                                                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--color-primary)" }}>add_box</span>
-                                                        </button>
-                                                        <button onClick={() => setModal({ type: "update", item })} className="p-2 rounded-lg hover:bg-slate-100 transition-colors" title="Chỉnh sửa">
-                                                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--color-text-3)" }}>edit</span>
-                                                        </button>
-                                                        <button onClick={() => setModal({ type: "delete", item })} className="p-2 rounded-lg hover:bg-red-50 transition-colors" title="Xóa">
-                                                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#f87171" }}>delete</span>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+
+                                                    <td className={tdClass}>
+                                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${getCategoryBadge(item.category)}`}>
+                                                            {item.category}
+                                                        </span>
+                                                    </td>
+
+                                                    <td className={tdClass} style={{ textAlign: "right" }}>
+                                                        <span
+                                                            className="font-bold inline-flex items-center gap-1"
+                                                            style={{ color: item.current_stock <= item.minimum_stock ? "#f97316" : "var(--color-primary)" }}
+                                                        >
+                                                            {Number(item.current_stock).toFixed(2)}
+                                                            {item.current_stock <= item.minimum_stock && (
+                                                                <span
+                                                                    className="material-symbols-outlined"
+                                                                    style={{ fontSize: 14, color: "#f97316" }}
+                                                                    title="Sắp hết hàng"
+                                                                >
+                                                                    warning
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    </td>
+
+                                                    <td className={tdClass} style={{ textAlign: "center", color: "var(--color-text-2)" }}>
+                                                        {Number(item.minimum_stock).toFixed(2)}
+                                                    </td>
+
+                                                    <td className={tdClass} style={{ color: "var(--color-text-2)", textAlign: "center" }}>
+                                                        {item.unit}
+                                                    </td>
+
+                                                    <td className={tdClass} style={{ textAlign: "right" }}>
+                                                        <div className="flex justify-end gap-1.5">
+                                                            <button
+                                                                onClick={() => setModal({ type: "addStock", item })}
+                                                                className="p-2 rounded-lg hover:bg-emerald-50 transition-colors"
+                                                                title="Nhập kho"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--color-primary)" }}>add_box</span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => setModal({ type: "update", item })}
+                                                                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                                                                title="Chỉnh sửa"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--color-text-3)" }}>edit</span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => setModal({ type: "delete", item })}
+                                                                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                                                title="Xóa"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#f87171" }}>delete</span>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
+
+                                {!loading && totalPages > 1 && (
+                                    <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-white">
+                                        <span className="text-xs text-slate-500">
+                                            Hiển thị {(page - 1) * INGREDIENTS_PER_PAGE + 1}–{Math.min(page * INGREDIENTS_PER_PAGE, total)} / {total} nguyên liệu
+                                        </span>
+
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => setPage(1)}
+                                                disabled={page === 1}
+                                                className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+                                            >
+                                                «
+                                            </button>
+
+                                            <button
+                                                onClick={() => setPage(page - 1)}
+                                                disabled={page === 1}
+                                                className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+                                            >
+                                                ‹
+                                            </button>
+
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                                .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                                                .reduce((acc, p, idx, arr) => {
+                                                    if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                                                    acc.push(p);
+                                                    return acc;
+                                                }, [])
+                                                .map((p, idx) =>
+                                                    p === "..." ? (
+                                                        <span key={`ellipsis-${idx}`} className="px-2 text-xs text-slate-400">…</span>
+                                                    ) : (
+                                                        <button
+                                                            key={p}
+                                                            onClick={() => setPage(p)}
+                                                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                                            style={
+                                                                page === p
+                                                                    ? { background: "var(--color-primary)", color: "#fff" }
+                                                                    : { color: "var(--color-text-2)" }
+                                                            }
+                                                        >
+                                                            {p}
+                                                        </button>
+                                                    )
+                                                )}
+
+                                            <button
+                                                onClick={() => setPage(page + 1)}
+                                                disabled={page === totalPages}
+                                                className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+                                            >
+                                                ›
+                                            </button>
+
+                                            <button
+                                                onClick={() => setPage(totalPages)}
+                                                disabled={page === totalPages}
+                                                className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-slate-100 transition-all"
+                                            >
+                                                »
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
-
 
                         {/* ── Transaction History Table ── */}
                         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
