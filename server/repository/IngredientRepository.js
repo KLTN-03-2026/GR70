@@ -20,6 +20,10 @@ class IngredientRepository {
       { ...option },
     );
   }
+  // lấy tên nguyên liệu
+  async getIngredientName(ingredientID) {
+    return await IngredientModel.findOne({attributes: ['name'], where: { id: ingredientID }, raw: true });
+  }
   // ghi lại lịch sử xuất nguyên liệu khi tạo món ăn mới
   async IngredientTransactionOutput(data, userID,type, option = {}) {
     return await IngredientStockTransactionModel.create(
