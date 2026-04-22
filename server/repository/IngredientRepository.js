@@ -92,6 +92,10 @@ class IngredientRepository {
       ...options
     })
   }
+  // get tất cả nguyên liệu của một thương hiệu ko phân trang
+  async getIngredientsByBrandIDNoPagination(brandID) {
+    return await IngredientModel.findAll({ attributes:['id','name'], where: { brand_id: brandID } });
+  }
   // lịch sử nguyên liệu
   async getIngredientTransaction(brandID,options) {
     return await pagination.getPagination({
