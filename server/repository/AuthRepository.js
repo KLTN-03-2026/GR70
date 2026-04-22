@@ -74,5 +74,11 @@ class AuthRepository{
             }],
         });
     }
+    async checkStautsUser(id) {
+        return await UserModel.findOne({
+            where: {id: id},
+            attributes: ['status'],
+        });
+    }
 }
 module.exports =  new AuthRepository();

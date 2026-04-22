@@ -141,3 +141,65 @@ ${JSON.stringify(detailThreeNextDays || [], null, 2)}
   → dùng conservative estimation (ước lượng an toàn)
 `.trim();
 };
+
+export const generatePromptCheckIngredientForDish = ({
+  nameDish = "",
+  categoryDish = "",
+  ingredient = []
+} = {}) => {
+  return `
+Bạn là AI kiểm tra độ phù hợp giữa tên món ăn và các nguyên liệu.
+
+Nhiệm vụ:
+- Xác định nguyên liệu nào KHÔNG phù hợp với món ăn.
+- Đưa ra đánh giá tổng thể công thức có hợp lý hay không.
+
+=====================
+## INPUT
+=====================
+{
+  "name": "${nameDish}",
+  "category": "${categoryDish}",
+  "ingredients": ${JSON.stringify(ingredient)}
+}
+
+=====================
+## QUY TẮC
+=====================
+- "unsuitable": nguyên liệu sai rõ ràng, không thuộc món
+- "suitable": nguyên liệu hợp lý với món
+
+- Đánh giá dựa trên:
+  1. Tên món
+  2. Category
+  3. Kiến thức ẩm thực phổ biến
+
+- Ví dụ:
+  - "mì quảng" + "dưa hấu" => unsuitable
+  - "mì quảng" + "bún" => unsuitable
+
+- Không được đoán bừa
+- Không được thêm nguyên liệu mới
+- Không giải thích dài dòng
+
+=====================
+## OUTPUT (BẮT BUỘC)
+=====================
+Chỉ trả về JSON đúng format:
+
+{
+  "is_recipe_reasonable": true,
+  "summary": "string",
+  "invalid_ingredients": ["string"]
+}
+
+=====================
+## RÀNG BUỘC
+=====================
+- Chỉ JSON, không markdown
+- Không thêm field khác
+- "invalid_ingredients": chỉ chứa nguyên liệu "unsuitable"
+- Nếu có nguyên liệu sai nghiêm trọng → is_recipe_reasonable = false
+- "summary": ngắn gọn 1 câu
+`.trim();
+};

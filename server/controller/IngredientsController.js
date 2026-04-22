@@ -181,6 +181,18 @@ exports.GetIngredientsByBrandID = async function (req, res, next) {
     return next(error);
   }
 };
+// get danh sách nguyên liệu của một brand không phân trang
+exports.GetIngredientsByBrandIDNoPagination = async function (req, res, next) {
+  try {
+    const brandID = req.user.brandID;
+    const getIngredientsByBrandID = await IngredientsRepository.getIngredientsByBrandIDNoPagination(brandID);
+    return res.json(
+      ApiSuccess.getSelect("Ingredients list", getIngredientsByBrandID),
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
 // lịch sử nguyên liệu
 exports.GetIngredientTransaction = async function (req, res, next) {
   try {
