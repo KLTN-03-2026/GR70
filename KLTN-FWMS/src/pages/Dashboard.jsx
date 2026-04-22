@@ -294,7 +294,10 @@ export default function Dashboard() {
         fetchtotalRevenueOneMonth();
         fetchreportlowstock();
         fetch_WastePecentage();
+        fetch_WasteLess_AI();
+        fetch_Customer_AI();
     }, []);
+
     const fetchDishes = async () => {
         if (!token) return;
 
@@ -366,6 +369,110 @@ export default function Dashboard() {
         }
     };
     const number_waste_percentage = parseFloat(Waste_Percentage);
+
+    const [WasteLess_AI, setWasteLess_AI] = useState();
+    const fetch_WasteLess_AI = async () => {
+        try {
+            const res = await axios.get(
+                "https://system-waste-less-ai.onrender.com/api/dashboard/get-waste-ai",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            console.log(res.data.data);
+            setWasteLess_AI(res.data.data?.[0]?.ai_analysis_details);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const [Customer_AI, setCustomer_AI] = useState(null);
+    const fetch_Customer_AI = async () => {
+        try {
+            const res = await axios.get(
+                "https://system-waste-less-ai.onrender.com/api/dashboard/get-customer-ai",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            // console.log(res.data.data);
+            setCustomer_AI(res.data.data);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+    const [showDetailAI, setShowDetailAI] = useState(false);
+    function AIAlertDetail({ data, onClose }) {
+    return (
+        <Modal className="w-[800px]" title="Chi tiết gợi ý AI" onClose={onClose}>
+            <div className="space-y-4 max-h-[520px] overflow-y-auto">
+                {!data || data.length === 0 ? (
+                    <p className="text-base text-gray-500 text-center">
+                        Không có dữ liệu chi tiết
+                    </p>
+                ) : (
+                    data.map((item, index) => (
+                        <div
+                            key={index}
+                            className="p-4 border rounded-2xl bg-white shadow-sm"
+                        >
+                            {/* Tên món */}
+                            <div className="flex justify-between items-center">
+                                <p className="font-bold text-base text-gray-800">
+                                    {item.dish?.name}
+                                </p>
+
+                                <span
+                                    className={`text-xs px-2 py-1 rounded-full font-bold ${
+                                        item.predicted_waste_quantity > 0
+                                            ? "bg-red-100 text-red-600"
+                                            : "bg-green-100 text-green-600"
+                                    }`}
+                                >
+                                    {item.predicted_waste_quantity > 0
+                                        ? "Cảnh báo"
+                                        : "Ổn định"}
+                                </span>
+                            </div>
+
+                            {/* Recommended */}
+                            <p className="text-sm mt-3">
+                                👉 Nên chuẩn bị:{" "}
+                                <span className="font-bold text-green-600 text-sm">
+                                    {item.recommended_quantity}
+                                </span>{" "}
+                                suất
+                            </p>
+
+                            {/* Waste */}
+                            <p className="text-sm mt-1">
+                                ⚠️ Dự kiến lãng phí:{" "}
+                                <span
+                                    className={`font-bold text-sm ${
+                                        item.predicted_waste_quantity > 0
+                                            ? "text-red-500"
+                                            : "text-green-500"
+                                    }`}
+                                >
+                                    {item.predicted_waste_quantity}
+                                </span>
+                            </p>
+
+                            {/* Suggestion note */}
+                            <div className="mt-3 p-3 rounded-xl bg-gray-100 text-black text-sm leading-relaxed">
+                                {item.suggestion_note}
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </Modal>
+    );
+}
 
     return (
         <>
@@ -448,13 +555,44 @@ export default function Dashboard() {
                                 className="text-orange-700 text-sm mt-1"
                                 style={{ fontFamily: "'Nunito', sans-serif" }}
                             >
-                                Cảnh báo: Lãng phí món <strong>Phở Bò</strong>{" "}
-                                vượt <strong>15%</strong> so với dự báo AI. Vui
-                                lòng kiểm tra lại định lượng nguyên liệu hoặc
-                                quy trình chế biến tại bếp 01.
+                                {!Customer_AI || Customer_AI.length === 0 ? (
+                                    "Chưa có gợi ý gì cho hôm nay."
+                                ) : (
+                                    Customer_AI.map((value, index) => (
+                                        <div key={index}>
+                                            {Array.isArray(value.summary) ? (
+                                                value.summary.length > 0 ? (
+                                                    value.summary.map((item, i) => (
+                                                        <div key={i}>{item}</div>
+                                                    ))
+                                                ) : (
+                                                    "Chưa có gợi ý gì cho hôm nay."
+                                                )
+                                            ) : value.summary ? (
+                                                value.summary
+                                            ) : (
+                                                "Chưa có gợi ý gì cho hôm nay."
+                                            )}
+                                        </div>
+                                    ))
+                                )}
                             </p>
+                            <button
+                                onClick={() => setShowDetailAI(true)}
+                                className="mt-2 text-xs font-bold underline hover:opacity-80"
+                                style={{ color: "#ea580c" }}
+                            >
+                                Xem chi tiết gợi ý từ AI!
+                            </button>
                         </div>
                     </div>
+
+                    {showDetailAI && (
+                        <AIAlertDetail
+                            data={WasteLess_AI}
+                            onClose={() => setShowDetailAI(false)}
+                        />
+                    )}
 
                     <div className="grid grid-cols-12 gap-6">
                         {/* Left: Stats + Chart */}
@@ -473,7 +611,7 @@ export default function Dashboard() {
                                     {
                                         label: "Tổng số món",
                                         value: dataDishes?.totalDishes || "0",
-                                        badge: "+3",
+                                        badge: "",
                                         badgeBg:
                                             "color-mix(in srgb, var(--color-primary) 10%, transparent)",
                                         badgeColor: "var(--color-primary)",
@@ -483,7 +621,7 @@ export default function Dashboard() {
                                         value:
                                             dataDishes?.totalServingDishes ||
                                             "0",
-                                        badge: "95.2%",
+                                        badge: (((dataDishes?.totalServingDishes) * 100) / (dataDishes?.totalDishes || 1)).toFixed(1) + "%",
                                         badgeBg: "#f3f4f6",
                                         badgeColor: "var(--color-text-3)",
                                     },
@@ -492,9 +630,9 @@ export default function Dashboard() {
                                         value:
                                             dataDishes?.totalWaitingDishes ||
                                             "0",
-                                        badge: "Cần xử lý",
-                                        badgeBg: "#fff7ed",
-                                        badgeColor: "#f97316",
+                                        badge: ((dataDishes?.totalWaitingDishes) > 0) ? "Cần xử lý" : "Ổn định",
+                                        badgeBg: ((dataDishes?.totalWaitingDishes) === 0) ? "color-mix(in srgb, var(--color-primary) 10%, transparent)" : "#fff7ed",
+                                        badgeColor: ((dataDishes?.totalWaitingDishes) === 0) ? "var(--color-primary)" : "#f97316",
                                     },
                                 ].map((s) => (
                                     <div
@@ -720,11 +858,11 @@ export default function Dashboard() {
                                                 ? "Ổn Định"
                                                 : number_waste_percentage > 5 &&
                                                     number_waste_percentage <=
-                                                        10
-                                                  ? "Cảnh báo"
-                                                  : number_waste_percentage > 10
-                                                    ? "Báo động"
-                                                    : ""}
+                                                    10
+                                                    ? "Cảnh báo"
+                                                    : number_waste_percentage > 10
+                                                        ? "Báo động"
+                                                        : ""}
                                         </span>
                                     </div>
                                 </div>
@@ -736,10 +874,10 @@ export default function Dashboard() {
                                         ? `Mức lãng phí thực phẩm đang ổn định, chưa có dấu hiệu đáng lo ngại.`
                                         : number_waste_percentage > 5 &&
                                             number_waste_percentage <= 10
-                                          ? "Lượng thực phẩm lãng phí đang tăng, cần theo dõi và kiểm soát sớm."
-                                          : number_waste_percentage > 10
-                                            ? `Mức lãng phí thực phẩm cao hơn ${(number_waste_percentage - 10).toFixed(2)}% ,cần hành động ngay để tránh thất thoát nghiêm trọng!`
-                                            : ""}
+                                            ? "Lượng thực phẩm lãng phí đang tăng, cần theo dõi và kiểm soát sớm."
+                                            : number_waste_percentage > 10
+                                                ? `Mức lãng phí thực phẩm cao hơn ${(number_waste_percentage - 10).toFixed(2)}% ,cần hành động ngay để tránh thất thoát nghiêm trọng!`
+                                                : ""}
                                 </p>
                             </div>
 
