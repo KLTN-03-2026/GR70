@@ -5,12 +5,23 @@ class UserRepository {
     async InfoUser(id) {
         return await UserModel.findOne({
             where: { id: id },
-            attributes: ['id', 'email', 'name', 'phone', 'address',"created_at"],
+            attributes: ['id', 'email', 'name', 'phone',"created_at"],
             include: [{
                 model: BrandModel,
-                attributes: ['name', 'address'],
+                attributes: ['name', 'address','province','status','rolebrand'],
+            },{
+                model: RoleModel,
+                attributes: ['name'],
+                through: { attributes: [] }
             }],
         });
+    }
+    // cập nhập thông tin
+    async updateUser(id, data, options = {}) {
+        return await UserModel.update(data, { where: { id: id }, ...options });
+    }
+    async updateBrand(id, data, options = {}) {
+        return await BrandModel.update(data, { where: { id: id }, ...options });
     }
     // khóa hoặc mở khóa tài khoản
     async lockOrUnlockUser(id, status) {

@@ -116,5 +116,11 @@ class IngredientRepository {
       ...options
     })
   }
+  // kiểm tra nguyên liệu có trong món ăn chưa
+  async GetIngredientsByDishID(ingredientID) {
+    return await DishRecipeModel.findOne({ 
+        where: { ingredient_id: ingredientID }
+    });
+  }
 }
 module.exports = new IngredientRepository();
