@@ -127,7 +127,7 @@ exports.LockKitchen = async function (req, res, next) {
 exports.UnlockKitchen = async function (req, res, next) {
   try {
     const userID = req.params.id;
-    const checkuser = await CheckServices.checkUserActive(userID);
+    const checkuser = await CheckServices.checkStautsUser(userID);
     if (!checkuser) {
       throw ApiError.Unauthorized("User is not active");
     }
