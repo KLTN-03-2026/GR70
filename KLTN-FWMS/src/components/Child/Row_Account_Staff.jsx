@@ -9,9 +9,11 @@ export const Row_Account_Staff = () => {
     const [visibility_password, setVisibility_Password] = useState(null);
     const token = localStorage.getItem("token");
     const [countID, setcountID] = useState(null);
-    //Filter
+    // Filter
     const [filterStatus, setFilterStatus] = useState("all");
-    
+
+
+
     const filteredStaff = Array.isArray(datastaff)
         ? datastaff.filter((staff) => {
             if (filterStatus === "active") return staff.status === true;
@@ -20,26 +22,37 @@ export const Row_Account_Staff = () => {
         })
         : [];
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const res = await axios.get("https://system-waste-less-ai.onrender.com/api/users/get-kitchen-staff",
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-                console.log(res.data.data.data);
-                setDatastaff(
-                    Array.isArray(res.data.data.data) ? res.data.data.data : []
-                );
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const ITEMS_PER_PAGE = 10;
 
-            } catch (err) {
-                console.log(err);
-            }
-        };
-        fetchUser();
+    const fetchUser = async (p = 1) => {
+        try {
+            const res = await axios.get(
+                `https://system-waste-less-ai.onrender.com/api/users/get-kitchen-staff?page=${p}&limit=${ITEMS_PER_PAGE}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const { data, totalPages, total } = res.data.data;
+
+            setDatastaff(Array.isArray(data) ? data : []);
+            setTotalPages(totalPages ?? 1);
+            setTotal(total ?? 0);
+            setPage(p);
+
+        } catch (err) {
+            console.log(err);
+        }
+    };
+    useEffect(() => {
+        setPage(1);
+        fetchUser(1);
     }, [token]);
 
     useEffect(() => {
@@ -156,6 +169,99 @@ export const Row_Account_Staff = () => {
         }
     }
     // console.log(datastaff);
+
+    const renderPagination = () => {
+        if (totalPages <= 1 || total === 0) return null;
+
+        const handlePageChange = (p) => {
+            if (p < 1 || p > totalPages || p === page) return;
+            fetchUser(p);
+        };
+
+        return (
+            <div className="px-6 py-4 bg-slate-50 border-t flex justify-between items-center">
+
+                {/* TEXT */}
+                <span className="text-sm text-slate-500">
+                    Hiển thị {(page - 1) * ITEMS_PER_PAGE + 1}–
+                    {Math.min(page * ITEMS_PER_PAGE, total)} / {total}
+                </span>
+
+                {/* PAGINATION */}
+                <div className="flex items-center gap-1">
+
+                    {/* First */}
+                    <button
+                        onClick={() => handlePageChange(1)}
+                        disabled={page === 1}
+                        className="px-2 py-1 border rounded disabled:opacity-30"
+                    >
+                        «
+                    </button>
+
+                    {/* Prev */}
+                    <button
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1}
+                        className="px-2 py-1 border rounded disabled:opacity-30"
+                    >
+                        ‹
+                    </button>
+
+                    {/* Pages */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p =>
+                            p === 1 ||
+                            p === totalPages ||
+                            Math.abs(p - page) <= 1
+                        )
+                        .reduce((acc, p, idx, arr) => {
+                            if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                            acc.push(p);
+                            return acc;
+                        }, [])
+                        .map((p, idx) =>
+                            p === "..." ? (
+                                <span key={idx} className="px-2 text-slate-400">
+                                    …
+                                </span>
+                            ) : (
+                                <button
+                                    key={p}
+                                    onClick={() => handlePageChange(p)}
+                                    className={`px-3 py-1 rounded text-sm font-semibold transition
+                                    ${page === p
+                                            ? "bg-primary text-white"
+                                            : "border hover:bg-slate-100"
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        )}
+
+                    {/* Next */}
+                    <button
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page === totalPages}
+                        className="px-2 py-1 border rounded disabled:opacity-30"
+                    >
+                        ›
+                    </button>
+
+                    {/* Last */}
+                    <button
+                        onClick={() => handlePageChange(totalPages)}
+                        disabled={page === totalPages}
+                        className="px-2 py-1 border rounded disabled:opacity-30"
+                    >
+                        »
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
 
     return (
         <>
@@ -348,20 +454,7 @@ export const Row_Account_Staff = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-sm text-slate-500">Đang hiển thị 1-3 của 24 nhân viên</span>
-                            <div className="flex gap-2">
-                                <button className="size-8 flex items-center justify-center rounded-lg border border-slate-200 disabled:opacity-50" disabled>
-                                    <span className="material-symbols-outlined text-sm">chevron_left</span>
-                                </button>
-                                <button className="size-8 flex items-center justify-center rounded-lg bg-primary text-white font-bold text-sm">1</button>
-                                <button className="size-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-white font-bold text-sm">2</button>
-                                <button className="size-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-white font-bold text-sm">3</button>
-                                <button className="size-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-white">
-                                    <span className="material-symbols-outlined text-sm">chevron_right</span>
-                                </button>
-                            </div>
-                        </div>
+                        {renderPagination()}
                     </div>
                 </div>
                 {/* Detail Section (Simulated Sidebar Info) */}
