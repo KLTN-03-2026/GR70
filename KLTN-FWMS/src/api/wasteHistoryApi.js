@@ -25,6 +25,8 @@ wasteHistoryApi.interceptors.request.use(
 
 // ========== API CHO LỊCH SỬ LÃNG PHÍ ==========
 
+// ========== API CHO LỊCH SỬ LÃNG PHÍ ==========
+
 // GET /history/sum-waste-by-month - Tổng lãng phí theo tháng
 export const getSumWasteByMonth = async (month) => {
     try {
@@ -35,6 +37,7 @@ export const getSumWasteByMonth = async (month) => {
         console.log("📊 getSumWasteByMonth URL:", url);
         const response = await wasteHistoryApi.get(url);
         console.log("📊 getSumWasteByMonth Response:", response.data);
+        // Trả về toàn bộ response.data để component tự xử lý
         return response.data;
     } catch (error) {
         console.error("Error fetching sum waste by month:", error);
@@ -65,30 +68,27 @@ export const getListWasteByIngredient = async (params = {}) => {
         const { date, month, startDate, endDate, dishId } = params;
         let url = "/history/list-waste-by-ingredient";
         const queryParams = [];
-        // TH1: Lọc theo date cụ thể
+        
+        // ⚠️ SỬA: Chỉ gửi date hoặc month, không gửi cả 2
         if (date && date !== "") {
             queryParams.push(`date=${date}`);
-        }
-        // TH2: Lọc theo month
-        else if (month && month !== "") {
+        } else if (month && month !== "") {
             queryParams.push(`month=${month}`);
         }
+        
         // Các params khác
         if (startDate) queryParams.push(`startDate=${startDate}`);
         if (endDate) queryParams.push(`endDate=${endDate}`);
         if (dishId) queryParams.push(`dishId=${dishId}`);
+        
         if (queryParams.length > 0) {
             url += `?${queryParams.join("&")}`;
         }
+        
         console.log("🍽️ getListWasteByIngredient URL:", url);
-        console.log("🍽️ Params sent:", { date, month, queryParams });
         const response = await wasteHistoryApi.get(url);
-        console.log(
-            "🍽️ Response data count:",
-            response.data?.data?.length || 0,
-        );
-        console.log("🍽️ Response sample:", response.data?.data?.slice(0, 2));
-        return response.data;
+        console.log("🍽️ Response data count:", response.data?.data?.length || 0);
+        return response.data; // { success, data: [...] }
     } catch (error) {
         console.error("Error fetching list waste by ingredient:", error);
         throw error;
