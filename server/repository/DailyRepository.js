@@ -304,14 +304,25 @@ class DailyRepository {
     return result;
   }
   // danh sách món ăn bán ra ngày hôm qua
-  async GetDishesOutputByLastDate(brandID) {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const startDate = yesterday.toISOString().split("T")[0];
-    const endDate = today.toISOString().split("T")[0];
+  async GetDishesOutputByLastDate(brandID,operation_date,caterogy,options) {
+    let startDate, endDate;
 
-    const result = await DailyDetailModel.findAll({
+    if (operation_date) {
+      // Nếu có truyền vào thì dùng đúng ngày đó
+      startDate = operation_date;
+      endDate = operation_date;
+    } else {
+      // Không có thì lấy hôm qua -> hôm nay
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+
+      startDate = yesterday.toISOString().split("T")[0];
+      endDate = today.toISOString().split("T")[0];
+    }
+
+    const result = await pagination.getPagination({
+      model: DailyDetailModel,
       attributes: [
         "id",
         "quantity_prepared",
@@ -337,9 +348,14 @@ class DailyRepository {
         {
           model: DishModel,
           attributes: ["name"],
+          where:{
+            dish_category_id: {
+              [Op.ne]: caterogy || null
+            }
+          }
         },
       ],
-      raw: true,
+      ...options
     });
     return result;
   }
@@ -479,8 +495,9 @@ async SumWasteByMonth(brandID, month = null) {
     return result;
   }
   // chi tiết giao dịch tháng này
-  async TransactionByMonth(brandID,month) {
-    const result = await DailyDetailModel.findAll({
+  async TransactionByMonth(brandID,month,options) {
+    const result = await pagination.getPagination({
+      model: DailyDetailModel,
       attributes: ["id","revenue_cost",
         [
           sequelize.literal("quantity_prepared - quantity_wasted"),
@@ -503,7 +520,7 @@ async SumWasteByMonth(brandID, month = null) {
           attributes: ["name"],
         }
       ],
-      raw: true,
+      ...options
     });
     return result;
   }

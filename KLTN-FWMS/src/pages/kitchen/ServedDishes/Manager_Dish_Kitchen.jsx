@@ -70,10 +70,16 @@ function FoodFormModal({
       )
       : "",
     name: initial?.name || "",
-    price: initial?.price ? String(initial.price) : "",
     des: initial?.des || "",
     status: initial && initial.status === true ? "active" : "paused",
   });
+
+  const [priceRaw, setPriceRaw] = useState(
+    initial?.price ? String(initial.price) : ""
+  );
+  const [priceDisplay, setPriceDisplay] = useState(
+    initial?.price ? Number(initial.price).toLocaleString("vi-VN") : ""
+  );
 
   const [categories, setCategories] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
@@ -129,12 +135,23 @@ function FoodFormModal({
     });
 
   const handleSave = async () => {
-    if (!form.name?.trim() || !form.category || !form.price) {
-      setError("Vui lòng nhập đầy đủ tên món, danh mục và giá");
+    // Validate cơ bản
+    if (!form.name?.trim()) {
+      setError("Tên món ăn không được để trống");
       return;
     }
 
-    // validate nguyên liệu
+    if (!form.category) {
+      setError("Vui lòng chọn danh mục");
+      return;
+    }
+
+    if (!priceRaw || Number(priceRaw) <= 0) {
+      setError("Giá phải lớn hơn 0");
+      return;
+    }
+
+    // Validate nguyên liệu
     const validRecipes = dishRecipes
       .filter((r) => r.ingredient_id && r.quantity?.trim())
       .map((r) => ({
@@ -147,15 +164,28 @@ function FoodFormModal({
       return;
     }
 
+    // Check quantity > 0
+    const invalidQty = validRecipes.find((r) => r.quantity <= 0);
+    if (invalidQty) {
+      setError("Số lượng nguyên liệu phải lớn hơn 0");
+      return;
+    }
+
+    // Check trùng nguyên liệu
+    const ids = validRecipes.map((r) => r.ingredient_id);
+    const hasDuplicate = new Set(ids).size !== ids.length;
+    if (hasDuplicate) {
+      setError("Không được chọn trùng nguyên liệu");
+      return;
+    }
+
     const payload = {
       dish_category_id: form.category,
       name: form.name.trim(),
-      price: Number(form.price),
+      price: Number(priceRaw),
       des: form.des.trim() || "",
       dish_recipes: validRecipes,
     };
-
-    console.log("=== Payload gửi API mới ===", payload);
 
     try {
       setLoading(true);
@@ -167,17 +197,10 @@ function FoodFormModal({
       onSave();
       onClose();
     } catch (err) {
-      console.error("=== LỖI ===", err);
-
-      let errorMsg = "Có lỗi xảy ra";
-
-      if (err?.response?.data) {
-        const backendError = err.response.data;
-        errorMsg =
-          backendError.message ||
-          backendError.error ||
-          JSON.stringify(backendError);
-      }
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Có lỗi xảy ra";
 
       setError(errorMsg);
     } finally {
@@ -228,11 +251,20 @@ function FoodFormModal({
         </select>
 
         <input
-          type="number"
-          value={form.price}
-          onChange={handleInputChange("price")}
-          placeholder="Giá món ăn (VND)"
-          min={0}
+          type="text"
+          value={priceDisplay}
+          onFocus={() => setPriceDisplay(priceRaw)}
+          onChange={(e) => {
+            const val = e.target.value.replace(/[^0-9]/g, "");
+            setPriceRaw(val);
+            setPriceDisplay(val);
+          }}
+          onBlur={() => {
+            if (priceRaw)
+              setPriceDisplay(Number(priceRaw).toLocaleString("vi-VN"));
+            else setPriceDisplay("");
+          }}
+          placeholder="Giá món ăn"
           className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500"
         />
 
@@ -364,13 +396,13 @@ export default function Manager_Dish_Kitchen() {
   const [pending, setPending] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
   const [modal, setModal] = useState(null);
-  
+
   const fetchFoods = async () => {
     try {
       const res = await List_Dish_Await();
       setPending(Array.isArray(res.data) ? res.data : []);
       console.log(res.data);
-      
+
     } catch (err) {
       console.error("Lỗi tải danh sách món ăn:", err);
     }

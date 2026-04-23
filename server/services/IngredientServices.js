@@ -71,6 +71,18 @@ class IngredientServices{
             throw error;
         }
     }
+    // check nguyên liệu đã được thêm vào công thức món ăn chưa
+    async CheckIngredientInDish(ingredientID){
+        try {
+            const dishRecipes = await IngredientRepository.GetIngredientsByDishID(ingredientID);
+            if(dishRecipes){
+                return true
+            }
+            return false;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = new IngredientServices ();

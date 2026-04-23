@@ -130,6 +130,31 @@ export const kitchenDishAPI = {
             throw error;
         }
     },
+
+    // AI
+    // GET /dashboard/get-waste-ai
+    getWasteAI: async () => {
+        try {
+            const response = await kitchenApi.get("/dashboard/get-waste-ai");
+            console.log("Waste AI data:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching waste AI:", error);
+            throw error;
+        }
+    },
+
+    // GET /dashboard/get-customer-ai
+    getCustomerAI: async () => {
+        try {
+            const response = await kitchenApi.get("/dashboard/get-customer-ai");
+            console.log("Customer AI data:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching customer AI:", error);
+            throw error;
+        }
+    },
 };
 
 export default kitchenApi;

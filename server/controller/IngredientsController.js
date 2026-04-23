@@ -2,6 +2,7 @@ const IngredientsRepository = require("../repository/IngredientRepository");
 const ApiSuccess = require("../utils/ApiSuccess");
 const ApiError = require("../utils/ApiError");
 const CheckServices = require("../services/CheckServices");
+const IngredientServices = require("../services/IngredientServices");
 const sequelize = require("../config/connectData");
 // tạo nguyên liệu mới
 exports.CreateIngredient = async function (req, res, next) {
@@ -103,16 +104,33 @@ exports.UpdateIngredient = async function (req, res, next) {
         "Missing required fields: name, unit, IngredientCategoryID, minimum_stock",
       );
     }
-    if (data.current_stock && Number(data.current_stock)) {
-      throw ApiError.ValidationError(
-        "Invalid value for field: current_stock cannot be updated through this endpoint",
-      );
+    if (data.minimum_stock < 0) {
+      throw ApiError.ValidationError("minimum_stock must be >= 0");
     }
+    // if (data.current_stock && Number(data.current_stock)) {
+    //   throw ApiError.ValidationError(
+    //     "Invalid value for field: current_stock cannot be updated through this endpoint",
+    //   );
+    // }
     // Check if the ingredient category exists
     await CheckServices.checkCategoryIngredient(data.IngredientCategoryID);
+    const check = await IngredientServices.CheckIngredientInDish(ingredientID);
+    let dataUpdate={};
+    if (check) {
+      dataUpdate={
+        minimum_stock: data.minimum_stock
+      }
+    }else{
+      dataUpdate={
+        name: data.name,
+        unit: data.unit,
+        minimum_stock: data.minimum_stock,
+        ingredient_category_id: data.IngredientCategoryID
+      }
+    }
     const updateIngredient = await IngredientsRepository.updateIngredient(
       ingredientID,
-      data,
+      dataUpdate,
     );
     return res.json(
       ApiSuccess.updated("Ingredient updated successfully", updateIngredient),
@@ -127,6 +145,10 @@ exports.DeleteIngredient = async function (req, res, next) {
     const ingredientID = req.params.ingredientID;
     if (!ingredientID) {
       throw ApiError.ValidationError("Missing required field: ingredientID");
+    }
+    const check = await IngredientServices.CheckIngredientInDish(ingredientID);
+    if (check) {
+      throw ApiError.ValidationError("Ingredient is used in a dish");
     }
     const deleteIngredient =
       await IngredientsRepository.deleteIngredient(ingredientID);
@@ -181,6 +203,18 @@ exports.GetIngredientsByBrandID = async function (req, res, next) {
     return next(error);
   }
 };
+// get danh sách nguyên liệu của một brand không phân trang
+exports.GetIngredientsByBrandIDNoPagination = async function (req, res, next) {
+  try {
+    const brandID = req.user.brandID;
+    const getIngredientsByBrandID = await IngredientsRepository.getIngredientsByBrandIDNoPagination(brandID);
+    return res.json(
+      ApiSuccess.getSelect("Ingredients list", getIngredientsByBrandID),
+    );
+  } catch (error) {
+    return next(error);
+  }
+}
 // lịch sử nguyên liệu
 exports.GetIngredientTransaction = async function (req, res, next) {
   try {

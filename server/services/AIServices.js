@@ -201,6 +201,18 @@ class AIServices {
             }
             return null;
         };
+    // check món ăn đó có nguyên liệu hợp lý hay không
+    async CheckIngredientOutput(nameDish, categoryDish, dish_recipes){
+        try {
+            const prompt = await promtServices.generatePromptCheckIngredientForDish({nameDish, categoryDish, ingredient: dish_recipes});
+            const result = await retry(() => connectAI(prompt));
+            console.log("kết quả:",result);
+            const data = await this.parseAIResponse(result);
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = new AIServices();

@@ -12,4 +12,5 @@ router.delete('/delete-ingredient/:ingredientID', authorize(["Manager", "Admin"]
 router.get('/get-ingredient/:ingredientID', authorize(["Manager", "Admin"]), IngredientController.GetIngredient);
 router.get('/get-ingredients-by-brand', IngredientController.GetIngredientsByBrandID);
 router.get('/get-ingredient-transaction', authorize(["Manager"]), IngredientController.GetIngredientTransaction);
+router.get('/get-ingredient-select-by-brand', authorize(["Manager"]), IngredientController.GetIngredientsByBrandIDNoPagination);
 module.exports = router;

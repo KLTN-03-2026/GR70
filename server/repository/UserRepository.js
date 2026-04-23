@@ -1,32 +1,47 @@
 
 const { UserModel, BrandModel, RoleModel } = require('../models/index');
+const pagination = require('../utils/pagination');
 class UserRepository {
     async InfoUser(id) {
         return await UserModel.findOne({
             where: { id: id },
-            attributes: ['id', 'email', 'name', 'phone', 'address',"created_at"],
+            attributes: ['id', 'email', 'name', 'phone',"created_at"],
             include: [{
                 model: BrandModel,
-                attributes: ['name', 'address'],
+                attributes: ['name', 'address','province','status','rolebrand'],
+            },{
+                model: RoleModel,
+                attributes: ['name'],
+                through: { attributes: [] }
             }],
         });
+    }
+    // cập nhập thông tin
+    async updateUser(id, data, options = {}) {
+        return await UserModel.update(data, { where: { id: id }, ...options });
+    }
+    async updateBrand(id, data, options = {}) {
+        return await BrandModel.update(data, { where: { id: id }, ...options });
     }
     // khóa hoặc mở khóa tài khoản
     async lockOrUnlockUser(id, status) {
         return await UserModel.update({status: status}, { where: { id: id } });
     }
     // lấy danh sách nhân viên role Kitchen
-    async getKitchenStaff(brandID) {
-        return await UserModel.findAll({
+    async getKitchenStaff(brandID, options) {
+        return await pagination.getPagination({
+            model: UserModel,
             where: { brand_id: brandID },
-            attributes: ['id', 'name', 'email', 'phone', 'address', 'status'],
+            attributes: ['id', 'name', 'email', 'phone', 'address', 'status', "created_at"],
             include: [{
                 model: BrandModel,
                 attributes: ['id'],
             },{
                 model: RoleModel,
+                attributes:[],
                 where:{name: "Kitchen"},
             }],
+            ...options
         });
     }
 }

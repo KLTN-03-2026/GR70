@@ -7,8 +7,7 @@ const CheckServices = require("../services/CheckServices");
 const sequelize = require("../config/connectData");
 exports.GetInfoUser = async function (req, res, next) {
   try {
-    const userId = req.params.id;
-
+    const userId = req.user.userId;
     const user = await UserRepository.InfoUser(userId);
     if (!user) {
       throw ApiError.NotFound("User not found");
@@ -18,6 +17,56 @@ exports.GetInfoUser = async function (req, res, next) {
     return next(error);
   }
 };
+
+// cập nhập thông tin
+exports.UpdateInfoUser = async function (req, res, next) {
+  const t = await sequelize.transaction();
+  try {
+    const userId = req.user.userId;
+    const data = req.body;
+    const checkRole = await CheckServices.checkRole(userId);
+    const checkActive = await CheckServices.checkUserActive(userId);
+        // Chỉ kiểm tra email nếu email khác email hiện tại
+    if (data.email && data.email !== checkActive.email) {
+      await CheckServices.checkMailExit(data.email);
+    }
+    let dataUpdate={};
+    if(checkRole === "Manager") {
+      dataUpdate={
+        user:{
+          name:data.name,
+          email:data.email,
+          phone:data.phone,
+        },
+        brand:{
+          name:data.nameBrand,
+          address:data.addressBrand,
+          province:data.province,
+          rolebrand:data.rolebrand
+        }
+      }
+      const user = await UserRepository.updateUser(userId, dataUpdate.user,{ transaction: t } );
+    const brand = await UserRepository.updateBrand(checkActive.brand.id, dataUpdate.brand,{ transaction: t } );
+    }else{
+      dataUpdate={
+        user:{
+          name:data.name,
+          email:data.email,
+          phone:data.phone,
+        }
+      }
+      const user = await UserRepository.updateUser(userId, dataUpdate.user,{ transaction: t } );
+    }
+    await t.commit();
+    return res.json(ApiSuccess.updated("User information updated successfully"));
+  } catch (error) {
+    if(!t.finished){
+      await t.rollback();
+    }
+    return next(error);
+  }
+}
+
 // thêm nhân viên role Kitchen
 exports.RegisterKitchen = async function (req, res, next) {
   const t = await sequelize.transaction();
@@ -127,7 +176,7 @@ exports.LockKitchen = async function (req, res, next) {
 exports.UnlockKitchen = async function (req, res, next) {
   try {
     const userID = req.params.id;
-    const checkuser = await CheckServices.checkUserActive(userID);
+    const checkuser = await CheckServices.checkStautsUser(userID);
     if (!checkuser) {
       throw ApiError.Unauthorized("User is not active");
     }
@@ -147,10 +196,17 @@ exports.UnlockKitchen = async function (req, res, next) {
 exports.GetKitchenStaff = async function (req, res, next) {
   try {
     const brandID = req.user.brandID;
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
     if(!brandID){
         throw ApiError.Unauthorized("Brand ID is required");
     }
-    const getKitchenStaff = await UserRepository.getKitchenStaff(brandID);
+    const getKitchenStaff = await UserRepository.getKitchenStaff(brandID,{
+      page,
+      size,
+      orderBy: req.query.orderBy || "created_at",
+      order: req.query.orderType === "1" ? "ASC" : "DESC",
+    });
     return res.json(ApiSuccess.getSelect("Kitchen staff list", getKitchenStaff));
   } catch (error) {
     return next(error);
