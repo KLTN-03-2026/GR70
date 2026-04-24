@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Lightbulb } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const getCurrentTime = () => {
@@ -381,8 +382,10 @@ export default function Dashboard() {
                     },
                 },
             );
-            console.log(res.data.data);
+            // console.log(res.data.data?.[0]?.ai_analysis_details);
             setWasteLess_AI(res.data.data?.[0]?.ai_analysis_details);
+            // setWasteLess_AI(res.data.data?.[0]);
+
         } catch (error) {
             console.log(error);
         }
@@ -400,7 +403,7 @@ export default function Dashboard() {
                 },
             );
             // console.log(res.data.data);
-            setCustomer_AI(res.data.data);
+            setCustomer_AI(res.data?.data);
         } catch (error) {
             console.log(error);
         }
@@ -536,7 +539,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* AI Alert */}
-                    <div className="mb-8 p-6 bg-orange-50 border-l-4 border-orange-500 rounded-xl flex items-start gap-4">
+                    {/* <div className="mb-8 p-6 bg-orange-50 border-l-4 border-orange-500 rounded-xl flex items-start gap-4">
                         <div className="bg-orange-500 text-white p-2 rounded-full flex-shrink-0">
                             <span className="material-symbols-outlined text-sm">
                                 auto_awesome
@@ -553,7 +556,7 @@ export default function Dashboard() {
                                 className="text-orange-700 text-sm mt-1"
                                 style={{ fontFamily: "'Nunito', sans-serif" }}
                             >
-                                {!Customer_AI || Customer_AI.length === 0 ? (
+                                {!Customer_AI || Customer_AI?.length === 0 ? (
                                     "Chưa có gợi ý gì cho hôm nay."
                                 ) : (
                                     Customer_AI.map((value, index) => (
@@ -585,7 +588,7 @@ export default function Dashboard() {
                                 </button>
                             ) : ""}
                         </div>
-                    </div>
+                    </div> */}
 
                     {showDetailAI && (
                         <AIAlertDetail
@@ -897,12 +900,312 @@ export default function Dashboard() {
                                     </p>
                                 </div>
                             </div>
+                            {/* Waste Table */}
+                            <div
+                                className="mt-10 bg-white rounded-xl shadow-sm overflow-hidden"
+                                style={{
+                                    border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
+                                }}
+                            >
+                                <div
+                                    className="p-6 flex justify-between items-center"
+                                    style={{ borderBottom: "1px solid #f6f8f7" }}
+                                >
+                                    <p
+                                        className="font-bold text-base"
+                                        style={{
+                                            color: "var(--color-text-1)",
+                                            fontFamily: "'Arimo', sans-serif",
+                                        }}
+                                    >
+                                        Báo cáo lãng phí
+                                    </p>
+                                    <button
+                                        className="text-sm font-bold hover:underline"
+                                        style={{
+                                            color: "var(--color-primary)",
+                                            fontFamily: "'Nunito', sans-serif",
+                                        }}
+                                    >
+                                        
+                                    </button>
+                                </div>
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr
+                                            style={{
+                                                background: "rgba(246,248,247,0.6)",
+                                            }}
+                                        >
+                                            {[
+                                                "Danh mục",
+                                                "Số lượng",
+                                                "Tồn tối thiểu",
+                                                "Đơn vị",
+                                                "Trạng thái",
+                                                "Xu hướng",
+                                            ].map((h) => (
+                                                <th
+                                                    key={h}
+                                                    className="px-6 py-4 font-bold text-xs uppercase tracking-wider"
+                                                    style={{
+                                                        color: "var(--color-text-3)",
+                                                        fontFamily:
+                                                            "'Nunito', sans-serif",
+                                                    }}
+                                                >
+                                                    {h}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {lowstockingredient?.map((value, index) => {
+                                            const isLow =
+                                                value.current_stock <
+                                                value.minimum_stock;
+
+                                            return (
+                                                <tr
+                                                    key={value.id || index}
+                                                    className="transition-colors hover:bg-gray-50"
+                                                    style={{
+                                                        borderTop: "1px solid #f6f8f7",
+                                                    }}
+                                                >
+                                                    {/* Tên */}
+                                                    <td className="px-6 py-4 text-sm font-bold">
+                                                        {value.name}
+                                                    </td>
+
+                                                    {/* Current stock */}
+                                                    <td className="px-6 py-4 text-sm">
+                                                        {value.current_stock?.toLocaleString(
+                                                            "vi-VN",
+                                                        )}
+                                                    </td>
+
+                                                    {/* Minimum */}
+                                                    <td className="px-6 py-4 text-sm">
+                                                        {value.minimum_stock?.toLocaleString(
+                                                            "vi-VN",
+                                                        )}
+                                                    </td>
+
+                                                    {/* Unit */}
+                                                    <td className="px-6 py-4 text-sm">
+                                                        {value.unit?.toLocaleString(
+                                                            "vi-VN",
+                                                        )}
+                                                    </td>
+
+                                                    {/* Status */}
+                                                    <td className="px-6 py-4">
+                                                        <span
+                                                            className="px-2 py-1 rounded text-xs font-bold"
+                                                            style={{
+                                                                background: isLow
+                                                                    ? "#fee2e2"
+                                                                    : "#dcfce7",
+                                                                color: isLow
+                                                                    ? "#dc2626"
+                                                                    : "#16a34a",
+                                                            }}
+                                                        >
+                                                            {isLow
+                                                                ? "Thiếu hàng"
+                                                                : "Ổn định"}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Trend */}
+                                                    <td
+                                                        className="px-6 py-4"
+                                                        style={{
+                                                            color: isLow
+                                                                ? "#dc2626"
+                                                                : "#16a34a",
+                                                        }}
+                                                    >
+                                                        <span className="material-symbols-outlined align-middle text-sm">
+                                                            {isLow
+                                                                ? "trending_down"
+                                                                : "trending_up"}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
+
+
                         {/* Right: Waste % + Low Stock */}
-                        <div className="col-span-12 lg:col-span-4 space-y-6">
+
+                        <div className="col-span-12 lg:col-span-4 space-y-6 mt-10">
                             {/* Low stock */}
-                            <div
+                            <div className="lg:col-span-1">
+                                <div className="bg-white border border-green-300 rounded-2xl p-6 sticky top-6 shadow-lg">
+                                    <div className="text-center mb-6">
+                                        <div className="flex items-center justify-center gap-3 mb-2">
+                                            <span className="text-3xl">✨</span>
+                                            <h3 className="font-semibold text-2xl text-[#141C21]">
+                                                Gợi ý AI
+                                            </h3>
+                                        </div>
+                                        <p className="text-base text-[#8B8B8B]">
+                                            Dự báo chuẩn bị cho ngày hôm nay
+                                        </p>
+                                    </div>
+
+                                    {/* Dự đoán số lượng khách từ AI */}
+                                    {WasteLess_AI && (
+                                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-semibold text-[#141C21]">
+                                                    📈 Dự đoán số lượng khách
+                                                </span>
+                                                <span
+                                                    className={`text-sm px-2 py-1 rounded-full ${Customer_AI[0]
+                                                        .risk_level === "high"
+                                                        ? "bg-red-100 text-red-700"
+                                                        : Customer_AI[0]
+                                                            .risk_level ===
+                                                            "medium"
+                                                            ? "bg-yellow-100 text-yellow-700"
+                                                            : "bg-green-100 text-green-700"
+                                                        }`}
+                                                >
+                                                    Rủi ro:{" "}
+                                                    {Customer_AI
+                                                        .risk_level === "high"
+                                                        ? "Cao"
+                                                        : Customer_AI[0]
+                                                            .risk_level ===
+                                                            "medium"
+                                                            ? "Trung bình"
+                                                            : "Thấp"}
+                                                </span>
+                                            </div>
+                                            <div className="text-3xl font-bold text-[#141C21] mb-2">
+                                                {
+                                                    Customer_AI[0]
+                                                        .ai_customer_count
+                                                }{" "}
+                                                khách
+                                            </div>
+                                            <p className="text-sm text-[#8B8B8B] leading-relaxed">
+                                                {Customer_AI[0].summary}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Đề xuất số lượng chuẩn bị */}
+                                    <div className="space-y-4 mb-6">
+                                        <h4 className="font-semibold text-[#141C21] border-b pb-2">
+                                            🍽️ Đề xuất số lượng chuẩn bị
+                                        </h4>
+                                        {WasteLess_AI?.length > 0 ? (
+                                            WasteLess_AI
+                                                .slice(0, 5)
+                                                .map((item, index) => {
+                                                    const dishName =
+                                                        item.dish?.name ||
+                                                        "Tên món";
+                                                    const recommendedQty =
+                                                        item.recommended_quantity ||
+                                                        0;
+                                                    const predictedWaste =
+                                                        item.predicted_waste_quantity ||
+                                                        0;
+                                                    const currentQty =
+                                                        recommendedQty +
+                                                        predictedWaste;
+
+                                                    return (
+                                                        <div
+                                                            key={item.id || index}
+                                                            className="pb-4 border-b border-[#D1D1D1]/50"
+                                                        >
+                                                            <div className="flex justify-between items-baseline mb-2">
+                                                                <span className="font-semibold text-base text-[#141C21]">
+                                                                    {dishName}
+                                                                </span>
+                                                                <span className="text-xl font-bold text-[#141C21]">
+                                                                    {currentQty}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between text-sm mb-2">
+                                                                <span className="text-[#8B8B8B]">
+                                                                    Nguy cơ dư thừa
+                                                                </span>
+                                                                <span className="text-orange-500 font-semibold">
+                                                                    {predictedWaste}{" "}
+                                                                    suất dư
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 bg-[#D1D1D1] rounded-full overflow-hidden mb-2">
+                                                                <div
+                                                                    className="h-full bg-[#10BC5D] rounded-full"
+                                                                    style={{
+                                                                        width: `${Math.min(100, (recommendedQty / currentQty) * 100)}`,
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <p className="text-xs text-[#8B8B8B] mt-1">
+                                                                AI dự báo cần{" "}
+                                                                {recommendedQty}{" "}
+                                                                suất, đang chuẩn bị{" "}
+                                                                {currentQty} suất
+                                                            </p>
+                                                            {item.suggestion_note && (
+                                                                <p className="text-xs text-[#8B8B8B] mt-2 italic">
+                                                                    💡{" "}
+                                                                    {
+                                                                        item.suggestion_note
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })
+                                        ) : (
+                                            <div className="text-center py-8 text-[#8B8B8B]">
+                                                <p>Đang cập nhật dữ liệu AI...</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Mẹo giảm lãng phí */}
+                                    <div className="bg-[#F0FFF4] rounded-xl p-5 border border-[#10BC5D]/30">
+                                        <div className="flex gap-4">
+                                            <div className="w-10 h-10 bg-[#10BC5D]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                <Lightbulb
+                                                    size={20}
+                                                    className="text-[#10BC5D]"
+                                                />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-base font-semibold text-[#141C21] mb-2">
+                                                    Mẹo giảm lãng phí
+                                                </h4>
+                                                <p className="text-sm text-[#3D3D3D] leading-relaxed">
+                                                    Ưu tiên rà soát các món có tỷ lệ
+                                                    lãng phí cao trước. Với món
+                                                    chuẩn bị cao hơn AI dự đoán, nên
+                                                    điều chỉnh giảm 5–10% ở ca tiếp
+                                                    theo để tránh dư thừa.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* <div
                                 className="bg-white p-6 rounded-xl shadow-sm mt-10"
                                 style={{
                                     border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
@@ -1021,150 +1324,11 @@ export default function Dashboard() {
                                 >
                                     Xem tất cả nguyên liệu
                                 </button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
-                    {/* Waste Table */}
-                    <div
-                        className="mt-10 bg-white rounded-xl shadow-sm overflow-hidden"
-                        style={{
-                            border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                        }}
-                    >
-                        <div
-                            className="p-6 flex justify-between items-center"
-                            style={{ borderBottom: "1px solid #f6f8f7" }}
-                        >
-                            <p
-                                className="font-bold text-base"
-                                style={{
-                                    color: "var(--color-text-1)",
-                                    fontFamily: "'Arimo', sans-serif",
-                                }}
-                            >
-                                Chi tiết lãng phí theo danh mục
-                            </p>
-                            <button
-                                className="text-sm font-bold hover:underline"
-                                style={{
-                                    color: "var(--color-primary)",
-                                    fontFamily: "'Nunito', sans-serif",
-                                }}
-                            >
-                                Xem chi tiết
-                            </button>
-                        </div>
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr
-                                    style={{
-                                        background: "rgba(246,248,247,0.6)",
-                                    }}
-                                >
-                                    {[
-                                        "Danh mục",
-                                        "Số lượng",
-                                        "Tồn tối thiểu",
-                                        "Đơn vị",
-                                        "Trạng thái",
-                                        "Xu hướng",
-                                    ].map((h) => (
-                                        <th
-                                            key={h}
-                                            className="px-6 py-4 font-bold text-xs uppercase tracking-wider"
-                                            style={{
-                                                color: "var(--color-text-3)",
-                                                fontFamily:
-                                                    "'Nunito', sans-serif",
-                                            }}
-                                        >
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
 
-                            <tbody>
-                                {lowstockingredient?.map((value, index) => {
-                                    const isLow =
-                                        value.current_stock <
-                                        value.minimum_stock;
-
-                                    return (
-                                        <tr
-                                            key={value.id || index}
-                                            className="transition-colors hover:bg-gray-50"
-                                            style={{
-                                                borderTop: "1px solid #f6f8f7",
-                                            }}
-                                        >
-                                            {/* Tên */}
-                                            <td className="px-6 py-4 text-sm font-bold">
-                                                {value.name}
-                                            </td>
-
-                                            {/* Current stock */}
-                                            <td className="px-6 py-4 text-sm">
-                                                {value.current_stock?.toLocaleString(
-                                                    "vi-VN",
-                                                )}
-                                            </td>
-
-                                            {/* Minimum */}
-                                            <td className="px-6 py-4 text-sm">
-                                                {value.minimum_stock?.toLocaleString(
-                                                    "vi-VN",
-                                                )}
-                                            </td>
-
-                                            {/* Unit */}
-                                            <td className="px-6 py-4 text-sm">
-                                                {value.unit?.toLocaleString(
-                                                    "vi-VN",
-                                                )}
-                                            </td>
-
-                                            {/* Status */}
-                                            <td className="px-6 py-4">
-                                                <span
-                                                    className="px-2 py-1 rounded text-xs font-bold"
-                                                    style={{
-                                                        background: isLow
-                                                            ? "#fee2e2"
-                                                            : "#dcfce7",
-                                                        color: isLow
-                                                            ? "#dc2626"
-                                                            : "#16a34a",
-                                                    }}
-                                                >
-                                                    {isLow
-                                                        ? "Thiếu hàng"
-                                                        : "Ổn định"}
-                                                </span>
-                                            </td>
-
-                                            {/* Trend */}
-                                            <td
-                                                className="px-6 py-4"
-                                                style={{
-                                                    color: isLow
-                                                        ? "#dc2626"
-                                                        : "#16a34a",
-                                                }}
-                                            >
-                                                <span className="material-symbols-outlined align-middle text-sm">
-                                                    {isLow
-                                                        ? "trending_down"
-                                                        : "trending_up"}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
                 </main>
             </div>
 

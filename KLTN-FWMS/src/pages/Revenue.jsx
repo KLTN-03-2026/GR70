@@ -165,7 +165,7 @@ const Revenue = () => {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="bg-white p-5 rounded-xl shadow">
                     <p className="text-gray-500 text-sm">Hôm qua</p>
                     <h2 className="text-2xl font-bold mt-1">
@@ -180,16 +180,16 @@ const Revenue = () => {
                     </h2>
                 </div>
 
-                <div className="bg-green-500 text-white p-5 rounded-xl shadow">
+                {/* <div className="bg-green-500 text-white p-5 rounded-xl shadow">
                     <p className="text-sm">Tăng trưởng</p>
                     <h2 className="text-2xl font-bold mt-1">
                         +{stats.growth || 0}%
                     </h2>
-                </div>
+                </div> */}
             </div>
 
             {/* Chart */}
-            <div className="bg-white p-6 rounded-xl shadow mb-6">
+            {/* <div className="bg-white p-6 rounded-xl shadow mb-6">
                 <h3 className="text-gray-700 font-semibold mb-4">
                     Biểu đồ doanh thu
                 </h3>
@@ -213,7 +213,7 @@ const Revenue = () => {
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
-            </div>
+            </div> */}
 
             {/* Table */}
             <div className="bg-white rounded-xl shadow overflow-hidden">
