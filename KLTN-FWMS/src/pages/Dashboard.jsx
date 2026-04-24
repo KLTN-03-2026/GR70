@@ -403,7 +403,7 @@ export default function Dashboard() {
                 },
             );
             // console.log(res.data.data);
-            setCustomer_AI(res.data?.data);
+            setCustomer_AI(res.data?.data[0]);
         } catch (error) {
             console.log(error);
         }
@@ -927,7 +927,7 @@ export default function Dashboard() {
                                             fontFamily: "'Nunito', sans-serif",
                                         }}
                                     >
-                                        
+
                                     </button>
                                 </div>
                                 <table className="w-full text-left">
@@ -963,7 +963,7 @@ export default function Dashboard() {
                                         {lowstockingredient?.map((value, index) => {
                                             const isLow =
                                                 value.current_stock <
-                                                (value.minimum_stock)/2;
+                                                (value.minimum_stock) / 2;
 
                                             return (
                                                 <tr
@@ -1069,22 +1069,18 @@ export default function Dashboard() {
                                                     📈 Dự đoán số lượng khách
                                                 </span>
                                                 <span
-                                                    className={`text-sm px-2 py-1 rounded-full ${Customer_AI[0]
-                                                        ?.risk_level === "high"
+                                                    className={`text-[14px] px-2 py-1 rounded-full ${Customer_AI?.risk_level === "high"
                                                         ? "bg-red-100 text-red-700"
-                                                        : Customer_AI[0]
-                                                            ?.risk_level ===
+                                                        : Customer_AI?.risk_level ===
                                                             "medium"
                                                             ? "bg-yellow-100 text-yellow-700"
                                                             : "bg-green-100 text-green-700"
                                                         }`}
                                                 >
                                                     Rủi ro:{" "}
-                                                    {Customer_AI
-                                                        .risk_level === "high"
+                                                    {Customer_AI?.risk_level === "high"
                                                         ? "Cao"
-                                                        : Customer_AI[0]
-                                                            .risk_level ===
+                                                        : Customer_AI?.risk_level ===
                                                             "medium"
                                                             ? "Trung bình"
                                                             : "Thấp"}
@@ -1092,13 +1088,12 @@ export default function Dashboard() {
                                             </div>
                                             <div className="text-3xl font-bold text-[#141C21] mb-2">
                                                 {
-                                                    Customer_AI[0]
-                                                        .ai_customer_count
+                                                    Customer_AI?.ai_customer_count
                                                 }{" "}
                                                 khách
                                             </div>
                                             <p className="text-sm text-[#8B8B8B] leading-relaxed">
-                                                {Customer_AI[0].summary}
+                                                {Customer_AI?.summary}
                                             </p>
                                         </div>
                                     )}

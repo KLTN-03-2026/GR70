@@ -6,6 +6,7 @@ import {
 } from "../api/wasteHistoryApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // format tháng hiển thị
 const formatMonthDisplay = (value) => {
@@ -24,7 +25,7 @@ const formatDateVN = (date) => {
 // Hàm tạo danh sách tháng - chỉ năm hiện tại
 const getMonthOptions = () => {
     const options = [];
-    const currentYear = new Date().getFullYear(); // 2026
+    const currentYear = new Date().getFullYear();
     for (let month = 1; month <= 12; month++) {
         const value = `${currentYear}-${String(month).padStart(2, "0")}`;
         const label = `Tháng ${month}/${currentYear}`;
@@ -33,76 +34,120 @@ const getMonthOptions = () => {
     return options;
 };
 
+// Hàm kiểm tra ngày có nằm trong tháng không
+const isDateInMonth = (date, month) => {
+    if (!date || !month) return true;
+    return date.startsWith(month);
+};
+
 export default function WasteHistory() {
-    const [data, setData] = useState([]);
     const [allData, setAllData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
+    const [currentPageData, setCurrentPageData] = useState([]);
     const [date, setDate] = useState("");
     const [month, setMonth] = useState("");
     const [loading, setLoading] = useState(false);
+    const [filterError, setFilterError] = useState("");
     const [stats, setStats] = useState({
         totalWaste: 0,
         totalWasteCompare: 0,
         percentChange: 0,
     });
-    const [hasFiltered, setHasFiltered] = useState(false);
     const [selectedSuggestion, setSelectedSuggestion] = useState(null);
 
-    // Hàm lọc dữ liệu thủ công
-    const filterData = useCallback((rawData, selectedDate, selectedMonth) => {
-        if (!rawData || rawData.length === 0) return [];
+    // ===== PAGINATION STATE =====
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [pageSize] = useState(5);
 
-        if (selectedDate && selectedDate !== "") {
-            return rawData.filter((item) => item.date === selectedDate);
-        } else if (selectedMonth && selectedMonth !== "") {
-            return rawData.filter(
-                (item) => item.date && item.date.startsWith(selectedMonth),
-            );
-        }
-        return rawData;
-    }, []);
+    // Hàm lọc dữ liệu thủ công
+    const filterDataManual = useCallback(
+        (rawData, selectedDate, selectedMonth) => {
+            if (!rawData || rawData.length === 0) return [];
+
+            if (selectedDate && selectedDate !== "") {
+                return rawData.filter((item) => item.date === selectedDate);
+            } else if (selectedMonth && selectedMonth !== "") {
+                return rawData.filter(
+                    (item) => item.date && item.date.startsWith(selectedMonth),
+                );
+            }
+            return rawData;
+        },
+        [],
+    );
 
     // Hàm tính tổng số món dư
-    const calculateTotalWaste = useCallback((filteredData) => {
-        return filteredData.reduce(
+    const calculateTotalWaste = useCallback((dataArray) => {
+        return dataArray.reduce(
             (sum, item) => sum + (item.quantity_wasted || 0),
             0,
         );
     }, []);
 
+    // Cập nhật dữ liệu phân trang
+    const updatePagination = useCallback(
+        (filteredArray) => {
+            const total = filteredArray.length;
+            const pages = Math.ceil(total / pageSize);
+
+            setTotalItems(total);
+            setTotalPages(pages);
+
+            if (currentPage > pages && pages > 0) {
+                setCurrentPage(1);
+            }
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            setCurrentPageData(filteredArray.slice(startIndex, endIndex));
+        },
+        [currentPage, pageSize],
+    );
+
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
+            setFilterError("");
+
+            if (date && month && !isDateInMonth(date, month)) {
+                setFilterError(
+                    `Ngày ${formatDateVN(date)} không nằm trong tháng ${month}`,
+                );
+                setLoading(false);
+                setFilteredData([]);
+                setCurrentPageData([]);
+                setTotalItems(0);
+                setTotalPages(1);
+                return;
+            }
 
             console.log("========== FETCHING DATA ==========");
             console.log("Date filter:", date);
             console.log("Month filter:", month);
 
-            // Gọi API lấy toàn bộ dữ liệu
             const listWasteResponse = await getListWasteByIngredient({});
             const rawData = listWasteResponse?.data || [];
 
             setAllData(rawData);
 
-            // Lọc thủ công
-            const filteredData = filterData(rawData, date, month);
+            const filtered = filterDataManual(rawData, date, month);
 
-            console.log(
-                `Raw: ${rawData.length}, Filtered: ${filteredData.length}`,
-            );
+            console.log(`Raw: ${rawData.length}, Filtered: ${filtered.length}`);
 
-            setData(filteredData);
-            setHasFiltered(true);
+            setFilteredData(filtered);
+            updatePagination(filtered);
 
-            // Xử lý thống kê
             let totalWaste = 0;
             let sumWasteResponse = null;
             let sumWasteCompareResponse = null;
 
             if (date && date !== "") {
-                totalWaste = calculateTotalWaste(filteredData);
+                totalWaste = calculateTotalWaste(filtered);
                 sumWasteResponse = await getSumWasteByMonth(null);
             } else if (month && month !== "") {
-                totalWaste = calculateTotalWaste(filteredData);
+                totalWaste = calculateTotalWaste(filtered);
                 sumWasteResponse = await getSumWasteByMonth(month);
                 sumWasteCompareResponse =
                     await getSumWasteByMonthCompare(month);
@@ -120,7 +165,10 @@ export default function WasteHistory() {
             });
         } catch (err) {
             console.error("Fetch error:", err);
-            setData([]);
+            setFilteredData([]);
+            setCurrentPageData([]);
+            setTotalItems(0);
+            setTotalPages(1);
             setStats({
                 totalWaste: 0,
                 totalWasteCompare: 0,
@@ -129,37 +177,131 @@ export default function WasteHistory() {
         } finally {
             setLoading(false);
         }
-    }, [date, month, filterData, calculateTotalWaste]);
+    }, [date, month, filterDataManual, calculateTotalWaste, updatePagination]);
 
-    // Tính tỷ lệ lãng phí trung bình
     const avgWastePercent =
-        data.length > 0
+        filteredData.length > 0
             ? Math.round(
-                  data.reduce(
+                  filteredData.reduce(
                       (sum, item) => sum + (item.waste_percentage || 0),
                       0,
-                  ) / data.length,
+                  ) / filteredData.length,
               )
             : 0;
+
+    useEffect(() => {
+        if (filteredData.length > 0) {
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            setCurrentPageData(filteredData.slice(startIndex, endIndex));
+        }
+    }, [currentPage, filteredData, pageSize]);
+
+    const handleDateChange = (value) => {
+        setDate(value);
+        if (filterError) setFilterError("");
+    };
+
+    const handleMonthChange = (value) => {
+        setMonth(value);
+        if (filterError) setFilterError("");
+    };
 
     const handleResetFilters = () => {
         setDate("");
         setMonth("");
-        setHasFiltered(false);
+        setFilterError("");
+        setCurrentPage(1);
     };
 
     const handleFilter = () => {
+        if (date && month && !isDateInMonth(date, month)) {
+            setFilterError(
+                `Ngày ${formatDateVN(date)} không nằm trong tháng ${month}`,
+            );
+            return;
+        }
+        setFilterError("");
+        setCurrentPage(1);
         fetchData();
     };
 
-    // Load dữ liệu lần đầu
     useEffect(() => {
         fetchData();
     }, []);
 
-    // Xuất Excel
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
+        const startItem = (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+
+        const getPageNumbers = () => {
+            const pages = [];
+            const maxVisible = 5;
+
+            if (totalPages <= maxVisible) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else if (currentPage <= 3) {
+                for (let i = 1; i <= maxVisible; i++) pages.push(i);
+            } else if (currentPage >= totalPages - 2) {
+                for (let i = totalPages - maxVisible + 1; i <= totalPages; i++)
+                    pages.push(i);
+            } else {
+                for (let i = currentPage - 2; i <= currentPage + 2; i++)
+                    pages.push(i);
+            }
+            return pages;
+        };
+
+        return (
+            <div className="px-5 py-4 border-t flex justify-between items-center">
+                <p className="text-sm text-gray-500">
+                    Hiển thị {startItem}-{endItem} trên {totalItems} bản ghi
+                </p>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded transition-colors"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+
+                    {getPageNumbers().map((pageNum) => (
+                        <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-1 rounded transition-colors ${
+                                currentPage === pageNum
+                                    ? "bg-green-500 text-white"
+                                    : "hover:bg-gray-100"
+                            }`}
+                        >
+                            {pageNum}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-1.5 disabled:opacity-50 hover:bg-gray-100 rounded transition-colors"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     const exportAllToExcel = () => {
-        const excelData = data.map((item) => ({
+        const excelData = filteredData.map((item) => ({
             NGÀY: item.date,
             "TÊN MÓN": item.dish_name,
             "MÓN RA": `${item.quantity_prepared || 0} suất`,
@@ -196,50 +338,6 @@ export default function WasteHistory() {
         saveAs(blob, fileName);
     };
 
-    const exportSingleToExcel = (item) => {
-        const singleData = [
-            {
-                NGÀY: item.date,
-                "TÊN MÓN": item.dish_name,
-                "MÓN RA": `${item.quantity_prepared || 0} suất`,
-                "MÓN DÙNG": `${item.quantity_used || 0} suất`,
-                "MÓN DƯ": `${item.quantity_wasted || 0} suất`,
-                "TỈ LỆ DƯ": `${(item.waste_percentage || 0).toFixed(1)}%`,
-                "CHI PHÍ LÃNG PHÍ": `${(item.waste_cost || 0).toLocaleString()}đ`,
-                "GỢI Ý AI": item.suggestion_note || "Chưa có dữ liệu",
-            },
-        ];
-
-        const worksheet = XLSX.utils.json_to_sheet(singleData);
-        worksheet["!cols"] = [
-            { wch: 12 },
-            { wch: 20 },
-            { wch: 10 },
-            { wch: 10 },
-            { wch: 10 },
-            { wch: 10 },
-            { wch: 15 },
-            { wch: 50 },
-        ];
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(
-            workbook,
-            worksheet,
-            `Món dư: ${item.dish_name}`,
-        );
-
-        const excelBuffer = XLSX.write(workbook, {
-            bookType: "xlsx",
-            type: "array",
-        });
-        const blob = new Blob([excelBuffer], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-        const fileName = `mon_du_${item.date}_${item.dish_name}_${Date.now()}.xlsx`;
-        saveAs(blob, fileName);
-    };
-
     const getAILevel = (percentage) => {
         if (percentage >= 50)
             return { level: "High", text: "Cao", color: "red" };
@@ -260,15 +358,14 @@ export default function WasteHistory() {
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
                 {/* Title */}
-                <div className="mb-8">
+                <div className="mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
                         Lịch sử lãng phí (dư thừa)
                     </h1>
-                    <p className="text-gray-500 text-base">{getTitle()}</p>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -333,35 +430,43 @@ export default function WasteHistory() {
                     </div>
                 </div>
 
-                {/* Filter - Đã thay thế input month bằng select dropdown */}
-                <div className="bg-white p-5 rounded-xl shadow-md border border-gray-100 mb-8">
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-                        <div className="flex-1 w-full sm:w-auto">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                {/* Filter */}
+                <div className="bg-white p-5 rounded-xl shadow-md border border-gray-100 mb-4">
+                    {filterError && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                            ⚠️ {filterError}
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end mb-4">
+                        <div className="flex-1 w-full sm:w-auto relative">
+                            <label className="block text-sm font-medium text-gray-700">
                                 Ngày cụ thể
                             </label>
                             <input
                                 type="date"
                                 value={date}
-                                onChange={(e) => {
-                                    setDate(e.target.value);
-                                    setMonth("");
-                                }}
-                                className="w-full sm:w-64 border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+                                onChange={(e) =>
+                                    handleDateChange(e.target.value)
+                                }
+                                className={`w-full sm:w-64 border ${date && month && !isDateInMonth(date, month) ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"} px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition`}
                             />
+                            {date && month && !isDateInMonth(date, month) && (
+                                <div className="absolute -top-2 right-2 text-xs text-red-600 bg-red-50 px-2 rounded whitespace-nowrap">
+                                    ⚠️ Ngày không hợp lệ
+                                </div>
+                            )}
                         </div>
 
-                        {/* Thay thế input month bằng select dropdown */}
                         <div className="flex-1 w-full sm:w-auto">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Theo tháng
                             </label>
                             <select
                                 value={month}
-                                onChange={(e) => {
-                                    setMonth(e.target.value);
-                                    setDate("");
-                                }}
+                                onChange={(e) =>
+                                    handleMonthChange(e.target.value)
+                                }
                                 className="w-full sm:w-64 border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition bg-white cursor-pointer"
                             >
                                 <option value="">Chọn tháng</option>
@@ -403,7 +508,7 @@ export default function WasteHistory() {
                         </h3>
                         <button
                             onClick={exportAllToExcel}
-                            disabled={data.length === 0}
+                            disabled={filteredData.length === 0}
                             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl text-sm font-bold hover:from-green-600 hover:to-green-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <svg
@@ -424,31 +529,31 @@ export default function WasteHistory() {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm table-fixed">
+                        <table className="w-full text-sm">
                             <thead className="bg-gray-100 text-gray-600">
                                 <tr>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         NGÀY
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         TÊN MÓN
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         MÓN RA
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         MÓN DÙNG
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         MÓN DƯ
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         TỈ LỆ DƯ
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         CHI PHÍ
                                     </th>
-                                    <th className="p-4 text-left font-semibold w-[10%]">
+                                    <th className="p-4 text-left font-semibold">
                                         GỢI Ý AI
                                     </th>
                                 </tr>
@@ -466,8 +571,8 @@ export default function WasteHistory() {
                                             </div>
                                         </td>
                                     </tr>
-                                ) : data.length > 0 ? (
-                                    data.map((item, index) => {
+                                ) : currentPageData.length > 0 ? (
+                                    currentPageData.map((item, index) => {
                                         const aiLevel = getAILevel(
                                             item.waste_percentage,
                                         );
@@ -479,7 +584,7 @@ export default function WasteHistory() {
                                                 <td className="p-4 whitespace-nowrap">
                                                     {item.date}
                                                 </td>
-                                                <td className="p-4 font-medium text-gray-800 whitespace-normal break-words">
+                                                <td className="p-4 font-medium text-gray-800">
                                                     {item.dish_name}
                                                 </td>
                                                 <td className="p-4 whitespace-nowrap">
@@ -494,7 +599,18 @@ export default function WasteHistory() {
                                                 </td>
                                                 <td className="p-4 whitespace-nowrap">
                                                     <span
-                                                        className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full ${aiLevel.level === "High" ? "bg-red-100 text-red-700" : aiLevel.level === "Medium" ? "bg-yellow-100 text-yellow-700" : aiLevel.level === "Low" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                                                        className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full ${
+                                                            aiLevel.level ===
+                                                            "High"
+                                                                ? "bg-red-100 text-red-700"
+                                                                : aiLevel.level ===
+                                                                    "Medium"
+                                                                  ? "bg-yellow-100 text-yellow-700"
+                                                                  : aiLevel.level ===
+                                                                      "Low"
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-gray-100 text-gray-700"
+                                                        }`}
                                                     >
                                                         {item.waste_percentage?.toFixed(
                                                             1,
@@ -518,44 +634,17 @@ export default function WasteHistory() {
                                                                     item.suggestion_note,
                                                                 )
                                                             }
-                                                            className="text-left hover:text-green-600 transition-colors flex items-start gap-1 w-full group"
+                                                            className="text-left hover:text-green-600 transition-colors"
                                                         >
-                                                            <span className="truncate flex-1">
-                                                                {item.suggestion_note.substring(
-                                                                    0,
-                                                                    80,
-                                                                )}
-                                                                ...
-                                                            </span>
-                                                            <svg
-                                                                className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400 group-hover:text-green-600 transition-colors"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        2
-                                                                    }
-                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                                />
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        2
-                                                                    }
-                                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                                />
-                                                            </svg>
+                                                            {item.suggestion_note.substring(
+                                                                0,
+                                                                80,
+                                                            )}
+                                                            ...
                                                         </button>
                                                     ) : (
-                                                        <div className="leading-relaxed">
-                                                            {item.suggestion_note ||
-                                                                "Chưa có dữ liệu"}
-                                                        </div>
+                                                        item.suggestion_note ||
+                                                        "Chưa có dữ liệu"
                                                     )}
                                                 </td>
                                             </tr>
@@ -590,28 +679,21 @@ export default function WasteHistory() {
                         </table>
                     </div>
 
-                    <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-                        <p className="text-sm text-gray-500">
-                            📄 Hiển thị{" "}
-                            <span className="font-semibold text-gray-700">
-                                {data.length}
-                            </span>{" "}
-                            bản ghi
-                        </p>
-                    </div>
+                    {/* Pagination */}
+                    {!loading && totalItems > 0 && renderPagination()}
                 </div>
             </div>
-            {/* Modal hiển thị chi tiết gợi ý AI */}
+
+            {/* Modal */}
             {selectedSuggestion && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
                     onClick={() => setSelectedSuggestion(null)}
                 >
                     <div
-                        className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl animate-slideUp"
+                        className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header */}
                         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <span className="text-2xl">💡</span>
@@ -621,7 +703,7 @@ export default function WasteHistory() {
                             </div>
                             <button
                                 onClick={() => setSelectedSuggestion(null)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                                className="text-gray-400 hover:text-gray-600"
                             >
                                 <svg
                                     className="w-5 h-5"
@@ -638,19 +720,15 @@ export default function WasteHistory() {
                                 </svg>
                             </button>
                         </div>
-
-                        {/* Content */}
                         <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
                             <div className="leading-relaxed text-gray-700 whitespace-pre-wrap break-words">
                                 {selectedSuggestion}
                             </div>
                         </div>
-
-                        {/* Footer */}
                         <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-3 flex justify-end">
                             <button
                                 onClick={() => setSelectedSuggestion(null)}
-                                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all shadow-sm"
+                                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700"
                             >
                                 Đóng
                             </button>
