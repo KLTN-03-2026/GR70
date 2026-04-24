@@ -2,6 +2,8 @@ const ApiError = require("../utils/ApiError");
 const ApiSuccess = require("../utils/ApiSuccess");
 const CheckServices = require("../services/CheckServices");
 const DishesRepository = require("../repository/DishesRepository");
+const IngredientRepository = require("../repository/IngredientRepository");
+const AIServices = require("../services/AIServices");
 const sequelize = require("../config/connectData");
 
 
@@ -30,10 +32,8 @@ exports.CreateDishes = async function (req, res, next) {
         if(!Array.isArray(data.dish_recipes) || data.dish_recipes.length === 0){
             throw ApiError.ValidationError("dish_recipes must be a non-empty array");
         }
-        await CheckServices.checkCategoryDishes(data.dish_category_id);
-        data.status=true;
-        const createDishes = await DishesRepository.CreateDishes(data, brandID , userID, { transaction: t });
-        // tạo dish_recipes mới bằng vòng lặp
+        const checkCategory = await CheckServices.checkCategoryDishes(data.dish_category_id);
+        let dishRecipes =[];
         await Promise.all(
             data.dish_recipes.map(async (item) => {
                 if (!item.quantity || !item.ingredient_id) {
@@ -41,11 +41,31 @@ exports.CreateDishes = async function (req, res, next) {
                         "Missing required fields quantity or ingredient_id in dish_recipes"
                     );
                 }
+                const data=await IngredientRepository.getIngredientName(item.ingredient_id);
+                dishRecipes.push(data.name);
+            })
+        )
+        let checkIngredientAI = null;
+        let aiCheckFailed='good';
+        try {
+            checkIngredientAI= await AIServices.CheckIngredientOutput(data.name, checkCategory.name, dishRecipes);
+        } catch (error) {
+            checkIngredientAI = null;
+            aiCheckFailed = 'errors AI';
+        }
+        if(checkIngredientAI && checkIngredientAI.is_recipe_reasonable === false){
+            throw ApiError.Notification(`${checkIngredientAI.summary} Cụ thể là các nguyên liệu như: ${checkIngredientAI.invalid_ingredients.join(", ")}`);
+        }
+        data.status=true;
+        const createDishes = await DishesRepository.CreateDishes(data, brandID , userID, { transaction: t });
+        // tạo dish_recipes mới bằng vòng lặp
+        await Promise.all(
+            data.dish_recipes.map(async (item) => {
                 return DishesRepository.CreateDishRecipes( item, createDishes.id,  { transaction: t });
             })
         );
         await t.commit();
-        return res.json(ApiSuccess.created("Dish created successfully", createDishes));
+        return res.json(ApiSuccess.created("Dish created successfully", {dish: createDishes, ai_check_failed: aiCheckFailed}));
     } catch (error) {
         if(!t.finished){
             await t.rollback();

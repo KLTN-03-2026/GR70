@@ -42,7 +42,7 @@ class AuthRepository{
     async checkUserActive(id) {
         return await UserModel.findOne({
             where: {id: id, status: true},
-            attributes:["status"],
+            attributes:["status",'email'],
             include: [{
                 model: RoleModel,
                 attributes: ['name'],
@@ -72,6 +72,12 @@ class AuthRepository{
                 model: RoleModel,
                 where:{name: "Kitchen"},
             }],
+        });
+    }
+    async checkStautsUser(id) {
+        return await UserModel.findOne({
+            where: {id: id},
+            attributes: ['status'],
         });
     }
 }

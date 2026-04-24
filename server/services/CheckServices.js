@@ -141,5 +141,16 @@ class CheckServices {
             throw error;
         }
     }
+    async checkStautsUser(id){
+        try {
+            const user = await AuthRepository.checkStautsUser(id);
+            if(!user){
+                throw ApiError.NotFound("User not found");
+            }
+            return user
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 module.exports = new CheckServices();
