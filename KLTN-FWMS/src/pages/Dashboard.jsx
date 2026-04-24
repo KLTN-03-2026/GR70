@@ -918,7 +918,7 @@ export default function Dashboard() {
                                             fontFamily: "'Arimo', sans-serif",
                                         }}
                                     >
-                                        Báo cáo lãng phí
+                                        Nguyên liệu sắp hết
                                     </p>
                                     <button
                                         className="text-sm font-bold hover:underline"
@@ -938,12 +938,11 @@ export default function Dashboard() {
                                             }}
                                         >
                                             {[
-                                                "Danh mục",
-                                                "Số lượng",
+                                                "Tên nguyên liệu",
+                                                "Trong kho",
                                                 "Tồn tối thiểu",
                                                 "Đơn vị",
                                                 "Trạng thái",
-                                                "Xu hướng",
                                             ].map((h) => (
                                                 <th
                                                     key={h}
@@ -964,7 +963,7 @@ export default function Dashboard() {
                                         {lowstockingredient?.map((value, index) => {
                                             const isLow =
                                                 value.current_stock <
-                                                value.minimum_stock;
+                                                (value.minimum_stock)/2;
 
                                             return (
                                                 <tr
@@ -1007,20 +1006,20 @@ export default function Dashboard() {
                                                             style={{
                                                                 background: isLow
                                                                     ? "#fee2e2"
-                                                                    : "#dcfce7",
+                                                                    : "#FFF7ED",
                                                                 color: isLow
                                                                     ? "#dc2626"
-                                                                    : "#16a34a",
+                                                                    : "#F97316",
                                                             }}
                                                         >
                                                             {isLow
-                                                                ? "Thiếu hàng"
-                                                                : "Ổn định"}
+                                                                ? "Khẩn cấp"
+                                                                : "Cảnh báo"}
                                                         </span>
                                                     </td>
 
                                                     {/* Trend */}
-                                                    <td
+                                                    {/* <td
                                                         className="px-6 py-4"
                                                         style={{
                                                             color: isLow
@@ -1033,7 +1032,7 @@ export default function Dashboard() {
                                                                 ? "trending_down"
                                                                 : "trending_up"}
                                                         </span>
-                                                    </td>
+                                                    </td> */}
                                                 </tr>
                                             );
                                         })}
@@ -1071,10 +1070,10 @@ export default function Dashboard() {
                                                 </span>
                                                 <span
                                                     className={`text-sm px-2 py-1 rounded-full ${Customer_AI[0]
-                                                        .risk_level === "high"
+                                                        ?.risk_level === "high"
                                                         ? "bg-red-100 text-red-700"
                                                         : Customer_AI[0]
-                                                            .risk_level ===
+                                                            ?.risk_level ===
                                                             "medium"
                                                             ? "bg-yellow-100 text-yellow-700"
                                                             : "bg-green-100 text-green-700"
