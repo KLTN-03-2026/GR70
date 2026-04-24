@@ -407,72 +407,70 @@ export default function Dashboard() {
     }
     const [showDetailAI, setShowDetailAI] = useState(false);
     function AIAlertDetail({ data, onClose }) {
-    return (
-        <Modal className="w-[800px]" title="Chi tiết gợi ý AI" onClose={onClose}>
-            <div className="space-y-4 max-h-[520px] overflow-y-auto">
-                {!data || data.length === 0 ? (
-                    <p className="text-base text-gray-500 text-center">
-                        Không có dữ liệu chi tiết
-                    </p>
-                ) : (
-                    data.map((item, index) => (
-                        <div
-                            key={index}
-                            className="p-4 border rounded-2xl bg-white shadow-sm"
-                        >
-                            {/* Tên món */}
-                            <div className="flex justify-between items-center">
-                                <p className="font-bold text-base text-gray-800">
-                                    {item.dish?.name}
-                                </p>
+        return (
+            <Modal className="w-[800px]" title="Chi tiết gợi ý AI" onClose={onClose}>
+                <div className="space-y-4 max-h-[520px] overflow-y-auto">
+                    {!data || data.length === 0 ? (
+                        <p className="text-base text-gray-500 text-center">
+                            Không có dữ liệu chi tiết
+                        </p>
+                    ) : (
+                        data.map((item, index) => (
+                            <div
+                                key={index}
+                                className="p-4 border rounded-2xl bg-white shadow-sm"
+                            >
+                                {/* Tên món */}
+                                <div className="flex justify-between items-center">
+                                    <p className="font-bold text-base text-gray-800">
+                                        {item.dish?.name}
+                                    </p>
 
-                                <span
-                                    className={`text-xs px-2 py-1 rounded-full font-bold ${
-                                        item.predicted_waste_quantity > 0
+                                    <span
+                                        className={`text-xs px-2 py-1 rounded-full font-bold ${item.predicted_waste_quantity > 0
                                             ? "bg-red-100 text-red-600"
                                             : "bg-green-100 text-green-600"
-                                    }`}
-                                >
-                                    {item.predicted_waste_quantity > 0
-                                        ? "Cảnh báo"
-                                        : "Ổn định"}
-                                </span>
-                            </div>
+                                            }`}
+                                    >
+                                        {item.predicted_waste_quantity > 0
+                                            ? "Cảnh báo"
+                                            : "Ổn định"}
+                                    </span>
+                                </div>
 
-                            {/* Recommended */}
-                            <p className="text-sm mt-3">
-                                👉 Nên chuẩn bị:{" "}
-                                <span className="font-bold text-green-600 text-sm">
-                                    {item.recommended_quantity}
-                                </span>{" "}
-                                suất
-                            </p>
+                                {/* Recommended */}
+                                <p className="text-sm mt-3">
+                                    👉 Nên chuẩn bị:{" "}
+                                    <span className="font-bold text-green-600 text-sm">
+                                        {item.recommended_quantity}
+                                    </span>{" "}
+                                    suất
+                                </p>
 
-                            {/* Waste */}
-                            <p className="text-sm mt-1">
-                                ⚠️ Dự kiến lãng phí:{" "}
-                                <span
-                                    className={`font-bold text-sm ${
-                                        item.predicted_waste_quantity > 0
+                                {/* Waste */}
+                                <p className="text-sm mt-1">
+                                    ⚠️ Dự kiến lãng phí:{" "}
+                                    <span
+                                        className={`font-bold text-sm ${item.predicted_waste_quantity > 0
                                             ? "text-red-500"
                                             : "text-green-500"
-                                    }`}
-                                >
-                                    {item.predicted_waste_quantity}
-                                </span>
-                            </p>
+                                            }`}
+                                    >
+                                        {item.predicted_waste_quantity}
+                                    </span>
+                                </p>
 
-                            {/* Suggestion note */}
-                            <div className="mt-3 p-3 rounded-xl bg-gray-100 text-black text-sm leading-relaxed">
-                                {item.suggestion_note}
+                                {/* Suggestion note */}
+                                <div className="mt-3 p-3 rounded-xl bg-gray-100 text-black text-sm leading-relaxed">
+                                    {item.suggestion_note}
+                                </div>
                             </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </Modal>
-    );
-}
+                        ))
+                    )}
+                </div>
+            </Modal>
+        );
+    }
 
     return (
         <>
@@ -577,13 +575,15 @@ export default function Dashboard() {
                                     ))
                                 )}
                             </p>
-                            <button
-                                onClick={() => setShowDetailAI(true)}
-                                className="mt-2 text-xs font-bold underline hover:opacity-80"
-                                style={{ color: "#ea580c" }}
-                            >
-                                Xem chi tiết gợi ý từ AI!
-                            </button>
+                            {Customer_AI?.length > 0 ? (
+                                <button
+                                    onClick={() => setShowDetailAI(true)}
+                                    className="mt-2 text-xs font-bold  hover:opacity-80"
+                                    style={{ color: "rgb(220, 38, 38)" }}
+                                >
+                                    Xem chi tiết gợi ý từ AI!
+                                </button>
+                            ) : ""}
                         </div>
                     </div>
 
@@ -680,8 +680,8 @@ export default function Dashboard() {
                             </div>
 
                             {/* Revenue Chart */}
-                            <div className="mt-8">
-                                <p
+                            <div className="mt-8 flex gap-2">
+                                {/* <p
                                     className="font-bold text-base mb-4"
                                     style={{
                                         color: "var(--color-text-1)",
@@ -689,44 +689,64 @@ export default function Dashboard() {
                                     }}
                                 >
                                     Báo cáo tổng doanh thu tháng
-                                </p>
+                                </p> */}
                                 <div
-                                    className="bg-white p-6 rounded-xl shadow-sm h-64 flex flex-col"
+                                    className="bg-white px-6 pt-2 rounded-xl shadow-sm flex flex-col w-3/5"
                                     style={{
                                         border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
                                     }}
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div>
+                                        <div className="text-center w-full p-4 bg-white rounded-2xl">
                                             <p
-                                                className="text-2xl font-bold"
+                                                className="font-bold text-base"
                                                 style={{
                                                     color: "var(--color-text-1)",
-                                                    fontFamily:
-                                                        "'Arimo', sans-serif",
+                                                    fontFamily: "'Arimo', sans-serif",
                                                 }}
                                             >
-                                                {(
-                                                    totalRevenueOneMonth *
-                                                    26.335
-                                                ).toLocaleString()}{" "}
-                                                VND
+                                                Báo cáo tổng doanh thu tháng
                                             </p>
-                                            <p
-                                                className="text-sm font-bold flex items-center gap-1 mt-0.5"
-                                                style={{
-                                                    color: "var(--color-primary)",
-                                                    fontFamily:
-                                                        "'Nunito', sans-serif",
-                                                }}
-                                            >
+
+                                            {/* Icon + số */}
+                                            <div className="flex flex-col items-center gap-2 mt-2">
+                                                <div className=" w-14">
+                                                    <span className="material-symbols-outlined text-green-600 text-3xl">
+                                                        payments
+                                                    </span>
+                                                </div>
+
+                                                <p style={{
+                                                    color: "",
+                                                    fontFamily: "'Arimo', sans-serif",
+                                                }} className="text-2xl font-bold text-white rounded-md py-3 px-6 bg-[#10BC5D] ">
+                                                    {(totalRevenueOneMonth * 26.335).toLocaleString()} VND
+                                                </p>
+                                            </div>
+
+                                            {/* Breakdown */}
+                                            <div className="text-sm mt-8">
+                                                <div className="flex flex-col">
+
+                                                    <span className="text-gray-500 font-light" style={{
+                                                        color: "",
+                                                        fontFamily: "'Arimo', sans-serif",
+                                                    }}>
+                                                        Trung bình {Math.round((totalRevenueOneMonth * 26.335) / 30).toLocaleString()} VND / ngày
+                                                    </span>
+                                                </div>
+
+                                            </div>
+
+                                            {/* Trend */}
+                                            <p className="text-sm font-bold flex justify-center items-center gap-1 text-green-600 mt-6">
                                                 <span className="material-symbols-outlined text-sm">
-                                                    trending_up
-                                                </span>{" "}
-                                                +12% so với tháng trước
+                                                    {/* trending_up */}
+                                                </span>
+                                                Doanh thu đang tăng trưởng ổn định, phản ánh hiệu quả kinh doanh tích cực.
                                             </p>
                                         </div>
-                                        <div className="flex gap-3">
+                                        {/* <div className="flex gap-3">
                                             <div className="flex items-center gap-1.5">
                                                 <div
                                                     className="w-2.5 h-2.5 rounded-full"
@@ -759,9 +779,9 @@ export default function Dashboard() {
                                                     Mục tiêu
                                                 </span>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
-                                    <div className="flex-1 flex items-end gap-2 px-2">
+                                    {/* <div className="flex-1 flex items-end gap-2 px-2">
                                         {[60, 75, 90, 65, 80, 95, 100].map(
                                             (h, i) => (
                                                 <div
@@ -784,106 +804,106 @@ export default function Dashboard() {
                                                 </div>
                                             ),
                                         )}
+                                    </div> */}
+                                </div>
+
+                                {/* Waste gauge */}
+                                <div
+                                    className="bg-white p-6 rounded-xl shadow-sm text-center w-3/5"
+                                    style={{
+                                        border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
+                                    }}
+                                >
+                                    <p
+                                        className="font-bold text-base mb-5"
+                                        style={{
+                                            color: "var(--color-text-1)",
+                                            fontFamily: "'Arimo', sans-serif",
+                                        }}
+                                    >
+                                        Báo cáo % lãng phí
+                                    </p>
+                                    <div className="relative w-36 h-36 mx-auto mb-4">
+                                        <svg
+                                            className="w-full h-full -rotate-90"
+                                            viewBox="0 0 80 80"
+                                        >
+                                            <circle
+                                                cx="40"
+                                                cy="40"
+                                                r="32"
+                                                fill="none"
+                                                stroke="#f0f4f2"
+                                                strokeWidth="7"
+                                            />
+                                            <circle
+                                                cx="40"
+                                                cy="40"
+                                                r="32"
+                                                fill="none"
+                                                stroke={`${number_waste_percentage <= 5 ? "var(--color-primary)" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "#f97316" : number_waste_percentage > 10 ? "#ef4444" : ""}`}
+                                                strokeWidth="7"
+                                                strokeDasharray="201"
+                                                strokeDashoffset={
+                                                    201 -
+                                                    number_waste_percentage * 2
+                                                }
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span
+                                                className="text-2xl font-bold"
+                                                style={{
+                                                    color: "var(--color-text-1)",
+                                                    fontFamily:
+                                                        "'Arimo', sans-serif",
+                                                }}
+                                            >
+                                                {Waste_Percentage}
+                                            </span>
+                                            <span
+                                                className="text-xs"
+                                                style={{
+                                                    color: "var(--color-text-3)",
+                                                    fontFamily:
+                                                        "'Nunito', sans-serif",
+                                                }}
+                                            >
+                                                {number_waste_percentage <= 5
+                                                    ? "Ổn Định"
+                                                    : number_waste_percentage > 5 &&
+                                                        number_waste_percentage <=
+                                                        10
+                                                        ? "Cảnh báo"
+                                                        : number_waste_percentage > 10
+                                                            ? "Báo động"
+                                                            : ""}
+                                            </span>
+                                        </div>
                                     </div>
+                                    {/* style={{ color: "var(--color-text-2)", fontFamily: "'Nunito', sans-serif" }} */}
+                                    <p
+                                        className={`text-sm ${number_waste_percentage <= 5 ? "text-[#10BC5D]" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "text-[#f97316]" : number_waste_percentage > 10 ? "text-[#ef4444]" : ""}`}
+                                    >
+                                        {number_waste_percentage <= 5
+                                            ? `Mức lãng phí thực phẩm đang ổn định, chưa có dấu hiệu đáng lo ngại.`
+                                            : number_waste_percentage > 5 &&
+                                                number_waste_percentage <= 10
+                                                ? "Lượng thực phẩm lãng phí đang tăng, cần theo dõi và kiểm soát sớm."
+                                                : number_waste_percentage > 10
+                                                    ? `Mức lãng phí thực phẩm cao hơn ${(number_waste_percentage - 10).toFixed(2)}% ,cần hành động ngay để tránh thất thoát nghiêm trọng!`
+                                                    : ""}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Right: Waste % + Low Stock */}
                         <div className="col-span-12 lg:col-span-4 space-y-6">
-                            {/* Waste gauge */}
-                            <div
-                                className="bg-white p-6 rounded-xl shadow-sm text-center"
-                                style={{
-                                    border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                                }}
-                            >
-                                <p
-                                    className="font-bold text-base mb-5"
-                                    style={{
-                                        color: "var(--color-text-1)",
-                                        fontFamily: "'Arimo', sans-serif",
-                                    }}
-                                >
-                                    Báo cáo % lãng phí
-                                </p>
-                                <div className="relative w-36 h-36 mx-auto mb-4">
-                                    <svg
-                                        className="w-full h-full -rotate-90"
-                                        viewBox="0 0 80 80"
-                                    >
-                                        <circle
-                                            cx="40"
-                                            cy="40"
-                                            r="32"
-                                            fill="none"
-                                            stroke="#f0f4f2"
-                                            strokeWidth="7"
-                                        />
-                                        <circle
-                                            cx="40"
-                                            cy="40"
-                                            r="32"
-                                            fill="none"
-                                            stroke={`${number_waste_percentage <= 5 ? "var(--color-primary)" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "#f97316" : number_waste_percentage > 10 ? "#ef4444" : ""}`}
-                                            strokeWidth="7"
-                                            strokeDasharray="201"
-                                            strokeDashoffset={
-                                                201 -
-                                                number_waste_percentage * 2
-                                            }
-                                            strokeLinecap="round"
-                                        />
-                                    </svg>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span
-                                            className="text-2xl font-bold"
-                                            style={{
-                                                color: "var(--color-text-1)",
-                                                fontFamily:
-                                                    "'Arimo', sans-serif",
-                                            }}
-                                        >
-                                            {Waste_Percentage}
-                                        </span>
-                                        <span
-                                            className="text-xs"
-                                            style={{
-                                                color: "var(--color-text-3)",
-                                                fontFamily:
-                                                    "'Nunito', sans-serif",
-                                            }}
-                                        >
-                                            {number_waste_percentage <= 5
-                                                ? "Ổn Định"
-                                                : number_waste_percentage > 5 &&
-                                                    number_waste_percentage <=
-                                                    10
-                                                    ? "Cảnh báo"
-                                                    : number_waste_percentage > 10
-                                                        ? "Báo động"
-                                                        : ""}
-                                        </span>
-                                    </div>
-                                </div>
-                                {/* style={{ color: "var(--color-text-2)", fontFamily: "'Nunito', sans-serif" }} */}
-                                <p
-                                    className={`text-sm ${number_waste_percentage <= 5 ? "text-[#10BC5D]" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "text-[#f97316]" : number_waste_percentage > 10 ? "text-[#ef4444]" : ""}`}
-                                >
-                                    {number_waste_percentage <= 5
-                                        ? `Mức lãng phí thực phẩm đang ổn định, chưa có dấu hiệu đáng lo ngại.`
-                                        : number_waste_percentage > 5 &&
-                                            number_waste_percentage <= 10
-                                            ? "Lượng thực phẩm lãng phí đang tăng, cần theo dõi và kiểm soát sớm."
-                                            : number_waste_percentage > 10
-                                                ? `Mức lãng phí thực phẩm cao hơn ${(number_waste_percentage - 10).toFixed(2)}% ,cần hành động ngay để tránh thất thoát nghiêm trọng!`
-                                                : ""}
-                                </p>
-                            </div>
-
                             {/* Low stock */}
                             <div
-                                className="bg-white p-6 rounded-xl shadow-sm"
+                                className="bg-white p-6 rounded-xl shadow-sm mt-10"
                                 style={{
                                     border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
                                 }}
