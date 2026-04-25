@@ -152,8 +152,8 @@ const KitchenDashboard = () => {
             console.error("Fetch dashboard error:", err);
             setError(
                 err?.response?.data?.message ||
-                    err?.message ||
-                    "Có lỗi xảy ra khi tải dữ liệu",
+                err?.message ||
+                "Có lỗi xảy ra khi tải dữ liệu",
             );
         } finally {
             setLoading(false);
@@ -411,26 +411,25 @@ const KitchenDashboard = () => {
                                                 📈 Dự đoán số lượng khách
                                             </span>
                                             <span
-                                                className={`text-sm px-2 py-1 rounded-full ${
-                                                    aiData.customerAI
+                                                className={`text-sm px-2 py-1 rounded-full ${aiData.customerAI
                                                         .risk_level === "high"
                                                         ? "bg-red-100 text-red-700"
                                                         : aiData.customerAI
-                                                                .risk_level ===
+                                                            .risk_level ===
                                                             "medium"
-                                                          ? "bg-yellow-100 text-yellow-700"
-                                                          : "bg-green-100 text-green-700"
-                                                }`}
+                                                            ? "bg-yellow-100 text-yellow-700"
+                                                            : "bg-green-100 text-green-700"
+                                                    }`}
                                             >
                                                 Rủi ro:{" "}
                                                 {aiData.customerAI
                                                     .risk_level === "high"
                                                     ? "Cao"
                                                     : aiData.customerAI
-                                                            .risk_level ===
+                                                        .risk_level ===
                                                         "medium"
-                                                      ? "Trung bình"
-                                                      : "Thấp"}
+                                                        ? "Trung bình"
+                                                        : "Thấp"}
                                             </span>
                                         </div>
                                         <div className="text-3xl font-bold text-[#141C21] mb-2">
