@@ -100,7 +100,6 @@ function AddPeopleForm({ onClose }) {
         }
     };
 
-    // ← THÊM useEffect NÀY
     useEffect(() => {
         fetchCustomerCount();
     }, []);
@@ -121,7 +120,7 @@ function AddPeopleForm({ onClose }) {
                 },
             );
 
-            // ✅ Sửa điều kiện ở đây
+            //điều kiện
             if (response.data?.success === true) {
                 setEntries([
                     {
@@ -205,7 +204,6 @@ function AddPeopleForm({ onClose }) {
                     />
                 </div>
 
-                {/* Thay thế đoạn code cũ từ {entries.length > 0 && (...) thành: */}
                 {loading ? (
                     <div className="text-center py-4">
                         <span
@@ -537,59 +535,6 @@ export default function Dashboard() {
                             </button>
                         </div>
                     </div>
-
-                    {/* AI Alert */}
-                    {/* <div className="mb-8 p-6 bg-orange-50 border-l-4 border-orange-500 rounded-xl flex items-start gap-4">
-                        <div className="bg-orange-500 text-white p-2 rounded-full flex-shrink-0">
-                            <span className="material-symbols-outlined text-sm">
-                                auto_awesome
-                            </span>
-                        </div>
-                        <div>
-                            <p
-                                className="font-bold text-orange-800 text-base"
-                                style={{ fontFamily: "'Arimo', sans-serif" }}
-                            >
-                                Cảnh báo lãng phí (AI Alert)
-                            </p>
-                            <p
-                                className="text-orange-700 text-sm mt-1"
-                                style={{ fontFamily: "'Nunito', sans-serif" }}
-                            >
-                                {!Customer_AI || Customer_AI?.length === 0 ? (
-                                    "Chưa có gợi ý gì cho hôm nay."
-                                ) : (
-                                    Customer_AI.map((value, index) => (
-                                        <div key={index}>
-                                            {Array.isArray(value.summary) ? (
-                                                value.summary.length > 0 ? (
-                                                    value.summary.map((item, i) => (
-                                                        <div key={i}>{item}</div>
-                                                    ))
-                                                ) : (
-                                                    "Chưa có gợi ý gì cho hôm nay."
-                                                )
-                                            ) : value.summary ? (
-                                                value.summary
-                                            ) : (
-                                                "Chưa có gợi ý gì cho hôm nay."
-                                            )}
-                                        </div>
-                                    ))
-                                )}
-                            </p>
-                            {Customer_AI?.length > 0 ? (
-                                <button
-                                    onClick={() => setShowDetailAI(true)}
-                                    className="mt-2 text-xs font-bold  hover:opacity-80"
-                                    style={{ color: "rgb(220, 38, 38)" }}
-                                >
-                                    Xem chi tiết gợi ý từ AI!
-                                </button>
-                            ) : ""}
-                        </div>
-                    </div> */}
-
                     {showDetailAI && (
                         <AIAlertDetail
                             data={WasteLess_AI}
@@ -749,65 +694,7 @@ export default function Dashboard() {
                                                 Doanh thu đang tăng trưởng ổn định, phản ánh hiệu quả kinh doanh tích cực.
                                             </p>
                                         </div>
-                                        {/* <div className="flex gap-3">
-                                            <div className="flex items-center gap-1.5">
-                                                <div
-                                                    className="w-2.5 h-2.5 rounded-full"
-                                                    style={{
-                                                        background:
-                                                            "var(--color-primary)",
-                                                    }}
-                                                />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: "var(--color-text-3)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    Doanh thu
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-2.5 h-2.5 bg-gray-200 rounded-full" />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: "var(--color-text-3)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    Mục tiêu
-                                                </span>
-                                            </div>
-                                        </div> */}
                                     </div>
-                                    {/* <div className="flex-1 flex items-end gap-2 px-2">
-                                        {[60, 75, 90, 65, 80, 95, 100].map(
-                                            (h, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex-1 rounded-t relative group"
-                                                    style={{
-                                                        height: `${h}%`,
-                                                        background:
-                                                            "color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                                                    }}
-                                                >
-                                                    <div
-                                                        className="absolute bottom-0 left-0 w-full rounded-t transition-all duration-300 group-hover:opacity-80"
-                                                        style={{
-                                                            height: "85%",
-                                                            background:
-                                                                "linear-gradient(to top, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, transparent))",
-                                                        }}
-                                                    />
-                                                </div>
-                                            ),
-                                        )}
-                                    </div> */}
                                 </div>
 
                                 {/* Waste gauge */}
@@ -1016,23 +903,7 @@ export default function Dashboard() {
                                                                 ? "Khẩn cấp"
                                                                 : "Cảnh báo"}
                                                         </span>
-                                                    </td>
-
-                                                    {/* Trend */}
-                                                    {/* <td
-                                                        className="px-6 py-4"
-                                                        style={{
-                                                            color: isLow
-                                                                ? "#dc2626"
-                                                                : "#16a34a",
-                                                        }}
-                                                    >
-                                                        <span className="material-symbols-outlined align-middle text-sm">
-                                                            {isLow
-                                                                ? "trending_down"
-                                                                : "trending_up"}
-                                                        </span>
-                                                    </td> */}
+                                                    </td>  
                                                 </tr>
                                             );
                                         })}
@@ -1199,126 +1070,6 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             </div>
-                            {/* <div
-                                className="bg-white p-6 rounded-xl shadow-sm mt-10"
-                                style={{
-                                    border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                                }}
-                            >
-                                <div className="flex justify-between items-center mb-4">
-                                    <p
-                                        className="font-bold text-base"
-                                        style={{
-                                            color: "var(--color-text-1)",
-                                            fontFamily: "'Arimo', sans-serif",
-                                        }}
-                                    >
-                                        Nguyên liệu sắp hết
-                                    </p>
-                                    <span
-                                        className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg font-bold"
-                                        style={{
-                                            fontFamily: "'Nunito', sans-serif",
-                                        }}
-                                    >
-                                        4 Cảnh báo
-                                    </span>
-                                </div>
-                                <div className="space-y-3">
-                                    {[
-                                        {
-                                            name: "Sữa tươi",
-                                            status: "Còn 2L (Tối thiểu 5L)",
-                                            color: "#ef4444",
-                                            icon: "priority_high",
-                                            iconColor: "#f87171",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuALpLnaf1p3NHsARbyzz1S8JPF6DdinQLmzrmmY_yvbFDpd8sno8L3qDwdvrSFyYqTA-TgsZ7paqtn_qdSXlXxlCU5uYp73iCq4RC9IwlxdUaZ5-BMV4-75rP3e78n5JKVz_Xeqbe4dwXfSS6aJd8UKUylOv2heygVzk2CdYanmDLzWQQTeunlUts1h14zdV18kmpCVlFGTUe9vDZF6uDTofQPzLptJF5yY6LeCfwpRd1NyGbHpKZAH8y9OPh2_8gdMEamnZjfH0-Q",
-                                        },
-                                        {
-                                            name: "Thịt bò",
-                                            status: "Còn 1.5kg (Dưới mức an toàn)",
-                                            color: "#f97316",
-                                            icon: "warning",
-                                            iconColor: "#fb923c",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDHL2oTnRXN7owRLMNWRWMyCab-QpWowthiOemDMvg1WnrTWVGEtRK6HdVZ3Ors4d8eHDp9M83a5WefmtjfkO0spzUGXQ2LXtDWeZ2z8mb1HVsXs1wmH13fhJUFAXlQ6JMRkH2zKF3rpmTlTNWV9qeZmk5uTfgx0eVJFgqtxK0lTGI3GjQscQhJsRG6Ibd6a9WCHrj2sra0BMug2-2EwKMQC54nE3nlXku8FqqIum6jcO7p8InvkuK_NTdBwnytAVJFGf-G43Jwiss",
-                                        },
-                                        {
-                                            name: "Cà chua",
-                                            status: "Còn 0.5kg (Sắp hết)",
-                                            color: "#f97316",
-                                            icon: "warning",
-                                            iconColor: "#fb923c",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAtqpLHW7k9YdZWaKUr5sQNK4LPTM_cQ0gI3kPY9t_-ivIPJrazOnSqxYj2fggYE6twpD-fDBLsleITKZYauOhA-YbCMDv0UjMWaRsUo0bBztCaFLDDvoaAxou0jZQPJ7QMchJpAJvHaAQpLBzgRflIFGQtR7fp9RIEsGnJtHQ9rdjjWScPIlBITrXemfqy77lq_4WmE2mz_ovTNLiaALqSbhqTDtJvoNBt6svj5caSj8eqDNm_dunLmcCUj-dU7TdW4EMzVDAPV7I",
-                                        },
-                                        {
-                                            name: "Hành lá",
-                                            status: "Còn 0.2kg (Nhập ngay)",
-                                            color: "#ef4444",
-                                            icon: "priority_high",
-                                            iconColor: "#f87171",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD2TkOmaWbre-wLDEOsaLYYM5ZOXfhGl1193whUgt-T8QTGPNyYskKTFxORzWgK5tHHjRlU4nPlB4C0CPSsEDvrPhgY73GZdU34xUSVk7lUa6ZSCbz0qWGUjeIVoXs_Z-xeTw-0y6-YxMClj-gWGGReAqZ_3m2_PeuErUVvZVPZgKxI9gsLB-W-UGBxHxV4Ll8d0iugFm6_56gXOoDJAWbBLHHjKPbmGcDlTKLx_WXZs9PyPzQ3OIVbHYgowv3Q0yNcqAXFZWJlqf8",
-                                        },
-                                    ].map((item, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center gap-3 pb-3 last:pb-0"
-                                            style={{
-                                                borderBottom:
-                                                    idx < 3
-                                                        ? "1px solid #f6f8f7"
-                                                        : "none",
-                                            }}
-                                        >
-                                            <div
-                                                className="w-10 h-10 rounded-lg bg-center bg-cover flex-shrink-0"
-                                                style={{
-                                                    backgroundImage: `url('${item.img}')`,
-                                                }}
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p
-                                                    className="text-sm font-bold"
-                                                    style={{
-                                                        color: "var(--color-text-1)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    {item.name}
-                                                </p>
-                                                <p
-                                                    className="text-xs font-bold"
-                                                    style={{
-                                                        color: item.color,
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    {item.status}
-                                                </p>
-                                            </div>
-                                            <span
-                                                className="material-symbols-outlined text-sm"
-                                                style={{
-                                                    color: item.iconColor,
-                                                }}
-                                            >
-                                                {item.icon}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button
-                                    className="w-full mt-4 py-2 font-bold text-sm rounded-xl hover:opacity-80 transition-colors"
-                                    style={{
-                                        color: "var(--color-primary)",
-                                        border: "1px solid color-mix(in srgb, var(--color-primary) 20%, transparent)",
-                                        fontFamily: "'Nunito', sans-serif",
-                                    }}
-                                >
-                                    Xem tất cả nguyên liệu
-                                </button>
-                            </div> */}
                         </div>
                     </div>
 

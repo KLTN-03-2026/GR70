@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-
+import Pagination from "../components/Pagination.jsx";
 import {
     BarChart,
     Bar,
@@ -9,23 +9,16 @@ import {
     Cell,
 } from "recharts";
 
-import {
-    getRevenueStats,
-    getRevenueChart,
-    getTransactions,
-} from "../api/revenueApi.js";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import axios from "axios";
-import { Sum_Revenue_Month, Sum_Revenue_yesterday, Transaction_Revenue_Month } from "../services/Revenue_Manager.js";
+import {
+    Sum_Revenue_Month,
+    Sum_Revenue_yesterday,
+    Transaction_Revenue_Month
+} from "../services/Revenue_Manager.js";
 
 const Revenue = () => {
-    const [stats, setStats] = useState({
-        today: 0,
-        month: 0,
-        growth: 0,
-    });
-
     const [chartData, setChartData] = useState([]);
     const [transactions, setTransactions] = useState([]);
 
@@ -34,6 +27,11 @@ const Revenue = () => {
     const [sum_Revenue_Month, setSum_Revenue_Month] = useState([]);
     const [transactions_Revenue_Month, settransactions_Revenue_Month] = useState([]);
     const [loading, setLoading] = useState(false);
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const ITEMS_PER_PAGE = 10;
 
 
     // gọi API
@@ -245,7 +243,7 @@ const Revenue = () => {
                         <tr>
                             <th className="text-left p-4">Ngày giao dịch</th>
                             <th className="text-left p-4">Tên món</th>
-                            <th className="text-left p-4 text-center">Số lượng</th>
+                            <th className="text-left p-4">Số lượng</th>
                             <th className="text-left p-4">Số tiền</th>
                             {/* <th className="text-left p-4">Trạng thái</th> */}
                         </tr>
@@ -316,14 +314,13 @@ const Revenue = () => {
                 </table>
 
                 {/* Pagination */}
-                <div className="flex justify-between items-center p-4 text-sm text-gray-500">
-                    <span>Hiển thị {transactions_Revenue_Month.length} giao dịch</span>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-green-500 text-white rounded">
-                            1
-                        </button>
-                    </div>
-                </div>
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    total={total}
+                    limit={ITEMS_PER_PAGE}
+                    onPageChange={(p) => fetchUser(p)}
+                />
             </div>
         </div>
     );
