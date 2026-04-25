@@ -24,8 +24,15 @@ class UserRepository {
         return await BrandModel.update(data, { where: { id: id }, ...options });
     }
     // khóa hoặc mở khóa tài khoản
-    async lockOrUnlockUser(id, status) {
-        return await UserModel.update({status: status}, { where: { id: id } });
+    async lockOrUnlockUser(id,reason, status) {
+        return await UserModel.update({reason: reason, status: status}, { where: { id: id } });
+    }
+    // thông báo lý do khóa tài khoản
+    async getNotifactionReason(id) {
+        return await UserModel.findOne({
+            where: { id: id },
+            attributes: ['name','reason'],
+        });
     }
     // lấy danh sách nhân viên role Kitchen
     async getKitchenStaff(brandID, options) {
