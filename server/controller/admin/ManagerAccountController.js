@@ -39,3 +39,21 @@ exports.getListUserForBrand = async (req, res, next) => {
         return next(error);
     }
 }
+
+// thông tin chi tiết của 1 manager có tất cả kitchen
+exports.getDetailManagerAndKitchen = async (req, res, next) => {
+    try {
+        const BrandID = req.params.id;
+        const result={
+            manager: [],
+            kitchen: []
+        };
+        await Promise.all([
+            result.manager = await ManagerAccountRepository.DetailManager(BrandID),
+            result.kitchen = await ManagerAccountRepository.DetailKitchen(BrandID)
+        ]);
+        return res.json(ApiSuccess.getSelect("Detail manager", result));
+    } catch (error) {
+        return next(error);
+    }
+}
