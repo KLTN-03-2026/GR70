@@ -44,6 +44,9 @@ module.exports =async function authenticate (req, res, next) {
 }
     
 function handleJwtError(error, req, res, next) {
+    if (error instanceof ApiError) {
+        return next(error);
+    }
     if (error instanceof jwt.TokenExpiredError) {
         logger.warn(`⏳ Token hết hạn | IP: ${req.ip} | URL: ${req.originalUrl}`);
         return next(ApiError.Unauthorized("Token đã hết hạn, vui lòng đăng nhập lại."));

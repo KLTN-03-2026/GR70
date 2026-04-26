@@ -100,6 +100,7 @@ exports.login= async (req, res, next) => {
             );
         }else{
              user = await CheckServices.checkMailPass(data.email, data.password);
+             await CheckServices.checkUserActive(user.id);
             // console.log("user", user.brand.id);
             // xóa refresh token cũ nếu có
             await AuthRepository.deleteRefreshToken(user.id);

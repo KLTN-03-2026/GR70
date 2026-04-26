@@ -61,7 +61,7 @@ class CheckServices {
         try {
             const user = await AuthRepository.checkUserActive(id);
             if(!user){
-                throw ApiError.Unauthorized("User is not active");
+                throw ApiError.Forbidden("Tài khoản của bạn đã bị khóa");
             }
             return user
         } catch (error) {
