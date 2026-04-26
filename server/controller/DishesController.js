@@ -162,8 +162,6 @@ exports.GetAllDishesTrue = async function (req, res, next) {
             throw ApiError.Unauthorized("Brand ID is required");
         }
         await CheckServices.checkBrand(BrandID);
-        const checkRole = await CheckServices.checkRole(userID);
-        if(checkRole === "Manager" || checkRole === "admin"){
             const getAllDishes = await DishesRepository.GetAllDishesTrue(BrandID,{
             page,
             size,
@@ -171,10 +169,6 @@ exports.GetAllDishesTrue = async function (req, res, next) {
             order: req.query.orderType === "1" ? "ASC" : "DESC",
         });
         return res.json(ApiSuccess.getSelect("Dishes list", getAllDishes));
-        }else{
-            const getAllDishes = await DishesRepository.GetAllDishesTrueKitchenn(BrandID);
-            return res.json(ApiSuccess.getSelect("Dishes list", getAllDishes));
-        }
     } catch (error) {
         return next(error);
     }
