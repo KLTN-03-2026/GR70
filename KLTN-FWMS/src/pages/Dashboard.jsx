@@ -101,7 +101,6 @@ function AddPeopleForm({ onClose }) {
         }
     };
 
-    // ← THÊM useEffect NÀY
     useEffect(() => {
         fetchCustomerCount();
     }, []);
@@ -135,6 +134,7 @@ function AddPeopleForm({ onClose }) {
                 },
             );
 
+            //điều kiện
             if (response.data?.success === true) {
                 setEntries([
                     {
@@ -232,7 +232,6 @@ function AddPeopleForm({ onClose }) {
                     )}
                 </div>
 
-                {/* Thay thế đoạn code cũ từ {entries.length > 0 && (...) thành: */}
                 {loading ? (
                     <div className="text-center py-4">
                         <span
@@ -569,59 +568,6 @@ export default function Dashboard() {
                             </button>
                         </div>
                     </div>
-
-                    {/* AI Alert */}
-                    {/* <div className="mb-8 p-6 bg-orange-50 border-l-4 border-orange-500 rounded-xl flex items-start gap-4">
-                        <div className="bg-orange-500 text-white p-2 rounded-full flex-shrink-0">
-                            <span className="material-symbols-outlined text-sm">
-                                auto_awesome
-                            </span>
-                        </div>
-                        <div>
-                            <p
-                                className="font-bold text-orange-800 text-base"
-                                style={{ fontFamily: "'Arimo', sans-serif" }}
-                            >
-                                Cảnh báo lãng phí (AI Alert)
-                            </p>
-                            <p
-                                className="text-orange-700 text-sm mt-1"
-                                style={{ fontFamily: "'Nunito', sans-serif" }}
-                            >
-                                {!Customer_AI || Customer_AI?.length === 0 ? (
-                                    "Chưa có gợi ý gì cho hôm nay."
-                                ) : (
-                                    Customer_AI.map((value, index) => (
-                                        <div key={index}>
-                                            {Array.isArray(value.summary) ? (
-                                                value.summary.length > 0 ? (
-                                                    value.summary.map((item, i) => (
-                                                        <div key={i}>{item}</div>
-                                                    ))
-                                                ) : (
-                                                    "Chưa có gợi ý gì cho hôm nay."
-                                                )
-                                            ) : value.summary ? (
-                                                value.summary
-                                            ) : (
-                                                "Chưa có gợi ý gì cho hôm nay."
-                                            )}
-                                        </div>
-                                    ))
-                                )}
-                            </p>
-                            {Customer_AI?.length > 0 ? (
-                                <button
-                                    onClick={() => setShowDetailAI(true)}
-                                    className="mt-2 text-xs font-bold  hover:opacity-80"
-                                    style={{ color: "rgb(220, 38, 38)" }}
-                                >
-                                    Xem chi tiết gợi ý từ AI!
-                                </button>
-                            ) : ""}
-                        </div>
-                    </div> */}
-
                     {showDetailAI && (
                         <AIAlertDetail
                             data={WasteLess_AI}
@@ -814,65 +760,7 @@ export default function Dashboard() {
                                                 doanh tích cực.
                                             </p>
                                         </div>
-                                        {/* <div className="flex gap-3">
-                                            <div className="flex items-center gap-1.5">
-                                                <div
-                                                    className="w-2.5 h-2.5 rounded-full"
-                                                    style={{
-                                                        background:
-                                                            "var(--color-primary)",
-                                                    }}
-                                                />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: "var(--color-text-3)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    Doanh thu
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-2.5 h-2.5 bg-gray-200 rounded-full" />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: "var(--color-text-3)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    Mục tiêu
-                                                </span>
-                                            </div>
-                                        </div> */}
                                     </div>
-                                    {/* <div className="flex-1 flex items-end gap-2 px-2">
-                                        {[60, 75, 90, 65, 80, 95, 100].map(
-                                            (h, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex-1 rounded-t relative group"
-                                                    style={{
-                                                        height: `${h}%`,
-                                                        background:
-                                                            "color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                                                    }}
-                                                >
-                                                    <div
-                                                        className="absolute bottom-0 left-0 w-full rounded-t transition-all duration-300 group-hover:opacity-80"
-                                                        style={{
-                                                            height: "85%",
-                                                            background:
-                                                                "linear-gradient(to top, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, transparent))",
-                                                        }}
-                                                    />
-                                                </div>
-                                            ),
-                                        )}
-                                    </div> */}
                                 </div>
 
                                 {/* Waste gauge */}
@@ -995,7 +883,9 @@ export default function Dashboard() {
                                             color: "var(--color-primary)",
                                             fontFamily: "'Nunito', sans-serif",
                                         }}
-                                    ></button>
+                                    >
+
+                                    </button>
                                 </div>
                                 <table className="w-full text-left">
                                     <thead>
@@ -1028,11 +918,10 @@ export default function Dashboard() {
                                     </thead>
 
                                     <tbody>
-                                        {lowstockingredient?.map(
-                                            (value, index) => {
-                                                const isLow =
-                                                    value.current_stock <
-                                                    value.minimum_stock / 2;
+                                        {lowstockingredient?.map((value, index) => {
+                                            const isLow =
+                                                value.current_stock <
+                                                (value.minimum_stock) / 2;
 
                                                 return (
                                                     <tr
@@ -1069,45 +958,27 @@ export default function Dashboard() {
                                                             )}
                                                         </td>
 
-                                                        {/* Status */}
-                                                        <td className="px-6 py-4">
-                                                            <span
-                                                                className="px-2 py-1 rounded text-xs font-bold"
-                                                                style={{
-                                                                    background:
-                                                                        isLow
-                                                                            ? "#fee2e2"
-                                                                            : "#FFF7ED",
-                                                                    color: isLow
-                                                                        ? "#dc2626"
-                                                                        : "#F97316",
-                                                                }}
-                                                            >
-                                                                {isLow
-                                                                    ? "Khẩn cấp"
-                                                                    : "Cảnh báo"}
-                                                            </span>
-                                                        </td>
-
-                                                        {/* Trend */}
-                                                        {/* <td
-                                                        className="px-6 py-4"
-                                                        style={{
-                                                            color: isLow
-                                                                ? "#dc2626"
-                                                                : "#16a34a",
-                                                        }}
-                                                    >
-                                                        <span className="material-symbols-outlined align-middle text-sm">
+                                                    {/* Status */}
+                                                    <td className="px-6 py-4">
+                                                        <span
+                                                            className="px-2 py-1 rounded text-xs font-bold"
+                                                            style={{
+                                                                background: isLow
+                                                                    ? "#fee2e2"
+                                                                    : "#FFF7ED",
+                                                                color: isLow
+                                                                    ? "#dc2626"
+                                                                    : "#F97316",
+                                                            }}
+                                                        >
                                                             {isLow
-                                                                ? "trending_down"
-                                                                : "trending_up"}
+                                                                ? "Khẩn cấp"
+                                                                : "Cảnh báo"}
                                                         </span>
-                                                    </td> */}
-                                                    </tr>
-                                                );
-                                            },
-                                        )}
+                                                    </td>  
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -1139,19 +1010,16 @@ export default function Dashboard() {
                                                     📈 Dự đoán số lượng khách
                                                 </span>
                                                 <span
-                                                    className={`text-[14px] px-2 py-1 rounded-full ${
-                                                        Customer_AI?.risk_level ===
-                                                        "high"
-                                                            ? "bg-red-100 text-red-700"
-                                                            : Customer_AI?.risk_level ===
-                                                                "medium"
-                                                              ? "bg-yellow-100 text-yellow-700"
-                                                              : "bg-green-100 text-green-700"
-                                                    }`}
+                                                    className={`text-[14px] px-2 py-1 rounded-full ${Customer_AI?.risk_level === "high"
+                                                        ? "bg-red-100 text-red-700"
+                                                        : Customer_AI?.risk_level ===
+                                                            "medium"
+                                                            ? "bg-yellow-100 text-yellow-700"
+                                                            : "bg-green-100 text-green-700"
+                                                        }`}
                                                 >
                                                     Rủi ro:{" "}
-                                                    {Customer_AI?.risk_level ===
-                                                    "high"
+                                                    {Customer_AI?.risk_level === "high"
                                                         ? "Cao"
                                                         : Customer_AI?.risk_level ===
                                                             "medium"
@@ -1160,7 +1028,9 @@ export default function Dashboard() {
                                                 </span>
                                             </div>
                                             <div className="text-3xl font-bold text-[#141C21] mb-2">
-                                                {Customer_AI?.ai_customer_count}{" "}
+                                                {
+                                                    Customer_AI?.ai_customer_count
+                                                }{" "}
                                                 khách
                                             </div>
                                             <p className="text-sm text-[#8B8B8B] leading-relaxed">

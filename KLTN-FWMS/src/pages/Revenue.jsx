@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-
+import Pagination from "../components/Pagination.jsx";
 import {
     BarChart,
     Bar,
@@ -9,23 +9,16 @@ import {
     Cell,
 } from "recharts";
 
-import {
-    getRevenueStats,
-    getRevenueChart,
-    getTransactions,
-} from "../api/revenueApi.js";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import axios from "axios";
-import { Sum_Revenue_Month, Sum_Revenue_yesterday, Transaction_Revenue_Month } from "../services/Revenue_Manager.js";
+import {
+    Sum_Revenue_Month,
+    Sum_Revenue_yesterday,
+    Transaction_Revenue_Month
+} from "../services/Revenue_Manager.js";
 
 const Revenue = () => {
-    const [stats, setStats] = useState({
-        today: 0,
-        month: 0,
-        growth: 0,
-    });
-
     const [chartData, setChartData] = useState([]);
     const [transactions, setTransactions] = useState([]);
 
@@ -34,21 +27,23 @@ const Revenue = () => {
     const [sum_Revenue_Month, setSum_Revenue_Month] = useState([]);
     const [transactions_Revenue_Month, settransactions_Revenue_Month] = useState([]);
     const [loading, setLoading] = useState(false);
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const ITEMS_PER_PAGE = 15;
 
 
     // gọi API
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [res, res1, res2] = await Promise.all([
+                const [res, res1] = await Promise.all([
                     Sum_Revenue_yesterday(),
                     Sum_Revenue_Month(),
-                    Transaction_Revenue_Month(),
                 ])
                 setSum_Revenue_Yesterday(res.data.data.total_revenue);
                 setSum_Revenue_Month(res1.data.data.total_revenue);
-                settransactions_Revenue_Month(res2.data.data);
-                console.log(res2.data.data);
 
             } catch (err) {
                 console.error("Lỗi load dữ liệu:", err);
@@ -58,6 +53,28 @@ const Revenue = () => {
         };
 
         fetchData();
+    }, []);
+
+    const fetchTransactions = async (p = 1) => {
+        try {
+            const res = await Transaction_Revenue_Month(p, ITEMS_PER_PAGE);
+
+            const responseData = res.data?.data || {};
+            console.log(responseData);
+            
+
+            settransactions_Revenue_Month(responseData.data || []);
+            setTotal(responseData.total || 0);
+            setTotalPages(responseData.totalPages || 1);
+            setPage(p);
+
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    useEffect(() => {
+        fetchTransactions(1);
     }, []);
 
     //  tránh crash khi chartData rỗng
@@ -72,10 +89,11 @@ const Revenue = () => {
     const exportToExcel = () => {
         // Chuẩn bị dữ liệu cho Excel
         const excelData = transactions_Revenue_Month.map((item) => ({
-            "Ngày giao dịch": item["daily_operation.operation_date"],
-            "Danh mục": item["dish.name"],
+            "Ngày giao dịch": item?.daily_operation?.operation_date,
+            "Danh mục": item?.dish?.name,
             "Số lượng": item.quantity_used || 0,
             "Số tiền": item.revenue_cost?.toLocaleString("vi-VN") + " VNĐ" || "0 VNĐ",
+            "Trạng thái": item.status === "success" ? "Thành công" : "Đang xử lý",
         }));
 
         // Tạo worksheet
@@ -87,7 +105,7 @@ const Revenue = () => {
             { wch: 20 }, // Danh mục
             { wch: 12 }, // Số lượng
             { wch: 18 }, // Số tiền
-            // { wch: 12 }, // Trạng thái
+            { wch: 12 }, // Trạng thái
         ];
         worksheet["!cols"] = colWidths;
 
@@ -113,8 +131,8 @@ const Revenue = () => {
     const exportSingleToExcel = (item) => {
         const singleData = [
             {
-                "Ngày giao dịch": item["daily_operation.operation_date"],
-                "Danh mục": item["dish.name"],
+                "Ngày giao dịch": item?.daily_operation?.operation_date,
+                "Danh mục": item?.dish?.name,
                 "Số lượng": item.quantity_used || 0,
                 "Số tiền":
                     Number(item.revenue_cost || 0).toLocaleString("vi-VN") + " VNĐ",
@@ -245,40 +263,40 @@ const Revenue = () => {
                         <tr>
                             <th className="text-left p-4">Ngày giao dịch</th>
                             <th className="text-left p-4">Tên món</th>
-                            <th className="text-left p-4 text-center">Số lượng</th>
+                            <th className="text-left p-4">Số lượng</th>
                             <th className="text-left p-4">Số tiền</th>
-                            {/* <th className="text-left p-4">Trạng thái</th> */}
+                            <th className="text-left p-4">Trạng thái</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        {transactions_Revenue_Month.length > 0 ? (
+                        {transactions_Revenue_Month?.length > 0 ? (
                             transactions_Revenue_Month.map((item) => (
                                 <tr key={item.id} className="border-t">
-                                    <td className="p-4">{item["daily_operation.operation_date"]
-                                        ? new Date(item["daily_operation.operation_date"]).toLocaleDateString('vi-VN')
+                                    <td className="p-4">{item?.daily_operation?.operation_date
+                                        ? new Date(item?.daily_operation?.operation_date).toLocaleDateString('vi-VN')
                                         : 'N/A'}</td>
-                                    <td className="p-4">{item["dish.name"]}</td>
+                                    <td className="p-4">{item?.dish?.name}</td>
                                     <td className="p-4 text-center">
                                         {item.quantity_used || 0}
                                     </td>
                                     <td className="p-4 font-semibold">
                                         {(Number(item.revenue_cost)).toLocaleString("vi-VN")} VND
                                     </td>
-                                    {/* <td className="p-4">
+                                    <td className="p-4">
                                         <span
                                             className={`px-3 py-1 rounded-full text-xs ${item.status === "success"
-                                                    ? "bg-green-100 text-green-600"
-                                                    : "bg-yellow-100 text-yellow-600"
+                                                ? "bg-green-100 text-green-600"
+                                                : "bg-yellow-100 text-yellow-600"
                                                 }`}
                                         >
                                             {item.status === "success"
                                                 ? "Thành công"
                                                 : "Đang xử lý"}
                                         </span>
-                                    </td> */}
+                                    </td>
                                     {/* THÊM CỘT THAO TÁC VỚI NÚT XUẤT EXCEL */}
-                                    <td className="p-4">
+                                    {/* <td className="p-4">
                                         <button
                                             onClick={() =>
                                                 exportSingleToExcel(item)
@@ -299,7 +317,7 @@ const Revenue = () => {
                                             </span>
                                             Xuất
                                         </button>
-                                    </td>
+                                    </td> */}
                                 </tr>
                             ))
                         ) : (
@@ -316,14 +334,13 @@ const Revenue = () => {
                 </table>
 
                 {/* Pagination */}
-                <div className="flex justify-between items-center p-4 text-sm text-gray-500">
-                    <span>Hiển thị {transactions_Revenue_Month.length} giao dịch</span>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-green-500 text-white rounded">
-                            1
-                        </button>
-                    </div>
-                </div>
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    total={total}
+                    limit={ITEMS_PER_PAGE}
+                    onPageChange={(p) => fetchTransactions(p)}
+                />
             </div>
         </div>
     );
