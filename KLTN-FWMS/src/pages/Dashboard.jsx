@@ -69,7 +69,7 @@ function AddPeopleForm({ onClose }) {
         try {
             const token = localStorage.getItem("token");
             const response = await axios.get(
-                `${import.meta.env.VITE_API_URL}users/get-customer-count`,
+                `${import.meta.env.VITE_API_URL}/users/get-customer-count`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -125,7 +125,7 @@ function AddPeopleForm({ onClose }) {
         try {
             const token = localStorage.getItem("token");
             const response = await axios.put(
-                `${import.meta.env.VITE_API_URL}users/update-customer-count`,
+                `${import.meta.env.VITE_API_URL}/users/update-customer-count`,
                 { customer_count: Number(count) },
                 {
                     headers: {
