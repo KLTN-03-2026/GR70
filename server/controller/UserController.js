@@ -150,6 +150,7 @@ exports.UpdateKitchen = async function (req, res, next) {
 exports.LockKitchen = async function (req, res, next) {
   try {
     const userID = req.params.id;
+    const reason=req.body.reason;
     const checkuser = await CheckServices.checkUserActive(userID);
     if (!checkuser) {
         // console.log("checkusser");
@@ -159,8 +160,12 @@ exports.LockKitchen = async function (req, res, next) {
         // console.log("user:",checkuser.roles);
       throw ApiError.Unauthorized("You cannot lock a Manager account");
     }
+    if(!reason){
+        throw ApiError.ValidationError("Missing required fields");
+    }
     const [affectedCount] = await UserRepository.lockOrUnlockUser(
       userID,
+      reason,
       false,
     );
     // console.log("update result =", affectedCount);
@@ -176,6 +181,7 @@ exports.LockKitchen = async function (req, res, next) {
 exports.UnlockKitchen = async function (req, res, next) {
   try {
     const userID = req.params.id;
+    const reason=null;
     const checkuser = await CheckServices.checkStautsUser(userID);
     if (!checkuser) {
       throw ApiError.Unauthorized("User is not active");
@@ -183,7 +189,7 @@ exports.UnlockKitchen = async function (req, res, next) {
     if(checkuser.status===true){
         throw ApiError.Notification("User is already unlocked");
     }
-    const [affectedCount] = await UserRepository.lockOrUnlockUser(userID, true);
+    const [affectedCount] = await UserRepository.lockOrUnlockUser(userID,reason, true);
     if (affectedCount === 0) {
       throw ApiError.NotFound("User not found or already unlocked");
     }
@@ -212,3 +218,14 @@ exports.GetKitchenStaff = async function (req, res, next) {
     return next(error);
   }
 };
+
+// get thông báo khi bị lock account
+exports.GetNotifaction = async function (req, res, next) {
+  try {
+    const userID = req.params.id;
+    const getNotifaction = await UserRepository.getNotifactionReason(userID);
+    return res.json(ApiSuccess.getSelect("Notification list", getNotifaction));
+  } catch (error) {
+    return next(error);
+  }
+}

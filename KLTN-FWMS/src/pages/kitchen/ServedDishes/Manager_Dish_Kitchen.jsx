@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getUserInfo } from "../../../utils/auth";
-
+import Pagination from "../../../components/Pagination"
 import {
   approveDish,
   getCategoryDishes,
@@ -386,12 +386,12 @@ export default function Manager_Dish_Kitchen() {
   const brandId = userInfo?.brandID || userInfo?.brandId || localStorage.getItem("brandID");
 
   // Debug để bạn thấy rõ giá trị
-  useEffect(() => {
-    console.log("=== Debug User & Brand ===");
-    console.log("userInfo từ JWT:", userInfo);
-    console.log("userId:", userId);
-    console.log("brandId:", brandId);
-  }, [userId, brandId]);
+  // useEffect(() => {
+  //   console.log("=== Debug User & Brand ===");
+  //   console.log("userInfo từ JWT:", userInfo);
+  //   console.log("userId:", userId);
+  //   console.log("brandId:", brandId);
+  // }, [userId, brandId]);
 
   const [pending, setPending] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
@@ -414,21 +414,30 @@ export default function Manager_Dish_Kitchen() {
 
   // get_All_Dishes
   const [getAll_Dishes, setGetAll_Dishes] = useState([]);
-  useEffect(() => {
-    const fetch_getAll_Dish = async () => {
-      try {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const ITEMS_PER_PAGE = 15;
 
-        const res = await getAll_Dish();
-        setGetAll_Dishes(res.data);
-        // console.log(res.data);
+  const fetch_getAll_Dish = async (p = 1) => {
+    try {
+      const res = await getAll_Dish(p, ITEMS_PER_PAGE);
 
-      }
-      catch (error) {
-        console.log(error.response);
-      }
+      const data = res.data;
+      console.log(res.data);
+      
+
+      setGetAll_Dishes(data.data || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+      setPage(data.page || p);
+    } catch (error) {
+      console.log(error);
     }
+  };
 
-    fetch_getAll_Dish();
+  useEffect(() => {
+    fetch_getAll_Dish(1);
   }, []);
 
   const thClass = "px-6 py-4 text-xs font-bold uppercase tracking-wider";
@@ -525,7 +534,7 @@ export default function Manager_Dish_Kitchen() {
                     className="text-xs font-bold px-2.5 py-1 rounded-full"
                     style={{ background: "rgba(16,188,93,0.1)", color: "var(--color-primary)" }}
                   >
-                    {getAll_Dishes.length} món
+                    {getAll_Dishes?.length} món
                   </span>
                 </div>
 
@@ -625,6 +634,13 @@ export default function Manager_Dish_Kitchen() {
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  total={total}
+                  limit={ITEMS_PER_PAGE}
+                  onPageChange={(p) => fetch_getAll_Dish(p)}
+                />
               </section>
             )}
 
