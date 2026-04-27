@@ -15,7 +15,8 @@ export default function WasteHistory() {
     const [allData, setAllData] = useState([]);
     const [filteredData, setFilteredData] = useState([]);
     const [currentPageData, setCurrentPageData] = useState([]);
-    const [date, setDate] = useState("");
+    const [date, setDate] = useState(""); // State cho ô input date
+    const [appliedDate, setAppliedDate] = useState(""); // State cho date đã áp dụng filter
     const [loading, setLoading] = useState(false);
     const [filterError, setFilterError] = useState("");
     const [stats, setStats] = useState({
@@ -67,17 +68,21 @@ export default function WasteHistory() {
         [currentPage, pageSize],
     );
 
-    const fetchData = useCallback(async () => {
+    // Hàm fetch dữ liệu gốc (không filter)
+    const fetchAllData = useCallback(async () => {
         try {
             setLoading(true);
             setFilterError("");
-            console.log("========== FETCHING DATA ==========");
-            console.log("Date filter:", date);
+            console.log("========== FETCHING ALL DATA ==========");
             const listWasteResponse = await getListWasteByIngredient({});
             const rawData = listWasteResponse?.data || [];
             setAllData(rawData);
-            const filtered = filterDataManual(rawData, date);
-            console.log(`Raw: ${rawData.length}, Filtered: ${filtered.length}`);
+
+            // Hiển thị tất cả dữ liệu
+            const filtered = filterDataManual(rawData, "");
+            console.log(
+                `Raw: ${rawData.length}, Displayed: ${filtered.length}`,
+            );
 
             setFilteredData(filtered);
             updatePagination(filtered);
@@ -99,7 +104,47 @@ export default function WasteHistory() {
         } finally {
             setLoading(false);
         }
-    }, [date, filterDataManual, calculateTotalWaste, updatePagination]);
+    }, [filterDataManual, calculateTotalWaste, updatePagination]);
+
+    // Hàm lọc dữ liệu theo ngày đã chọn
+    const applyFilter = useCallback(async () => {
+        try {
+            setLoading(true);
+            setFilterError("");
+            console.log("========== APPLYING FILTER ==========");
+            console.log("Applied date:", appliedDate);
+
+            // Lọc từ allData đã có sẵn
+            const filtered = filterDataManual(allData, appliedDate);
+            console.log(`Filtered: ${filtered.length} records`);
+
+            setFilteredData(filtered);
+            updatePagination(filtered);
+
+            let totalWaste = calculateTotalWaste(filtered);
+
+            setStats({
+                totalWaste: totalWaste,
+            });
+        } catch (err) {
+            console.error("Filter error:", err);
+            setFilteredData([]);
+            setCurrentPageData([]);
+            setTotalItems(0);
+            setTotalPages(1);
+            setStats({
+                totalWaste: 0,
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [
+        allData,
+        appliedDate,
+        filterDataManual,
+        calculateTotalWaste,
+        updatePagination,
+    ]);
 
     const avgWastePercent =
         filteredData.length > 0
@@ -116,6 +161,8 @@ export default function WasteHistory() {
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
             setCurrentPageData(filteredData.slice(startIndex, endIndex));
+        } else {
+            setCurrentPageData([]);
         }
     }, [currentPage, filteredData, pageSize]);
 
@@ -125,21 +172,37 @@ export default function WasteHistory() {
     };
 
     const handleResetFilters = () => {
-        setDate("");
+        setDate(""); // Reset input
+        setAppliedDate(""); // Reset filter đã áp dụng
         setFilterError("");
         setCurrentPage(1);
-        fetchData();
+        // Hiển thị lại tất cả dữ liệu
+        const filtered = filterDataManual(allData, "");
+        setFilteredData(filtered);
+        updatePagination(filtered);
+        let totalWaste = calculateTotalWaste(filtered);
+        setStats({
+            totalWaste: totalWaste,
+        });
     };
 
     const handleFilter = () => {
         setFilterError("");
         setCurrentPage(1);
-        fetchData();
+        setAppliedDate(date); // Set appliedDate = date từ input
     };
 
+    // Khi appliedDate thay đổi, thực hiện lọc
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (appliedDate !== undefined) {
+            applyFilter();
+        }
+    }, [appliedDate, applyFilter]);
+
+    // Load dữ liệu ban đầu
+    useEffect(() => {
+        fetchAllData();
+    }, [fetchAllData]);
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -260,8 +323,8 @@ export default function WasteHistory() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        <div className="h-screen bg-gray-50 overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 h-full overflow-y-auto">
                 {/* Title */}
                 <div className="mb-2">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
@@ -270,12 +333,12 @@ export default function WasteHistory() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
                     <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
-                                <p className="text-gray-500 text-sm uppercase tracking-wide mb-1">
-                                    {date
+                                <p className="text-gray-500 text-sm uppercase tracking-wide">
+                                    {appliedDate
                                         ? "Tổng món dư trong ngày"
                                         : "Tổng món dư"}
                                 </p>
@@ -310,15 +373,16 @@ export default function WasteHistory() {
                 </div>
 
                 {/* Filter */}
-                <div className="bg-white p-5 rounded-xl shadow-md border border-gray-100 mb-2">
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-2">
                     {filterError && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                             ⚠️ {filterError}
                         </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-                        <div className="flex-1 w-full sm:w-auto relative">
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                        {/* Ô chọn ngày */}
+                        <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Chọn ngày
                             </label>
@@ -328,34 +392,46 @@ export default function WasteHistory() {
                                 onChange={(e) =>
                                     handleDateChange(e.target.value)
                                 }
-                                className="w-full sm:w-64 border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                             />
                         </div>
 
-                        {date && (
+                        {/* Nhóm nút bấm */}
+                        <div className="flex gap-2">
                             <button
-                                onClick={handleResetFilters}
-                                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-medium"
+                                onClick={handleFilter}
+                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all whitespace-nowrap"
                             >
-                                Xóa bộ lọc
+                                🔍 Lọc dữ liệu
                             </button>
-                        )}
-
-                        <button
-                            onClick={handleFilter}
-                            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg font-medium"
-                        >
-                            🔍 Lọc dữ liệu
-                        </button>
+                            {(appliedDate || date) && (
+                                <button
+                                    onClick={handleResetFilters}
+                                    className="px-6 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                                >
+                                    Xóa lọc
+                                </button>
+                            )}
+                        </div>
                     </div>
+
+                    {/* Hiển thị filter đang áp dụng */}
+                    {appliedDate && (
+                        <div className="mt-4 pt-4 border-t">
+                            <span className="text-sm text-gray-500">
+                                Đang lọc theo ngày:{" "}
+                                <strong>{formatDateVN(appliedDate)}</strong>
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Table */}
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 border-b border-gray-100 bg-gray-50/50">
                         <h3 className="font-semibold text-gray-800 text-lg">
-                            {date
-                                ? `📋 Chi tiết lãng phí ngày ${formatDateVN(date)}`
+                            {appliedDate
+                                ? `📋 Chi tiết lãng phí ngày ${formatDateVN(appliedDate)}`
                                 : "📋 Tất cả lịch sử lãng phí"}
                         </h3>
                         <button
@@ -380,7 +456,7 @@ export default function WasteHistory() {
                         </button>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-hidden">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-100 text-gray-600">
                                 <tr>
@@ -431,7 +507,11 @@ export default function WasteHistory() {
                                         return (
                                             <tr
                                                 key={index}
-                                                className={`border-t border-gray-100 hover:bg-gray-50 transition ${aiLevel.level === "High" ? "bg-red-50/50" : ""}`}
+                                                className={`border-t border-gray-100 hover:bg-gray-50 transition ${
+                                                    aiLevel.level === "High"
+                                                        ? "bg-red-50/50"
+                                                        : ""
+                                                }`}
                                             >
                                                 <td className="p-4 whitespace-nowrap">
                                                     {item.date}

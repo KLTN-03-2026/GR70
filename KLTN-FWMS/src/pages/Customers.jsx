@@ -9,23 +9,15 @@ const Customers = () => {
         percentage_change: 0,
     });
 
-    const [customerData, setCustomerData] = useState([]);
+    const [allCustomerData, setAllCustomerData] = useState([]); // Lưu toàn bộ dữ liệu từ API
+    const [customerData, setCustomerData] = useState([]); // Dữ liệu sau khi lọc
     const [loadingSummary, setLoadingSummary] = useState(true);
     const [loadingTable, setLoadingTable] = useState(true);
     const [error, setError] = useState(null);
-    const [filterError, setFilterError] = useState(""); // State cho lỗi filter
 
     // ===== FILTER STATE =====
-    const [filters, setFilters] = useState({
-        date: "",
-        month: "",
-    });
-
-    // State lưu filter đã áp dụng
-    const [appliedFilters, setAppliedFilters] = useState({
-        date: "",
-        month: "",
-    });
+    const [selectedDate, setSelectedDate] = useState("");
+    const [appliedDate, setAppliedDate] = useState("");
 
     // ===== PAGINATION STATE =====
     const [currentPage, setCurrentPage] = useState(1);
@@ -33,45 +25,21 @@ const Customers = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(10);
 
-    // Lấy ngày hiện tại
-    const getTodayDate = () => {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, "0");
-        const day = String(today.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
-
-    // Kiểm tra ngày có nằm trong tháng đã chọn không
-    const isDateInMonth = (date, month) => {
-        if (!date || !month) return true;
-        return date.startsWith(month);
-    };
-
     // ===== CALL API =====
     useEffect(() => {
         fetchSummary();
+        fetchAllCustomers(); // Lấy toàn bộ dữ liệu khi component mount
     }, []);
 
     useEffect(() => {
-        if (appliedFilters.date || appliedFilters.month) {
-            // Kiểm tra tính hợp lệ trước khi gọi API
-            if (appliedFilters.date && appliedFilters.month) {
-                if (!isDateInMonth(appliedFilters.date, appliedFilters.month)) {
-                    setFilterError(
-                        `Ngày ${formatDateInput(appliedFilters.date)} không nằm trong tháng đã chọn (${appliedFilters.month})`,
-                    );
-                    setCustomerData([]);
-                    setTotalItems(0);
-                    setTotalPages(1);
-                    setLoadingTable(false);
-                    return;
-                }
-            }
-            setFilterError("");
-        }
-        fetchCustomers();
-    }, [currentPage, appliedFilters]);
+        // Lọc dữ liệu khi appliedDate thay đổi
+        filterDataByDate();
+    }, [appliedDate, allCustomerData]);
+
+    useEffect(() => {
+        // Cập nhật phân trang khi dữ liệu đã lọc hoặc currentPage thay đổi
+        updatePagination();
+    }, [customerData, currentPage]);
 
     // 👉 API 1: Stats
     const fetchSummary = async () => {
@@ -99,23 +67,16 @@ const Customers = () => {
         }
     };
 
-    // 👉 API 2: Table với filter
-    const fetchCustomers = async () => {
+    // 👉 API 2: Lấy toàn bộ dữ liệu khách hàng
+    const fetchAllCustomers = async () => {
         try {
             setLoadingTable(true);
             setError(null);
 
             const token = localStorage.getItem("token");
 
-            // Xây dựng URL dựa trên filter đã áp dụng
-            let url = `https://system-waste-less-ai.onrender.com/api/consumption/list-customer-in-month?page=${currentPage}&size=${pageSize}`;
-
-            // Ưu tiên lọc theo ngày nếu có, nếu không thì lọc theo tháng
-            if (appliedFilters.date) {
-                url += `&operation_date=${appliedFilters.date}`;
-            } else if (appliedFilters.month) {
-                url += `&month=${appliedFilters.month}`;
-            }
+            // Lấy toàn bộ dữ liệu không phân trang để lọc chính xác
+            let url = `https://system-waste-less-ai.onrender.com/api/consumption/list-customer-in-month?page=1&size=1000`;
 
             console.log("Calling API:", url);
 
@@ -130,105 +91,95 @@ const Customers = () => {
 
             if (data.success) {
                 let customersArray = [];
-                let totalItemsFromAPI = 0;
-                let totalPagesFromAPI = 1;
 
                 if (data.data?.data && Array.isArray(data.data.data)) {
                     customersArray = data.data.data;
-                    totalItemsFromAPI = data.data.total || 0;
-                    totalPagesFromAPI = data.data.totalPages || 1;
                 } else if (Array.isArray(data.data)) {
                     customersArray = data.data;
-                    totalItemsFromAPI = customersArray.length;
-                    totalPagesFromAPI = Math.ceil(
-                        customersArray.length / pageSize,
-                    );
                 } else {
                     customersArray = [];
-                    totalItemsFromAPI = 0;
-                    totalPagesFromAPI = 1;
                 }
 
-                // Lọc thủ công nếu có cả date và month (đã kiểm tra hợp lệ ở trên)
-                let filteredData = [...customersArray];
-
-                if (appliedFilters.date && appliedFilters.month) {
-                    // Lọc theo ngày cụ thể
-                    filteredData = filteredData.filter((item) => {
-                        const itemDate =
-                            item.operation_date || item.date || item.createdAt;
-                        return (
-                            itemDate &&
-                            itemDate.split("T")[0] === appliedFilters.date
-                        );
-                    });
-                    totalItemsFromAPI = filteredData.length;
-                    totalPagesFromAPI = Math.ceil(
-                        filteredData.length / pageSize,
-                    );
-                }
-
-                setCustomerData(filteredData);
-                setTotalItems(totalItemsFromAPI);
-                setTotalPages(totalPagesFromAPI);
+                setAllCustomerData(customersArray);
             } else {
                 setError(data.message || "Không thể tải dữ liệu");
-                setCustomerData([]);
-                setTotalItems(0);
-                setTotalPages(1);
+                setAllCustomerData([]);
             }
         } catch (error) {
             console.error("Lỗi table:", error);
             setError("Không thể kết nối đến server. Vui lòng thử lại sau.");
-            setCustomerData([]);
-            setTotalItems(0);
-            setTotalPages(1);
+            setAllCustomerData([]);
         } finally {
             setLoadingTable(false);
         }
     };
 
-    // ===== HANDLE FILTER CHANGE =====
-    const handleFilterChange = (filterName, value) => {
-        // Không tự động clear cái kia nữa, cho phép chọn cả hai
-        setFilters((prev) => ({
-            ...prev,
-            [filterName]: value,
-        }));
+    // Lọc dữ liệu theo ngày
+    const filterDataByDate = () => {
+        if (!appliedDate) {
+            // Nếu không có filter, hiển thị tất cả dữ liệu
+            setCustomerData(allCustomerData);
+        } else {
+            // Lọc dữ liệu theo đúng ngày đã chọn
+            const filtered = allCustomerData.filter((item) => {
+                const itemDate =
+                    item.operation_date ||
+                    item.date ||
+                    item.createdAt ||
+                    item.day;
+                if (!itemDate) return false;
 
-        // Xóa lỗi filter khi người dùng thay đổi
-        if (filterError) setFilterError("");
+                // Chuyển đổi ngày về định dạng YYYY-MM-DD để so sánh
+                let formattedItemDate = "";
+                if (itemDate.includes("T")) {
+                    formattedItemDate = itemDate.split("T")[0];
+                } else if (itemDate.includes(" ")) {
+                    formattedItemDate = itemDate.split(" ")[0];
+                } else {
+                    formattedItemDate = itemDate;
+                }
+
+                console.log(`So sánh: ${formattedItemDate} === ${appliedDate}`);
+                return formattedItemDate === appliedDate;
+            });
+
+            console.log(
+                `Tìm thấy ${filtered.length} bản ghi cho ngày ${appliedDate}`,
+            );
+            setCustomerData(filtered);
+        }
     };
 
-    const handleApplyFilters = () => {
-        // Kiểm tra tính hợp lệ trước khi áp dụng
-        if (filters.date && filters.month) {
-            if (!isDateInMonth(filters.date, filters.month)) {
-                setFilterError(
-                    `Ngày ${formatDateInput(filters.date)} không nằm trong tháng ${filters.month}`,
-                );
-                return;
-            }
-        }
+    // Cập nhật phân trang
+    const updatePagination = () => {
+        const total = customerData.length;
+        const totalPagesCount = Math.ceil(total / pageSize);
 
-        setFilterError("");
-        setAppliedFilters({
-            date: filters.date,
-            month: filters.month,
-        });
+        setTotalItems(total);
+        setTotalPages(totalPagesCount);
+
+        // Đảm bảo currentPage không vượt quá totalPages
+        if (currentPage > totalPagesCount && totalPagesCount > 0) {
+            setCurrentPage(totalPagesCount);
+        }
+    };
+
+    // Lấy dữ liệu cho trang hiện tại
+    const getCurrentPageData = () => {
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return customerData.slice(startIndex, endIndex);
+    };
+
+    // ===== HANDLE FILTER =====
+    const handleApplyFilter = () => {
+        setAppliedDate(selectedDate);
         setCurrentPage(1);
     };
 
-    const handleResetFilters = () => {
-        setFilters({
-            date: "",
-            month: "",
-        });
-        setAppliedFilters({
-            date: "",
-            month: "",
-        });
-        setFilterError("");
+    const handleResetFilter = () => {
+        setSelectedDate("");
+        setAppliedDate("");
         setCurrentPage(1);
     };
 
@@ -325,6 +276,9 @@ const Customers = () => {
         );
     };
 
+    // Lấy dữ liệu hiển thị cho trang hiện tại
+    const currentPageData = getCurrentPageData();
+
     return (
         <div className="p-8 max-w-6xl mx-auto">
             {/* Header */}
@@ -377,123 +331,33 @@ const Customers = () => {
                     Bộ lọc tìm kiếm
                 </h3>
 
-                {/* Hiển thị lỗi filter */}
-                {filterError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                        ⚠️ {filterError}
-                    </div>
-                )}
+                <div className="flex gap-4">
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] flex-1"
+                        placeholder="Chọn ngày"
+                    />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                        <input
-                            type="date"
-                            value={filters.date}
-                            onChange={(e) =>
-                                handleFilterChange("date", e.target.value)
-                            }
-                            className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] w-full"
-                        />
-                        {filters.date &&
-                            filters.month &&
-                            !isDateInMonth(filters.date, filters.month) && (
-                                <div className="absolute -top-2 left-2 text-xs text-red-600 bg-red-50 px-2 rounded whitespace-nowrap">
-                                    ⚠️ Ngày không hợp lệ
-                                </div>
-                            )}
-                    </div>
-                    <div className="relative">
-                        <select
-                            value={filters.month}
-                            onChange={(e) =>
-                                handleFilterChange("month", e.target.value)
-                            }
-                            className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] w-full"
-                        >
-                            <option value="">Tất cả tháng</option>
-                            <option value="2026-01">Tháng 1/2026</option>
-                            <option value="2026-02">Tháng 2/2026</option>
-                            <option value="2026-03">Tháng 3/2026</option>
-                            <option value="2026-04">Tháng 4/2026</option>
-                            <option value="2026-05">Tháng 5/2026</option>
-                            <option value="2026-06">Tháng 6/2026</option>
-                            <option value="2026-07">Tháng 7/2026</option>
-                            <option value="2026-08">Tháng 8/2026</option>
-                            <option value="2026-09">Tháng 9/2026</option>
-                            <option value="2026-10">Tháng 10/2026</option>
-                            <option value="2026-11">Tháng 11/2026</option>
-                            <option value="2026-12">Tháng 12/2026</option>
-                        </select>
-                    </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={handleApplyFilters}
-                            className="flex-1 flex items-center justify-center gap-2 bg-[#10BC5D] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
+                            onClick={handleApplyFilter}
+                            className="flex items-center justify-center gap-2 bg-[#10BC5D] text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
                         >
                             <Filter size={16} />
                             Lọc dữ liệu
                         </button>
-                        {(appliedFilters.date || appliedFilters.month) && (
+                        {appliedDate && (
                             <button
-                                onClick={handleResetFilters}
-                                className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                                onClick={handleResetFilter}
+                                className="px-6 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
                             >
                                 Xóa lọc
                             </button>
                         )}
                     </div>
                 </div>
-
-                {/* Hiển thị filter đang áp dụng */}
-                {(appliedFilters.date || appliedFilters.month) && (
-                    <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
-                        <span className="text-sm text-gray-500">
-                            Đang lọc theo:
-                        </span>
-                        {appliedFilters.date && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                Ngày: {formatDateInput(appliedFilters.date)}
-                                <button
-                                    onClick={() => {
-                                        setAppliedFilters((prev) => ({
-                                            ...prev,
-                                            date: "",
-                                        }));
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            date: "",
-                                        }));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="ml-1 hover:text-blue-900"
-                                >
-                                    ×
-                                </button>
-                            </span>
-                        )}
-                        {appliedFilters.month && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-lg text-xs">
-                                Tháng: {appliedFilters.month}
-                                <button
-                                    onClick={() => {
-                                        setAppliedFilters((prev) => ({
-                                            ...prev,
-                                            month: "",
-                                        }));
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            month: "",
-                                        }));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="ml-1 hover:text-green-900"
-                                >
-                                    ×
-                                </button>
-                            </span>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Table */}
@@ -541,7 +405,7 @@ const Customers = () => {
                                         <button
                                             onClick={() => {
                                                 setCurrentPage(1);
-                                                fetchCustomers();
+                                                fetchAllCustomers();
                                             }}
                                             className="text-[#10BC5D] underline hover:text-green-600"
                                         >
@@ -549,24 +413,19 @@ const Customers = () => {
                                         </button>
                                     </td>
                                 </tr>
-                            ) : customerData.length === 0 ? (
+                            ) : currentPageData.length === 0 ? (
                                 <tr>
                                     <td
                                         colSpan="3"
                                         className="text-center py-8 text-gray-500"
                                     >
-                                        {appliedFilters.date &&
-                                        appliedFilters.month
-                                            ? `Không có dữ liệu cho ngày ${formatDateInput(appliedFilters.date)} trong tháng ${appliedFilters.month}`
-                                            : appliedFilters.date
-                                              ? `Không có dữ liệu cho ngày ${formatDateInput(appliedFilters.date)}`
-                                              : appliedFilters.month
-                                                ? `Không có dữ liệu cho tháng ${appliedFilters.month}`
-                                                : "Không có dữ liệu"}
+                                        {appliedDate
+                                            ? `Không có dữ liệu cho ngày ${formatDateInput(appliedDate)}`
+                                            : "Không có dữ liệu"}
                                     </td>
                                 </tr>
                             ) : (
-                                customerData.map((row, index) => (
+                                currentPageData.map((row, index) => (
                                     <tr
                                         key={index}
                                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
