@@ -423,9 +423,8 @@ export default function Manager_Dish_Kitchen() {
     try {
       const res = await getAll_Dish(p, ITEMS_PER_PAGE);
 
-      const data = res.data;
-      console.log(res.data);
-      
+      const data = res.data.data;
+      console.log(res.data.data);
 
       setGetAll_Dishes(data.data || []);
       setTotal(data.total || 0);

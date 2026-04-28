@@ -4,7 +4,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import Logo from "../assets/Logo.svg";
 import { toast } from "sonner";
-import Loading  from "../components/Layout/Loading";
+import Loading from "../components/Layout/Loading";
 
 function Login() {
     const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +38,8 @@ function Login() {
                 email: form.email.trim(),
                 password: form.password,
             }
+            if (!clearnForm.email.endsWith("@gmail.com"))
+            return toast.error("Email không hợp lệ!");
 
             const res = await axios.post("https://system-waste-less-ai.onrender.com/api/auth/login",
                 clearnForm
@@ -58,16 +60,24 @@ function Login() {
                 navigate("/admin/dashboard");
             }
         } catch (error) {
-            console.log("lỗi", error);
-            // const message = error.response?.data?.message || "Đăng nhập thất bại";
-            toast.error("Email hoặc mật khẩu không đúng!");
+            const status = error.response?.status;
+            if (status === 403) {
+                const reason = error.response?.data?.reason;
+                toast.error(
+                    `Tài khoản của bạn đã bị khóa${reason ? `: ${reason}` : ""}`
+                );
+                return;
+            }
+            toast.error(
+                "Email hoặc mật khẩu không đúng!"
+            );
         } finally {
             setLoading(false);
         }
     };
     return (
         <>
-            {loading && <Loading/>}
+            {loading && <Loading />}
             <form className="min-h-screen bg-gray-100">
                 {/* Header */}
                 <div className="flex justify-between items-center px-4 py-2 bg-white shadow-sm">
