@@ -64,7 +64,6 @@ function AddPeopleForm({ onClose }) {
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    // ← THÊM CẢ ĐOẠN NÀY (đặt sau 3 state trên)
     const fetchCustomerCount = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -76,15 +75,11 @@ function AddPeopleForm({ onClose }) {
                     },
                 },
             );
-
             console.log("Customer count response:", response.data);
-
-            // Giả sử API trả về data là số lượng khách
             const customerCount =
                 response.data?.data?.customer_count ||
                 response.data?.customer_count ||
                 response.data;
-
             if (customerCount && typeof customerCount === "number") {
                 setEntries([
                     {
@@ -100,7 +95,6 @@ function AddPeopleForm({ onClose }) {
             setLoading(false);
         }
     };
-
     useEffect(() => {
         fetchCustomerCount();
     }, []);
@@ -111,13 +105,11 @@ function AddPeopleForm({ onClose }) {
             setError("Vui lòng nhập số lượng người!");
             return;
         }
-
         // Validation: Kiểm tra số không hợp lệ
         if (isNaN(count) || Number(count) <= 0) {
             setError("Số lượng người phải là số và lớn hơn 0!");
             return;
         }
-
         // Clear error trước khi gọi API
         setError("");
 
