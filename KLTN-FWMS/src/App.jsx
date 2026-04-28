@@ -1,5 +1,5 @@
 import React from "react";
-import { HashRouter as Router, Routes, Route ,Navigate} from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 
 
@@ -7,7 +7,6 @@ import { Toaster } from "sonner";
 import Layout from "./components/Layout/Layout";
 import KitchenLayout from "./components/Layout/KitchenLayout";
 import { LayoutAdmin } from "./components/Layout/LayoutAdmin";
-
 
 // Routes bảo vệ
 import PrivateRoute from "./components/PrivateRoute";
@@ -117,10 +116,10 @@ function App() {
                         <Route index element={<Navigate to="dashboard" replace />} />
                         <Route path="dashboard" element={<AdminDashboard />} />
 
-                         <Route path="user" element={<Accountmanagement />} />
+                        <Route path="user" element={<Accountmanagement />} />
 
                         <Route path="storeManager" element={<StoreManager />} />
-                        
+
 
 
                     </Route>
