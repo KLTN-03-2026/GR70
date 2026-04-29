@@ -495,7 +495,21 @@ async SumWasteByMonth(brandID, month = null) {
     return result;
   }
   // chi tiết giao dịch tháng này
-  async TransactionByMonth(brandID,month,options) {
+  async TransactionByMonth(brandID,month,date,options) {
+    const operationWhere = {
+    brand_id: brandID,
+  };
+  if (date) {
+    operationWhere.operation_date = date; 
+    // hoặc nếu date có giờ thì nên dùng khoảng:
+    // operationWhere.operation_date = {
+    //   [Op.between]: [dayjs(date).startOf('day'), dayjs(date).endOf('day')]
+    // };
+  } else {
+    operationWhere.operation_date = {
+      [Op.between]: [month.startDate, month.endDate],
+    };
+  }
     const result = await pagination.getPagination({
       model: DailyDetailModel,
       attributes: ["id","revenue_cost",
@@ -509,12 +523,7 @@ async SumWasteByMonth(brandID, month = null) {
           model: DailyOperationModel,
           attributes: ["operation_date"],
           required: true,
-          where: {
-            brand_id: brandID,
-            operation_date: {
-              [Op.between]: [month.startDate, month.endDate],
-            },
-          },
+          where: operationWhere,
         },{
           model: DishModel,
           attributes: ["name"],
