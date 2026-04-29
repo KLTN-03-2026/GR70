@@ -42,7 +42,7 @@ const KitchenLayout = () => {
                 }
             );
 
-            console.log("API LOCK:", res.data); // 🔥 debug
+            console.log("API LOCK:", res.data); //
 
             const data = res.data.data;
 
@@ -115,7 +115,7 @@ const KitchenLayout = () => {
                         <button
                             onClick={() => {
                                 localStorage.removeItem("token");
-                                window.location.href = "/login";
+                                window.location.href = "/#/";
                             }}
                             className="w-full bg-red-500 hover:bg-red-600 transition text-white py-2.5 rounded-lg font-medium"
                         >

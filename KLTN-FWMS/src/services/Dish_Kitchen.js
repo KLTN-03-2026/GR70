@@ -2,7 +2,7 @@ import api from "./api"
 
 export const getAll_Dish = async (page = 1, limit = 15) => {
     try {
-        return await api.get(`kitchen/get-all-dishes?page=${page}&size=${limit}`);
+        return await api.get(`dishes/get-all-dishes?page=${page}&size=${limit}`);
     } catch (error) {
         throw console.log(error);
     }
