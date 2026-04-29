@@ -128,25 +128,37 @@ export const Row_Account_Staff = () => {
         }
     }
 
-    const Lock_UnLock_Kitchen = async (id, currentStatus) => {
-        const confirm = window.confirm(
-            currentStatus ? "Khóa tài khoản này" : "Mở tài khoản này"
-        );
-        if (!confirm) return;
-        console.log(currentStatus);
+    // Khóa tài khoản có reason 
+    const [openLockModal, setOpenLockModal] = useState(false);
+    const [lockReason, setLockReason] = useState("");
+    const [targetLock, setTargetLock] = useState(null);
+    // Mở tài khoản
+    const [openUnlockModal, setOpenUnlockModal] = useState(false);
+    const [targetUnlock, setTargetUnlock] = useState(null);
 
+    const Lock_UnLock_Kitchen = (id, currentStatus) => {
+        if (currentStatus) {
+            // 👉 đang active → lock
+            setTargetLock({ id, currentStatus });
+            setOpenLockModal(true);
+        } else {
+            // 👉 đang locked → unlock
+            setTargetUnlock({ id, currentStatus });
+            setOpenUnlockModal(true);
+        }
+    };
+
+    const handleSubmitLock = async (id, currentStatus, reason) => {
         try {
-            let Url = "";
-            if (currentStatus) {
-                Url = `https://system-waste-less-ai.onrender.com/api/users/lock-kitchen/${id}`;
-            } else {
-                Url = `https://system-waste-less-ai.onrender.com/api/users/unlock-kitchen/${id}`;
-                console.log(Url);
+            let Url = currentStatus
+                ? `https://system-waste-less-ai.onrender.com/api/users/lock-kitchen/${id}`
+                : `https://system-waste-less-ai.onrender.com/api/users/unlock-kitchen/${id}`;
 
-            }
-            const res = await axios.put(Url,
+            const res = await axios.put(
+                Url,
                 {
                     status: !currentStatus,
+                    reason: reason,
                 },
                 {
                     headers: {
@@ -154,7 +166,10 @@ export const Row_Account_Staff = () => {
                     },
                 }
             );
+
             if (res.data.success) {
+                toast.success(currentStatus ? "Đã khóa tài khoản" : "Đã mở khóa");
+
                 setDatastaff(prev =>
                     prev.map(staff =>
                         staff.id === id
@@ -163,12 +178,13 @@ export const Row_Account_Staff = () => {
                     )
                 );
             }
+
         } catch (error) {
             console.log(error);
-
+            toast.error("Có lỗi xảy ra!");
         }
-    }
-    // console.log(datastaff);
+    };
+
 
     const renderPagination = () => {
         if (totalPages <= 1 || total === 0) return null;
@@ -265,6 +281,117 @@ export const Row_Account_Staff = () => {
 
     return (
         <>
+            {
+                openUnlockModal && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white w-full max-w-[450px] rounded-2xl shadow-xl p-6">
+
+                            {/* Icon */}
+                            <div className="flex justify-center mb-4">
+                                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i className="fa-solid fa-lock-open text-green-500 text-xl"></i>
+                                </div>
+                            </div>
+
+                            {/* Title */}
+                            <h2 className="text-xl font-bold text-center mb-2 text-slate-800">
+                                Mở khóa tài khoản
+                            </h2>
+
+                            <p className="text-sm text-slate-500 text-center mb-5">
+                                Bạn có chắc chắn muốn mở khóa tài khoản này không?
+                            </p>
+
+                            {/* Actions */}
+                            <div className="flex justify-center gap-3 mt-4">
+
+                                <button
+                                    onClick={() => {
+                                        setOpenUnlockModal(false);
+                                    }}
+                                    className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                                >
+                                    Hủy
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        handleSubmitLock(
+                                            targetUnlock.id,
+                                            targetUnlock.currentStatus,
+                                            "" // 👉 unlock không cần reason
+                                        );
+
+                                        setOpenUnlockModal(false);
+                                    }}
+                                    className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                                >
+                                    Xác nhận mở
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            {
+                openLockModal && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white w-full max-w-[500px] rounded-2xl shadow-xl p-6">
+
+                            {/* Title */}
+                            <h2 className="text-xl font-bold mb-2 text-slate-800">
+                                Khóa tài khoản
+                            </h2>
+                            <p className="text-sm text-slate-500 mb-4">
+                                Vui lòng nhập lý do khóa tài khoản nhân viên này
+                            </p>
+
+                            {/* Input */}
+                            <textarea
+                                value={lockReason}
+                                onChange={(e) => setLockReason(e.target.value)}
+                                placeholder="Nhập lý do..."
+                                className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
+                            />
+
+                            {/* Actions */}
+                            <div className="flex justify-end gap-3 mt-5">
+                                <button
+                                    onClick={() => {
+                                        setOpenLockModal(false);
+                                        setLockReason("");
+                                    }}
+                                    className="px-4 py-2 border rounded-lg"
+                                >
+                                    Hủy
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        if (!lockReason.trim()) {
+                                            toast.error("Vui lòng nhập lý do!");
+                                            return;
+                                        }
+
+                                        handleSubmitLock(
+                                            targetLock.id,
+                                            targetLock.currentStatus,
+                                            lockReason
+                                        );
+
+                                        setOpenLockModal(false);
+                                        setLockReason("");
+                                    }}
+                                    className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                                >
+                                    Xác nhận khóa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
             <div className={`w-full gap-8 transition-all duration-300 flex relative`}>
                 {/* Table Section */}
 

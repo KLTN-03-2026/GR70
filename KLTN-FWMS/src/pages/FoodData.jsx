@@ -3,38 +3,24 @@ import { Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
 const FoodData = () => {
     // ===== STATE =====
+    const [allFoodData, setAllFoodData] = useState([]); // Lưu toàn bộ dữ liệu
     const [foodData, setFoodData] = useState([]);
     const [totalDish, setTotalDish] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filterError, setFilterError] = useState(""); // State cho lỗi filter
     const [categories, setCategories] = useState([]);
 
     // ===== FILTER STATE =====
-    const [filters, setFilters] = useState({
-        date: "",
-        month: "",
-        categoryId: "",
-    });
-
-    // State lưu filter đã áp dụng
-    const [appliedFilters, setAppliedFilters] = useState({
-        date: "",
-        month: "",
-        categoryId: "",
-    });
+    const [selectedDate, setSelectedDate] = useState("");
+    const [selectedCategoryId, setSelectedCategoryId] = useState("");
+    const [appliedDate, setAppliedDate] = useState("");
+    const [appliedCategoryId, setAppliedCategoryId] = useState("");
 
     // ===== PAGINATION STATE =====
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(5);
-
-    // Kiểm tra ngày có nằm trong tháng đã chọn không
-    const isDateInMonth = (date, month) => {
-        if (!date || !month) return true;
-        return date.startsWith(month);
-    };
 
     // Lấy ngày hiện tại theo định dạng YYYY-MM-DD
     const getTodayDate = () => {
@@ -48,10 +34,7 @@ const FoodData = () => {
     // ===== FETCH CATEGORIES =====
     useEffect(() => {
         fetchCategories();
-        // Set ngày hiện tại làm filter mặc định
-        const today = getTodayDate();
-        setFilters((prev) => ({ ...prev, date: today }));
-        setAppliedFilters((prev) => ({ ...prev, date: today }));
+        fetchAllFoodData(); // Load tất cả dữ liệu ban đầu
     }, []);
 
     const fetchCategories = async () => {
@@ -75,54 +58,17 @@ const FoodData = () => {
         }
     };
 
-    // ===== CALL API =====
-    useEffect(() => {
-        // Kiểm tra tính hợp lệ trước khi gọi API
-        if (appliedFilters.date && appliedFilters.month) {
-            if (!isDateInMonth(appliedFilters.date, appliedFilters.month)) {
-                setFilterError(
-                    `Ngày ${formatDateInput(appliedFilters.date)} không nằm trong tháng đã chọn (${appliedFilters.month})`,
-                );
-                setFoodData([]);
-                setTotalItems(0);
-                setTotalPages(1);
-                setTotalDish(0);
-                setLoading(false);
-                return;
-            }
-        }
-        setFilterError("");
-        fetchFoodData();
-    }, [currentPage, appliedFilters]);
-
-    const fetchFoodData = async () => {
+    // Hàm lấy tất cả dữ liệu (không filter)
+    const fetchAllFoodData = async () => {
         try {
             setLoading(true);
             setError(null);
 
             const token = localStorage.getItem("token");
-            let url = `https://system-waste-less-ai.onrender.com/api/consumption/list-dishes-output-lastday?page=${currentPage}&size=${pageSize}`;
+            // Lấy nhiều dữ liệu để có đủ cho filter
+            let url = `https://system-waste-less-ai.onrender.com/api/consumption/list-dishes-output-lastday?page=1&size=1000`;
 
-            // Ưu tiên lọc theo ngày nếu có, nếu không thì lọc theo tháng
-            if (appliedFilters.date) {
-                url += `&operation_date=${appliedFilters.date}`;
-            } else if (appliedFilters.month) {
-                url += `&month=${appliedFilters.month}`;
-            }
-
-            // GỬI CATEGORY ID LÊN API
-            if (appliedFilters.categoryId) {
-                url += `&category=${appliedFilters.categoryId}`;
-            }
-
-            console.log("Calling API with params:", {
-                page: currentPage,
-                size: pageSize,
-                operation_date: appliedFilters.date || undefined,
-                month: appliedFilters.month || undefined,
-                category: appliedFilters.categoryId || undefined,
-            });
-            console.log("Full URL:", url);
+            console.log("Fetching all data from:", url);
 
             const res = await fetch(url, {
                 headers: {
@@ -130,81 +76,43 @@ const FoodData = () => {
                 },
             });
             const data = await res.json();
-            console.log("API Response:", data);
+            console.log("All Data Response:", data);
 
             if (data.success) {
                 let dishesArray = [];
-                let totalItemsFromAPI = 0;
-                let totalPagesFromAPI = 1;
-                let sumDish = 0;
 
                 if (
                     data.data?.dishesOutput?.data &&
                     Array.isArray(data.data.dishesOutput.data)
                 ) {
                     dishesArray = data.data.dishesOutput.data;
-                    totalItemsFromAPI = data.data.dishesOutput.total || 0;
-                    totalPagesFromAPI = data.data.dishesOutput.totalPages || 1;
-                    sumDish = data.data.sumDish || 0;
-
-                    console.log(
-                        "Filtered by API - Total items:",
-                        totalItemsFromAPI,
-                    );
-                    console.log(
-                        "Filtered by API - Dishes count:",
-                        dishesArray.length,
-                    );
-                    console.log("Total pages:", totalPagesFromAPI);
                 } else if (Array.isArray(data.data?.dishesOutput)) {
                     dishesArray = data.data.dishesOutput;
-                    totalItemsFromAPI = dishesArray.length;
-                    totalPagesFromAPI = Math.ceil(
-                        dishesArray.length / pageSize,
-                    );
-                    sumDish = data.data.sumDish || 0;
                 } else if (Array.isArray(data.data)) {
                     dishesArray = data.data;
-                    totalItemsFromAPI = dishesArray.length;
-                    totalPagesFromAPI = Math.ceil(
-                        dishesArray.length / pageSize,
-                    );
-                    sumDish = dishesArray.reduce(
-                        (sum, item) => sum + (item.quantity_prepared || 0),
-                        0,
-                    );
                 } else {
                     dishesArray = [];
-                    totalItemsFromAPI = 0;
-                    totalPagesFromAPI = 1;
-                    sumDish = 0;
                 }
 
-                // Lọc thủ công nếu có cả date và month (đã kiểm tra hợp lệ ở trên)
-                let filteredData = [...dishesArray];
+                setAllFoodData(dishesArray);
 
-                if (appliedFilters.date && appliedFilters.month) {
-                    // Lọc theo ngày cụ thể
-                    filteredData = filteredData.filter((item) => {
-                        const itemDate =
-                            item.daily_operation?.operation_date || "";
-                        return (
-                            itemDate &&
-                            itemDate.split("T")[0] === appliedFilters.date
-                        );
-                    });
-                    totalItemsFromAPI = filteredData.length;
-                    totalPagesFromAPI = Math.ceil(
-                        filteredData.length / pageSize,
-                    );
-                }
-
-                setFoodData(filteredData);
+                // Hiển thị tất cả dữ liệu ban đầu
+                setFoodData(dishesArray);
+                const sumDish = dishesArray.reduce(
+                    (sum, item) => sum + (item.quantity_prepared || 0),
+                    0,
+                );
                 setTotalDish(sumDish);
-                setTotalItems(totalItemsFromAPI);
-                setTotalPages(totalPagesFromAPI);
+
+                // Cập nhật phân trang
+                const total = dishesArray.length;
+                const pages = Math.ceil(total / pageSize);
+                setTotalItems(total);
+                setTotalPages(pages);
+                setCurrentPage(1);
             } else {
                 setError(data.message || "Không thể tải dữ liệu");
+                setAllFoodData([]);
                 setFoodData([]);
                 setTotalItems(0);
                 setTotalPages(1);
@@ -212,6 +120,7 @@ const FoodData = () => {
         } catch (error) {
             console.error("Lỗi API:", error);
             setError("Không thể kết nối đến server. Vui lòng thử lại sau.");
+            setAllFoodData([]);
             setFoodData([]);
             setTotalItems(0);
             setTotalPages(1);
@@ -220,60 +129,86 @@ const FoodData = () => {
         }
     };
 
-    // ===== HANDLE FILTER CHANGE =====
-    const handleFilterChange = (filterName, value) => {
-        // Không tự động clear cái kia nữa, cho phép chọn cả hai
-        setFilters((prev) => ({
-            ...prev,
-            [filterName]: value,
-        }));
+    // Hàm lọc dữ liệu từ allFoodData
+    const applyFilters = () => {
+        setLoading(true);
 
-        // Xóa lỗi filter khi người dùng thay đổi
-        if (filterError) setFilterError("");
-    };
+        let filtered = [...allFoodData];
 
-    const handleApplyFilters = () => {
-        // Kiểm tra tính hợp lệ trước khi áp dụng
-        if (filters.date && filters.month) {
-            if (!isDateInMonth(filters.date, filters.month)) {
-                setFilterError(
-                    `Ngày ${formatDateInput(filters.date)} không nằm trong tháng ${filters.month}`,
+        // Lọc theo ngày (nếu có)
+        if (appliedDate) {
+            filtered = filtered.filter((item) => {
+                const operationDate =
+                    item.daily_operation?.operation_date || "";
+                return (
+                    operationDate && operationDate.split("T")[0] === appliedDate
                 );
-                return;
-            }
+            });
         }
 
-        setFilterError("");
-        setAppliedFilters({
-            date: filters.date,
-            month: filters.month,
-            categoryId: filters.categoryId,
-        });
+        // Lọc theo category (nếu có)
+        if (appliedCategoryId) {
+            filtered = filtered.filter((item) => {
+                return item.dish?.category_id === appliedCategoryId;
+            });
+        }
+
+        console.log(`Filtered: ${filtered.length} records`);
+
+        setFoodData(filtered);
+
+        // Tính tổng số suất
+        const sumDish = filtered.reduce(
+            (sum, item) => sum + (item.quantity_prepared || 0),
+            0,
+        );
+        setTotalDish(sumDish);
+
+        // Cập nhật phân trang
+        const total = filtered.length;
+        const pages = Math.ceil(total / pageSize);
+        setTotalItems(total);
+        setTotalPages(pages);
         setCurrentPage(1);
+
+        setLoading(false);
+    };
+
+    // Khi appliedDate hoặc appliedCategoryId thay đổi, áp dụng filter
+    useEffect(() => {
+        if (allFoodData.length > 0) {
+            applyFilters();
+        }
+    }, [appliedDate, appliedCategoryId, allFoodData]);
+
+    // ===== HANDLE FILTER =====
+    const handleApplyFilters = () => {
+        setAppliedDate(selectedDate);
+        setAppliedCategoryId(selectedCategoryId);
     };
 
     const handleResetFilters = () => {
-        const today = getTodayDate();
-        setFilters({
-            date: today,
-            month: "",
-            categoryId: "",
-        });
-        setAppliedFilters({
-            date: today,
-            month: "",
-            categoryId: "",
-        });
-        setFilterError("");
+        // Reset input về trạng thái ban đầu
+        setSelectedDate(""); // Xóa ngày đã chọn trên input
+        setSelectedCategoryId("");
+        // Reset applied filter về rỗng để hiển thị TẤT CẢ dữ liệu
+        setAppliedDate("");
+        setAppliedCategoryId("");
         setCurrentPage(1);
     };
 
     // ===== PAGINATION FUNCTIONS =====
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
-            console.log("Changing to page:", newPage);
             setCurrentPage(newPage);
         }
+    };
+
+    // Lấy dữ liệu cho trang hiện tại
+    const getCurrentPageData = () => {
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return foodData.slice(startIndex, endIndex);
     };
 
     const getCategoryName = (categoryId) => {
@@ -371,6 +306,13 @@ const FoodData = () => {
         }
     };
 
+    // Kiểm tra có filter đang áp dụng không
+    const hasActiveFilters = () => {
+        return appliedDate !== "" || appliedCategoryId !== "";
+    };
+
+    const currentPageData = getCurrentPageData();
+
     return (
         <div className="p-2 max-w-6xl mx-auto">
             {/* Header */}
@@ -404,94 +346,63 @@ const FoodData = () => {
                         </span>
                         <span className="text-base text-[#141C21]">Suất</span>
                     </div>
-                    <span className="text-sm text-[#10BC5D] bg-green-50 px-4 py-2 rounded-full font-medium">
-                        Dữ liệu hôm nay
-                    </span>
                 </div>
             </div>
 
             {/* Filter */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
                 <h3 className="text-base font-semibold text-[#141C21] mb-4">
                     Bộ lọc tìm kiếm
                 </h3>
 
-                {/* Hiển thị lỗi filter */}
-                {filterError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                        ⚠️ {filterError}
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="relative">
+                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                    {/* Ô chọn ngày */}
+                    <div className="flex-1">
+                        <label className="block text-sm text-gray-600 mb-2">
+                            Chọn ngày
+                        </label>
                         <input
                             type="date"
-                            value={filters.date}
-                            onChange={(e) =>
-                                handleFilterChange("date", e.target.value)
-                            }
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
                             className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] w-full"
                         />
-                        {filters.date &&
-                            filters.month &&
-                            !isDateInMonth(filters.date, filters.month) && (
-                                <div className="absolute -top-2 left-2 text-xs text-red-600 bg-red-50 px-2 rounded whitespace-nowrap">
-                                    ⚠️ Ngày không hợp lệ
-                                </div>
-                            )}
                     </div>
-                    <div className="relative">
+
+                    {/* Select loại món */}
+                    <div className="flex-1">
+                        <label className="block text-sm text-gray-600 mb-2">
+                            Loại món
+                        </label>
                         <select
-                            value={filters.month}
+                            value={selectedCategoryId}
                             onChange={(e) =>
-                                handleFilterChange("month", e.target.value)
+                                setSelectedCategoryId(e.target.value)
                             }
                             className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] w-full"
                         >
-                            <option value="">Tất cả tháng</option>
-                            <option value="2026-01">Tháng 1/2026</option>
-                            <option value="2026-02">Tháng 2/2026</option>
-                            <option value="2026-03">Tháng 3/2026</option>
-                            <option value="2026-04">Tháng 4/2026</option>
-                            <option value="2026-05">Tháng 5/2026</option>
-                            <option value="2026-06">Tháng 6/2026</option>
-                            <option value="2026-07">Tháng 7/2026</option>
-                            <option value="2026-08">Tháng 8/2026</option>
-                            <option value="2026-09">Tháng 9/2026</option>
-                            <option value="2026-10">Tháng 10/2026</option>
-                            <option value="2026-11">Tháng 11/2026</option>
-                            <option value="2026-12">Tháng 12/2026</option>
+                            <option value="">Tất cả loại món</option>
+                            {categories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                    {category.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
-                    <select
-                        value={filters.categoryId}
-                        onChange={(e) =>
-                            handleFilterChange("categoryId", e.target.value)
-                        }
-                        className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D]"
-                    >
-                        <option value="">Tất cả loại món</option>
-                        {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.name}
-                            </option>
-                        ))}
-                    </select>
+
+                    {/* Nhóm nút bấm */}
                     <div className="flex gap-2">
                         <button
                             onClick={handleApplyFilters}
-                            className="flex-1 flex items-center justify-center gap-2 bg-[#10BC5D] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
+                            className="flex items-center justify-center gap-2 bg-[#10BC5D] text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors whitespace-nowrap"
                         >
                             <Filter size={16} />
                             Lọc dữ liệu
                         </button>
-                        {(appliedFilters.date !== getTodayDate() ||
-                            appliedFilters.month ||
-                            appliedFilters.categoryId) && (
+                        {hasActiveFilters() && (
                             <button
                                 onClick={handleResetFilters}
-                                className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                                className="px-6 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors whitespace-nowrap"
                             >
                                 Xóa lọc
                             </button>
@@ -500,76 +411,19 @@ const FoodData = () => {
                 </div>
 
                 {/* Hiển thị filter đang áp dụng */}
-                {(appliedFilters.date !== getTodayDate() ||
-                    appliedFilters.month ||
-                    appliedFilters.categoryId) && (
+                {hasActiveFilters() && (
                     <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
                         <span className="text-sm text-gray-500">
                             Đang lọc theo:
                         </span>
-                        {appliedFilters.date &&
-                            appliedFilters.date !== getTodayDate() && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs">
-                                    Ngày: {formatDate(appliedFilters.date)}
-                                    <button
-                                        onClick={() => {
-                                            setAppliedFilters((prev) => ({
-                                                ...prev,
-                                                date: "",
-                                            }));
-                                            setFilters((prev) => ({
-                                                ...prev,
-                                                date: "",
-                                            }));
-                                            setCurrentPage(1);
-                                        }}
-                                        className="ml-1 hover:text-blue-900"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            )}
-                        {appliedFilters.month && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-lg text-xs">
-                                Tháng: {appliedFilters.month}
-                                <button
-                                    onClick={() => {
-                                        setAppliedFilters((prev) => ({
-                                            ...prev,
-                                            month: "",
-                                        }));
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            month: "",
-                                        }));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="ml-1 hover:text-green-900"
-                                >
-                                    ×
-                                </button>
+                        {appliedDate && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs">
+                                Ngày: {formatDateInput(appliedDate)}
                             </span>
                         )}
-                        {appliedFilters.categoryId && (
+                        {appliedCategoryId && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs">
-                                Loại:{" "}
-                                {getCategoryName(appliedFilters.categoryId)}
-                                <button
-                                    onClick={() => {
-                                        setAppliedFilters((prev) => ({
-                                            ...prev,
-                                            categoryId: "",
-                                        }));
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            categoryId: "",
-                                        }));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="ml-1 hover:text-purple-900"
-                                >
-                                    ×
-                                </button>
+                                Loại: {getCategoryName(appliedCategoryId)}
                             </span>
                         )}
                     </div>
@@ -620,7 +474,7 @@ const FoodData = () => {
                                     <button
                                         onClick={() => {
                                             setCurrentPage(1);
-                                            fetchFoodData();
+                                            fetchAllFoodData();
                                         }}
                                         className="text-[#10BC5D] underline hover:text-green-600"
                                     >
@@ -628,25 +482,23 @@ const FoodData = () => {
                                     </button>
                                 </td>
                             </tr>
-                        ) : foodData.length === 0 ? (
+                        ) : currentPageData.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan="5"
                                     className="text-center py-8 text-gray-500"
                                 >
-                                    {appliedFilters.date && appliedFilters.month
-                                        ? `Không có dữ liệu cho ngày ${formatDateInput(appliedFilters.date)} trong tháng ${appliedFilters.month}`
-                                        : appliedFilters.categoryId
-                                          ? `Không có món ăn nào thuộc loại "${getCategoryName(appliedFilters.categoryId)}"`
-                                          : appliedFilters.date
-                                            ? `Không có dữ liệu cho ngày ${formatDateInput(appliedFilters.date)}`
-                                            : appliedFilters.month
-                                              ? `Không có dữ liệu cho tháng ${appliedFilters.month}`
-                                              : "Không có dữ liệu"}
+                                    {appliedCategoryId && appliedDate
+                                        ? `Không có món ăn nào thuộc loại "${getCategoryName(appliedCategoryId)}" cho ngày ${formatDateInput(appliedDate)}`
+                                        : appliedCategoryId
+                                          ? `Không có món ăn nào thuộc loại "${getCategoryName(appliedCategoryId)}"`
+                                          : appliedDate
+                                            ? `Không có dữ liệu cho ngày ${formatDateInput(appliedDate)}`
+                                            : "Không có dữ liệu"}
                                 </td>
                             </tr>
                         ) : (
-                            foodData.map((row, index) => {
+                            currentPageData.map((row, index) => {
                                 const operationDate =
                                     row.daily_operation?.operation_date || "";
                                 const dishName = row.dish?.name || "N/A";
@@ -688,29 +540,6 @@ const FoodData = () => {
                                 );
                             })
                         )}
-                        {/* Thêm các hàng trống để giữ chiều cao cố định khi ít data */}
-                        {!loading &&
-                            !error &&
-                            foodData.length > 0 &&
-                            foodData.length < pageSize && (
-                                <>
-                                    {Array.from({
-                                        length: pageSize - foodData.length,
-                                    }).map((_, idx) => (
-                                        <tr
-                                            key={`empty-${idx}`}
-                                            className="border-b"
-                                        >
-                                            <td
-                                                colSpan="5"
-                                                className="py-4 px-5"
-                                            >
-                                                &nbsp;
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </>
-                            )}
                     </tbody>
                 </table>
             </div>

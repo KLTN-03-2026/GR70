@@ -1,9 +1,8 @@
 import api from "./api"
 
-export const getAll_Dish = async () => {
+export const getAll_Dish = async (page = 1, limit = 15) => {
     try {
-        const res = await api.get("/kitchen/get-all-dishes");
-        return res.data;
+        return await api.get(`kitchen/get-all-dishes?page=${page}&size=${limit}`);
     } catch (error) {
         throw console.log(error);
     }
@@ -11,7 +10,7 @@ export const getAll_Dish = async () => {
 
 export const Create_Dish_Kitchen = async (data) => {
     try {
-        const res = await api.post("/kitchen/create-dishes-new", data);
+        const res = await api.post("kitchen/create-dishes-new", data);
         return res.data;
     } catch (error) {
         throw console.log(error);

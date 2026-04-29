@@ -31,7 +31,7 @@ class UserRepository {
     async getNotifactionReason(id) {
         return await UserModel.findOne({
             where: { id: id },
-            attributes: ['name','reason'],
+            attributes: ['name','reason',['status','isLocked']],
         });
     }
     // lấy danh sách nhân viên role Kitchen
