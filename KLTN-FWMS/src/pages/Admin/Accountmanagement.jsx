@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
     Eye,
-    Pencil,
     Users,
     ShieldCheck,
     Utensils
@@ -22,7 +21,7 @@ export default function Accountmanagement() {
 
     const [filterType, setFilterType] = useState("all");
 
-    // 🔥 CLIENT PAGINATION
+    // PAGINATION
     const [page, setPage] = useState(1);
     const pageSize = 10;
 
@@ -44,14 +43,15 @@ export default function Accountmanagement() {
                 const brands = res.data.data.data;
 
                 const formatted = brands.flatMap((brand) =>
-                    brand.users.map((user, index) => ({
-                        id: brand.id + "-" + index,
+                    brand.users.map((user) => ({
+                        id: brand.id + "_" + user.email, // ✅ unique id
+                        brandId: brand.id, // ✅ dùng cho detail
                         name: user.name,
                         email: user.email,
                         store: brand.name,
                         type: brand.rolebrand?.toLowerCase().trim(),
                         status: brand.status ? "active" : "inactive",
-                        kitchens: 0
+                        kitchens: brand.kitchens?.length || 0
                     }))
                 );
 
@@ -91,10 +91,10 @@ export default function Accountmanagement() {
         filterType === "all"
             ? data
             : data.filter(
-                  (item) =>
-                      item.type &&
-                      item.type.toLowerCase().trim() === filterType
-              );
+                (item) =>
+                    item.type &&
+                    item.type.toLowerCase().trim() === filterType
+            );
 
     // ================= PAGINATION =================
     const totalPages = Math.ceil(filteredData.length / pageSize);
@@ -117,11 +117,6 @@ export default function Accountmanagement() {
         }
     };
 
-    // ================= STATS =================
-    const totalAccounts = stats.sumAccount;
-    const totalManagers = stats.sumManager;
-    const totalKitchens = stats.sumKitchen;
-
     return (
         <div className="p-6 space-y-6">
 
@@ -139,7 +134,7 @@ export default function Accountmanagement() {
                 <div className="bg-gradient-to-r from-slate-700 to-slate-900 text-white p-4 rounded-xl flex justify-between">
                     <div>
                         <p className="text-sm">Tổng tài khoản</p>
-                        <h2 className="text-2xl font-bold">{totalAccounts}</h2>
+                        <h2 className="text-2xl font-bold">{stats.sumAccount}</h2>
                     </div>
                     <Users />
                 </div>
@@ -157,7 +152,7 @@ export default function Accountmanagement() {
                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-xl flex justify-between">
                     <div>
                         <p className="text-sm">Tổng Manager</p>
-                        <h2 className="text-2xl font-bold">{totalManagers}</h2>
+                        <h2 className="text-2xl font-bold">{stats.sumManager}</h2>
                     </div>
                     <Users />
                 </div>
@@ -165,7 +160,7 @@ export default function Accountmanagement() {
                 <div className="bg-gradient-to-r from-orange-400 to-orange-600 text-white p-4 rounded-xl flex justify-between">
                     <div>
                         <p className="text-sm">Tổng Kitchen</p>
-                        <h2 className="text-2xl font-bold">{totalKitchens}</h2>
+                        <h2 className="text-2xl font-bold">{stats.sumKitchen}</h2>
                     </div>
                     <Utensils />
                 </div>
@@ -190,25 +185,36 @@ export default function Accountmanagement() {
 
             {/* TABLE */}
             <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
+                <table className="w-full text-sm table-fixed">
+                    <thead className="bg-gray-100 text-gray-600 text-xs uppercase">
                         <tr>
-                            <th className="p-3">Manager</th>
-                            <th className="p-3">Email</th>
-                            <th className="p-3">Cửa hàng</th>
-                            <th className="p-3">Loại</th>
-                            <th className="p-3">Trạng thái</th>
-                            <th className="p-3">Kitchen</th>
-                            <th className="p-3">Thao tác</th>
+                            <th className="p-3 text-left w-[18%]">Manager</th>
+                            <th className="p-3 text-left w-[20%]">Email</th>
+                            <th className="p-3 text-left w-[18%]">Cửa hàng</th>
+                            <th className="p-3 text-left w-[12%]">Loại</th>
+                            <th className="p-3 text-left w-[14%]">Trạng thái</th>
+                            <th className="p-3 text-center w-[8%]">Kitchen</th>
+                            <th className="p-3 text-center w-[10%]">Thao tác</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         {paginatedData.map((item) => (
-                            <tr key={item.id} className="border-t hover:bg-gray-50">
-                                <td className="p-3">{item.name}</td>
-                                <td className="p-3">{item.email}</td>
-                                <td className="p-3">{item.store}</td>
+                            <tr
+                                key={item.id}
+                                className="border-t hover:bg-gray-50 transition"
+                            >
+                                <td className="p-3 font-medium text-gray-800">
+                                    {item.name}
+                                </td>
+
+                                <td className="p-3 text-gray-600">
+                                    {item.email}
+                                </td>
+
+                                <td className="p-3">
+                                    {item.store}
+                                </td>
 
                                 <td className="p-3">
                                     <span className="text-xs px-2 py-1 bg-gray-100 rounded">
@@ -218,11 +224,10 @@ export default function Accountmanagement() {
 
                                 <td className="p-3">
                                     <span
-                                        className={`px-2 py-1 rounded-full text-xs ${
-                                            item.status === "active"
-                                                ? "bg-green-100 text-green-600"
-                                                : "bg-gray-200 text-gray-500"
-                                        }`}
+                                        className={`px-2 py-1 rounded-full text-xs ${item.status === "active"
+                                            ? "bg-green-100 text-green-600"
+                                            : "bg-gray-200 text-gray-500"
+                                            }`}
                                     >
                                         {item.status === "active"
                                             ? "Hoạt động"
@@ -230,20 +235,19 @@ export default function Accountmanagement() {
                                     </span>
                                 </td>
 
-                                <td className="p-3">{item.kitchens}</td>
+                                {/* ✅ FIX LỆCH */}
+                                <td className="p-3 text-center align-middle">
+                                    {item.kitchens}
+                                </td>
 
-                                <td className="p-3 flex gap-2">
+                                <td className="p-3 text-center align-middle">
                                     <button
                                         onClick={() =>
-                                            navigate(`/admin/user/${item.id}/kitchens`)
+                                            navigate(`/admin/manager/${item.brandId}`)
                                         }
-                                        className="p-2 hover:bg-gray-100 rounded"
+                                        className="p-2 hover:bg-gray-100 rounded transition"
                                     >
                                         <Eye size={16} />
-                                    </button>
-
-                                    <button className="p-2 hover:bg-gray-100 rounded">
-                                        <Pencil size={16} />
                                     </button>
                                 </td>
                             </tr>
@@ -260,7 +264,6 @@ export default function Accountmanagement() {
 
                 {/* PAGINATION */}
                 <div className="flex justify-center items-center gap-2 p-4">
-
                     <button
                         onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                         disabled={page === 1}
@@ -273,11 +276,10 @@ export default function Accountmanagement() {
                         <button
                             key={i}
                             onClick={() => setPage(i + 1)}
-                            className={`px-3 py-1 border rounded ${
-                                page === i + 1
-                                    ? "bg-blue-500 text-white"
-                                    : ""
-                            }`}
+                            className={`px-3 py-1 border rounded ${page === i + 1
+                                ? "bg-blue-500 text-white"
+                                : ""
+                                }`}
                         >
                             {i + 1}
                         </button>
@@ -294,7 +296,6 @@ export default function Accountmanagement() {
                     >
                         →
                     </button>
-
                 </div>
             </div>
         </div>
