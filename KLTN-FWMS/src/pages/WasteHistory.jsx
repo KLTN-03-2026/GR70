@@ -1,5 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getListWasteByIngredient } from "../api/wasteHistoryApi";
+import {
+    getListWasteByIngredient,
+    getSumWasteByMonth,
+    getSumWasteByMonthCompare,
+} from "../api/wasteHistoryApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,17 +16,28 @@ const formatDateVN = (date) => {
 };
 
 export default function WasteHistory() {
-    const [allData, setAllData] = useState([]);
+    // State cho dữ liệu
     const [filteredData, setFilteredData] = useState([]);
     const [currentPageData, setCurrentPageData] = useState([]);
-    const [date, setDate] = useState(""); // State cho ô input date
-    const [appliedDate, setAppliedDate] = useState(""); // State cho date đã áp dụng filter
     const [loading, setLoading] = useState(false);
     const [filterError, setFilterError] = useState("");
+    const [selectedSuggestion, setSelectedSuggestion] = useState(null);
+
+    // State cho filter
+    const [date, setDate] = useState("");
+    const [appliedDate, setAppliedDate] = useState("");
+
+    // State cho thống kê từ BE
     const [stats, setStats] = useState({
         totalWaste: 0,
+        comparePercent: 0,
     });
-    const [selectedSuggestion, setSelectedSuggestion] = useState(null);
+
+    // Lấy tháng hiện tại (YYYY-MM)
+    const getCurrentMonth = () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    };
 
     // ===== PAGINATION STATE =====
     const [currentPage, setCurrentPage] = useState(1);
@@ -30,132 +45,106 @@ export default function WasteHistory() {
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(5);
 
-    // Hàm lọc dữ liệu thủ công
-    const filterDataManual = useCallback((rawData, selectedDate) => {
-        if (!rawData || rawData.length === 0) return [];
-
-        if (selectedDate && selectedDate !== "") {
-            return rawData.filter((item) => item.date === selectedDate);
-        }
-        return rawData;
-    }, []);
-
-    // Hàm tính tổng số món dư
-    const calculateTotalWaste = useCallback((dataArray) => {
-        return dataArray.reduce(
-            (sum, item) => sum + (item.quantity_wasted || 0),
-            0,
-        );
-    }, []);
-
     // Cập nhật dữ liệu phân trang
     const updatePagination = useCallback(
-        (filteredArray) => {
-            const total = filteredArray.length;
+        (dataArray) => {
+            const total = dataArray.length;
             const pages = Math.ceil(total / pageSize);
-
             setTotalItems(total);
             setTotalPages(pages);
-
             if (currentPage > pages && pages > 0) {
                 setCurrentPage(1);
             }
-
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
-            setCurrentPageData(filteredArray.slice(startIndex, endIndex));
+            setCurrentPageData(dataArray.slice(startIndex, endIndex));
         },
         [currentPage, pageSize],
     );
 
-    // Hàm fetch dữ liệu gốc (không filter)
-    const fetchAllData = useCallback(async () => {
+    // Hàm fetch thống kê (tổng món dư và tỉ lệ so sánh)
+    const fetchStats = useCallback(async () => {
         try {
-            setLoading(true);
-            setFilterError("");
-            console.log("========== FETCHING ALL DATA ==========");
-            const listWasteResponse = await getListWasteByIngredient({});
-            const rawData = listWasteResponse?.data || [];
-            setAllData(rawData);
+            const currentMonth = getCurrentMonth();
 
-            // Hiển thị tất cả dữ liệu
-            const filtered = filterDataManual(rawData, "");
-            console.log(
-                `Raw: ${rawData.length}, Displayed: ${filtered.length}`,
-            );
+            // Lấy tổng món dư theo tháng hiện tại
+            const sumResponse = await getSumWasteByMonth(currentMonth);
+            const totalWaste = sumResponse?.data?.total_waste || 0;
 
-            setFilteredData(filtered);
-            updatePagination(filtered);
-
-            let totalWaste = calculateTotalWaste(filtered);
+            // Lấy phần trăm so sánh với tháng trước
+            const compareResponse =
+                await getSumWasteByMonthCompare(currentMonth);
+            const comparePercent = parseFloat(compareResponse?.data) || 0;
 
             setStats({
                 totalWaste: totalWaste,
+                comparePercent: comparePercent,
             });
-        } catch (err) {
-            console.error("Fetch error:", err);
-            setFilteredData([]);
-            setCurrentPageData([]);
-            setTotalItems(0);
-            setTotalPages(1);
-            setStats({
-                totalWaste: 0,
-            });
-        } finally {
-            setLoading(false);
+        } catch (error) {
+            console.error("Error fetching stats:", error);
         }
-    }, [filterDataManual, calculateTotalWaste, updatePagination]);
+    }, []);
 
-    // Hàm lọc dữ liệu theo ngày đã chọn
-    const applyFilter = useCallback(async () => {
-        try {
-            setLoading(true);
-            setFilterError("");
-            console.log("========== APPLYING FILTER ==========");
-            console.log("Applied date:", appliedDate);
+    // Hàm fetch dữ liệu chính (gửi filter lên BE)
+    const fetchData = useCallback(
+        async (filterDate) => {
+            try {
+                setLoading(true);
+                setFilterError("");
 
-            // Lọc từ allData đã có sẵn
-            const filtered = filterDataManual(allData, appliedDate);
-            console.log(`Filtered: ${filtered.length} records`);
+                const params = {};
+                if (filterDate && filterDate !== "") {
+                    params.date = filterDate;
+                }
 
-            setFilteredData(filtered);
-            updatePagination(filtered);
+                console.log("📡 Gọi API với params:", params);
+                const response = await getListWasteByIngredient(params);
+                const rawData = response?.data || [];
 
-            let totalWaste = calculateTotalWaste(filtered);
+                // Lọc thủ công ở FE theo ngày đã chọn
+                let filteredResult = rawData;
+                if (filterDate && filterDate !== "") {
+                    filteredResult = rawData.filter(
+                        (item) => item.date === filterDate,
+                    );
+                    console.log(
+                        `📅 Lọc FE: ${rawData.length} -> ${filteredResult.length} records cho ngày ${filterDate}`,
+                    );
+                }
 
-            setStats({
-                totalWaste: totalWaste,
-            });
-        } catch (err) {
-            console.error("Filter error:", err);
-            setFilteredData([]);
-            setCurrentPageData([]);
-            setTotalItems(0);
-            setTotalPages(1);
-            setStats({
-                totalWaste: 0,
-            });
-        } finally {
-            setLoading(false);
+                setFilteredData(filteredResult);
+                updatePagination(filteredResult);
+            } catch (err) {
+                console.error("Fetch error:", err);
+                setFilterError(
+                    err.response?.data?.message ||
+                        "Có lỗi xảy ra khi tải dữ liệu",
+                );
+                setFilteredData([]);
+                setCurrentPageData([]);
+                setTotalItems(0);
+                setTotalPages(1);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [updatePagination],
+    );
+
+    // Load dữ liệu ban đầu và thống kê
+    useEffect(() => {
+        fetchData("");
+        fetchStats();
+    }, [fetchData, fetchStats]);
+
+    // Khi appliedDate thay đổi, gọi API mới
+    useEffect(() => {
+        if (appliedDate !== undefined) {
+            fetchData(appliedDate);
         }
-    }, [
-        allData,
-        appliedDate,
-        filterDataManual,
-        calculateTotalWaste,
-        updatePagination,
-    ]);
+    }, [appliedDate, fetchData]);
 
-    const avgWastePercent =
-        filteredData.length > 0
-            ? Math.round(
-                  filteredData.reduce(
-                      (sum, item) => sum + (item.waste_percentage || 0),
-                      0,
-                  ) / filteredData.length,
-              )
-            : 0;
-
+    // Cập nhật phân trang khi filteredData thay đổi
     useEffect(() => {
         if (filteredData.length > 0) {
             const startIndex = (currentPage - 1) * pageSize;
@@ -172,37 +161,22 @@ export default function WasteHistory() {
     };
 
     const handleResetFilters = () => {
-        setDate(""); // Reset input
-        setAppliedDate(""); // Reset filter đã áp dụng
+        setDate("");
+        setAppliedDate("");
         setFilterError("");
         setCurrentPage(1);
-        // Hiển thị lại tất cả dữ liệu
-        const filtered = filterDataManual(allData, "");
-        setFilteredData(filtered);
-        updatePagination(filtered);
-        let totalWaste = calculateTotalWaste(filtered);
-        setStats({
-            totalWaste: totalWaste,
-        });
+        fetchData("");
     };
 
     const handleFilter = () => {
+        if (!date) {
+            setFilterError("⚠️ Vui lòng chọn ngày cần lọc");
+            return;
+        }
         setFilterError("");
         setCurrentPage(1);
-        setAppliedDate(date); // Set appliedDate = date từ input
+        setAppliedDate(date);
     };
-
-    // Khi appliedDate thay đổi, thực hiện lọc
-    useEffect(() => {
-        if (appliedDate !== undefined) {
-            applyFilter();
-        }
-    }, [appliedDate, applyFilter]);
-
-    // Load dữ liệu ban đầu
-    useEffect(() => {
-        fetchAllData();
-    }, [fetchAllData]);
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -235,7 +209,7 @@ export default function WasteHistory() {
         };
 
         return (
-            <div className="px-5 py-4 border-t flex justify-between items-center">
+            <div className="px-5 py-3 border-t flex justify-between items-center">
                 <p className="text-sm text-gray-500">
                     Hiển thị {startItem}-{endItem} trên {totalItems} bản ghi
                 </p>
@@ -247,7 +221,6 @@ export default function WasteHistory() {
                     >
                         <ChevronLeft size={18} />
                     </button>
-
                     {getPageNumbers().map((pageNum) => (
                         <button
                             key={pageNum}
@@ -261,7 +234,6 @@ export default function WasteHistory() {
                             {pageNum}
                         </button>
                     ))}
-
                     <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
@@ -334,13 +306,12 @@ export default function WasteHistory() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
+                    {/* Card 1: Tổng món dư */}
                     <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <p className="text-gray-500 text-sm uppercase tracking-wide">
-                                    {appliedDate
-                                        ? "Tổng món dư trong ngày"
-                                        : "Tổng món dư"}
+                                    Tổng món dư
                                 </p>
                                 <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mt-2">
                                     {stats.totalWaste.toLocaleString()}{" "}
@@ -355,15 +326,27 @@ export default function WasteHistory() {
                         </div>
                     </div>
 
+                    {/* Card 2: So với tháng trước */}
                     <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
-                                <p className="text-gray-500 text-sm uppercase tracking-wide mb-1">
-                                    Tỉ lệ món dư trung bình
+                                <p className="text-gray-500 text-sm uppercase tracking-wide">
+                                    So với tháng trước
                                 </p>
-                                <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mt-2">
-                                    {avgWastePercent}%
+                                <h2
+                                    className={`text-3xl md:text-4xl font-bold mt-2 ${stats.comparePercent > 0 ? "text-red-500" : stats.comparePercent < 0 ? "text-green-500" : "text-gray-500"}`}
+                                >
+                                    {stats.comparePercent > 0 ? "+" : ""}
+                                    {stats.comparePercent.toFixed(1)}%
                                 </h2>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {stats.comparePercent > 0
+                                        ? "📈 Tăng"
+                                        : stats.comparePercent < 0
+                                          ? "📉 Giảm"
+                                          : "➖ Không đổi"}{" "}
+                                    so với tháng trước
+                                </p>
                             </div>
                             <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-3 rounded-xl shadow-md">
                                 <span className="text-2xl">📈</span>
@@ -376,7 +359,7 @@ export default function WasteHistory() {
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-2">
                     {filterError && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                            ⚠️ {filterError}
+                            {filterError}
                         </div>
                     )}
 
@@ -414,25 +397,27 @@ export default function WasteHistory() {
                             )}
                         </div>
                     </div>
-
-                    {/* Hiển thị filter đang áp dụng */}
-                    {appliedDate && (
-                        <div className="mt-4 pt-4 border-t">
-                            <span className="text-sm text-gray-500">
-                                Đang lọc theo ngày:{" "}
-                                <strong>{formatDateVN(appliedDate)}</strong>
-                            </span>
-                        </div>
-                    )}
                 </div>
 
                 {/* Table */}
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 border-b border-gray-100 bg-gray-50/50">
                         <h3 className="font-semibold text-gray-800 text-lg">
-                            {appliedDate
-                                ? `📋 Chi tiết lãng phí ngày ${formatDateVN(appliedDate)}`
-                                : "📋 Tất cả lịch sử lãng phí"}
+                            {appliedDate ? (
+                                filteredData.length > 0 ? (
+                                    <>
+                                        Danh sách món dư ngày{" "}
+                                        {formatDateVN(appliedDate)}
+                                    </>
+                                ) : (
+                                    <>
+                                        Không có món dư ngày{" "}
+                                        {formatDateVN(appliedDate)}
+                                    </>
+                                )
+                            ) : (
+                                "Tất cả lịch sử món dư"
+                            )}
                         </h3>
                         <button
                             onClick={exportAllToExcel}
