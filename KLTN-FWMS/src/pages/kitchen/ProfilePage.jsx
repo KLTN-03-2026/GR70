@@ -20,15 +20,12 @@ export default function ProfilePage() {
                         },
                     }
                 );
-
                 const data = res.data.data;
-
                 setForm({
                     name: data.name || "",
                     email: data.email || "",
                     phone: data.phone || "",
                     joinDate: new Date(data.created_at).toLocaleDateString("vi-VN"),
-
                     role: data.roles?.[0]?.name || "",
                     businessType: data.brand?.rolebrand || "",
                     address: data.brand?.address || "",
@@ -39,7 +36,6 @@ export default function ProfilePage() {
                 setError("Lỗi tải dữ liệu");
             }
         };
-
         fetchUser();
     }, []);
 
@@ -61,7 +57,7 @@ export default function ProfilePage() {
                 "https://system-waste-less-ai.onrender.com/api/users/update-info",
                 {
                     name: form.name,
-                    email: form.email, // có thể lỗi duplicate
+                    email: form.email, 
                     phone: form.phone,
                 },
                 {

@@ -45,6 +45,7 @@ import { AdminDashboard } from "./pages/Admin/AdminDashboard";
 import Accountmanagement from "./pages/Admin/Accountmanagement";
 
 import { StoreManager } from "./pages/Admin/StoreManager";
+import ManagerDetail from "./pages/Admin/ManagerDetail";
 
 function App() {
     const token = localStorage.getItem("token");
@@ -118,6 +119,7 @@ function App() {
                         <Route path="dashboard" element={<AdminDashboard />} />
 
                          <Route path="user" element={<Accountmanagement />} />
+                         <Route path="manager/:id" element={<ManagerDetail />} />
 
                         <Route path="storeManager" element={<StoreManager />} />
                         
