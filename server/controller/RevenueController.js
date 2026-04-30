@@ -29,8 +29,9 @@ exports.TransactionByMonth = async function (req, res, next) {
         const brandID = req.user.brandID;
         const page = parseInt(req.query.page) || 1;
         const size = parseInt(req.query.size) || 15;
+        const date = req.query.date || null;
         const month = await DailyServices.checkMonth();
-        const result = await DailyRepository.TransactionByMonth(brandID, month,{
+        const result = await DailyRepository.TransactionByMonth(brandID, month,date,{
             page,
             size,
             orderBy: req.query.orderBy || "id",

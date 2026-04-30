@@ -377,8 +377,7 @@ const KitchenDashboard = () => {
                                                         colSpan="5"
                                                         className="text-center py-8 text-[#8B8B8B]"
                                                     >
-                                                        Không có dữ liệu cảnh
-                                                        báo
+                                                        Không có dữ liệu cảnh báo
                                                     </td>
                                                 </tr>
                                             )}

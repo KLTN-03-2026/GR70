@@ -15,7 +15,6 @@ class ManagerAllBrandRepository {
                     where: { name: "Manager" }
                 }]
             }],
-            orderClaude: [[UserModel, 'created_at', "DESC"]],
             searchFields: ['name'],
             ...options
         });
