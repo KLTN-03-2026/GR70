@@ -24,21 +24,45 @@ kitchenApi.interceptors.request.use(
 
 export const kitchenDishAPI = {
     // GET /kitchen/get-dishes-output/{brandID}
-    getDishesOutput: async (brandId, date = null, page = 1, size = 5) => {
+    getDishesOutput: async (
+        brandId,
+        date = null,
+        page = 1,
+        size = 5,
+        status = null,
+    ) => {
         let url = `/kitchen/get-dishes-output/${brandId}`;
         const params = new URLSearchParams();
 
         if (date) params.append("date", date);
         if (page) params.append("page", page);
         if (size) params.append("size", size);
+        if (status && status !== "all") params.append("status", status); // status đã được định nghĩa
 
         if (params.toString()) {
             url += `?${params.toString()}`;
         }
 
-        console.log("📡 API URL:", url);
+        // 👇 Thêm log phân biệt
+        const component = status ? "🟢 MÓN RA" : "🟠 MÓN DƯ";
+        console.log(`${component} - 📡 API URL:`, url);
         const response = await kitchenApi.get(url);
         return response.data;
+    },
+    // Kiểm tra nguyên liệu cho món ăn
+    checkIngredientAvailability: async (dishId, quantity = 1) => {
+        try {
+            const response = await kitchenApi.get(
+                `/kitchen/check-ingredient/${dishId}`,
+                {
+                    params: { quantity },
+                },
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Error checking ingredient:", error);
+            throw error;
+        }
     },
 
     // GET /kitchen/get-all-dishes
