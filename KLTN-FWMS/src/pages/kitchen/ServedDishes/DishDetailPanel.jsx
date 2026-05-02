@@ -36,7 +36,7 @@ const DishDetailPanel = ({
     existingDishes = [],
     selectedDate = new Date(),
     isReadOnly = false,
-    allMasterDishes = [], // Nhận danh sách món từ component cha
+    allMasterDishes = [],
 }) => {
     // Modal thêm món
     if (isModal) {
@@ -56,22 +56,6 @@ const DishDetailPanel = ({
             });
         };
 
-        const isDishExistsInToday = (name) => {
-            return existingDishes.some(
-                (dishItem) =>
-                    dishItem.name?.toLowerCase() === name.toLowerCase(),
-            );
-        };
-
-        const getExistingDishQuantity = (name) => {
-            const existing = existingDishes.find(
-                (dishItem) =>
-                    dishItem.name?.toLowerCase() === name.toLowerCase(),
-            );
-            return existing?.served || 0;
-        };
-
-        // Lọc món ăn theo từ khóa tìm kiếm
         const filteredDishes = allMasterDishes.filter((dish) =>
             dish.name.toLowerCase().includes(searchTerm.toLowerCase()),
         );
@@ -108,24 +92,6 @@ const DishDetailPanel = ({
                 return;
             }
 
-            console.log("=== SUBMIT FORM ===");
-            console.log("Dish name:", dishName);
-            console.log("Quantity:", quantityPrepared);
-            console.log("Selected dish ID:", selectedDishId);
-
-            // Kiểm tra món có trong master dishes không
-            const existsInMaster = allMasterDishes.some(
-                (d) => d.name.toLowerCase() === dishName.trim().toLowerCase(),
-            );
-            console.log("Exists in master dishes:", existsInMaster);
-
-            if (!existsInMaster) {
-                setError(
-                    `❌ Món "${dishName.trim()}" không có trong hệ thống. Vui lòng chọn từ danh sách.`,
-                );
-                return;
-            }
-
             setError("");
             setLoading(true);
 
@@ -134,7 +100,6 @@ const DishDetailPanel = ({
                     name: dishName.trim(),
                     quantity_prepared: Number(quantityPrepared),
                 };
-                console.log("Dữ liệu submit:", submitData);
 
                 if (onAdd) {
                     await onAdd(submitData);
@@ -143,43 +108,24 @@ const DishDetailPanel = ({
             } catch (error) {
                 console.error("Lỗi khi submit:", error);
 
-                // Lấy thông tin lỗi chi tiết
                 let errorMsg = "Có lỗi xảy ra khi thêm món";
 
-                if (error.response?.data?.errors) {
-                    const errorData = error.response.data;
+                const errors = error.response?.data?.errors;
 
-                    // Kiểm tra lỗi không đủ nguyên liệu
-                    if (errorData.errors.includes("Not enough ingredient")) {
-                        const match = errorData.errors.match(
-                            /Not enough ingredient: (.*?)\. Required: ([\d.]+), Available: ([\d.]+)/,
-                        );
-                        if (match) {
-                            const ingredient = match[1].trim();
-                            const required = parseFloat(match[2]);
-                            const available = parseFloat(match[3]);
-
-                            errorMsg =
-                                `⚠️ KHÔNG ĐỦ NGUYÊN LIỆU!\n\n` +
-                                `Nguyên liệu: ${ingredient}\n` +
-                                `Cần: ${required} nguyên liệu\n` +
-                                `Còn: ${available} nguyên liệu\n` +
-                                `Thiếu: ${(required - available).toLocaleString()} nguyên liệu\n\n` +
-                                `💡 Vui lòng giảm số lượng món từ ${quantityPrepared} xuống còn ${Math.floor(available / (required / quantityPrepared))} phần`;
-                        } else {
-                            errorMsg = errorData.errors;
-                        }
+                if (errors && typeof errors === "string") {
+                    if (errors.includes("Not enough ingredient")) {
+                        errorMsg =
+                            "⚠️ Không đủ nguyên liệu để thực hiện món này!";
                     } else {
-                        errorMsg = errorData.message || errorData.errors;
+                        errorMsg = errors;
                     }
+                } else if (error.response?.data?.message) {
+                    errorMsg = error.response.data.message;
                 } else if (error.message) {
                     errorMsg = error.message;
                 }
 
                 setError(errorMsg);
-                setTimeout(() => {
-                    setError("");
-                }, 8000); // Tăng thời gian hiển thị lỗi lên 8 giây
             } finally {
                 setLoading(false);
             }
@@ -301,10 +247,6 @@ const DishDetailPanel = ({
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    💡 Có thể nhập tên món mới nếu không có
-                                    trong danh sách
-                                </p>
                             </div>
 
                             <div>
@@ -530,11 +472,6 @@ const DishDetailPanel = ({
                 </div>
                 <div className="text-center mb-3">
                     <h4 className="text-xl font-bold">{dish.name}</h4>
-                    {/* <p className="text-sm font-semibold text-[#10bc5d] mt-1">
-                        {formatPrice
-                            ? formatPrice(dish.price)
-                            : `${dish.price}₫`}
-                    </p> */}
                 </div>
                 <div className="mb-4">
                     <p className="text-sm font-semibold uppercase">DANH MỤC</p>
@@ -593,7 +530,7 @@ const DishDetailPanel = ({
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => onQuantityChange(-1)}
-                            disabled={isReadOnly}
+                            disabled={true}
                             className="w-10 h-10 rounded-xl border flex items-center justify-center hover:bg-[#10bc5d] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Minus size={18} />
