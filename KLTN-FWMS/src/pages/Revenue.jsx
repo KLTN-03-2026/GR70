@@ -33,6 +33,8 @@ const Revenue = () => {
     const [total, setTotal] = useState(0);
     const ITEMS_PER_PAGE = 15;
 
+    const [filterMode, setFilterMode] = useState("all"); // all | date
+    const [selectedDate, setSelectedDate] = useState("");
 
     // gọi API
     useEffect(() => {
@@ -55,21 +57,31 @@ const Revenue = () => {
         fetchData();
     }, []);
 
-    const fetchTransactions = async (p = 1) => {
+    const fetchTransactions = async (p = 1, date = selectedDate) => {
         try {
-            const res = await Transaction_Revenue_Month(p, ITEMS_PER_PAGE);
+            const res = await Transaction_Revenue_Month(p, ITEMS_PER_PAGE, date);
 
             const responseData = res.data?.data || {};
-            console.log(responseData);
-            
 
-            settransactions_Revenue_Month(responseData.data || []);
+            const sortedData = (responseData.data || []).sort((a, b) => {
+                return new Date(b.daily_operation.operation_date) -
+                    new Date(a.daily_operation.operation_date);
+            });
+
+            settransactions_Revenue_Month(sortedData);
             setTotal(responseData.total || 0);
             setTotalPages(responseData.totalPages || 1);
             setPage(p);
 
         } catch (err) {
             console.error(err);
+        }
+    };
+    const handleFilter = () => {
+        if (filterMode === "all") {
+            fetchTransactions(1, ""); // lấy tất cả
+        } else {
+            fetchTransactions(1, selectedDate); // lọc theo ngày
         }
     };
 
@@ -172,14 +184,6 @@ const Revenue = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <select className="border rounded-lg px-3 py-2 text-sm">
-                        <option>Tháng 04, 2026</option>
-                    </select>
-                    <button className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm">
-                        Xem thống kê
-                    </button>
-                </div>
             </div>
 
             {/* Cards */}
@@ -236,9 +240,45 @@ const Revenue = () => {
             {/* Table */}
             <div className="bg-white rounded-xl shadow overflow-hidden">
                 <div className="flex justify-between items-center p-5 border-b">
-                    <h3 className="font-semibold text-gray-700">
-                        Chi tiết giao dịch
-                    </h3>
+                    <div className="flex gap-8">
+                        <h3 className="font-semibold text-gray-700">
+                            Chi tiết giao dịch
+                        </h3>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3">
+                                <select
+                                    value={filterMode}
+                                    onChange={(e) => {
+                                        const mode = e.target.value;
+                                        setFilterMode(mode);
+
+                                        if (mode === "all") {
+                                            setSelectedDate(""); // reset date
+                                        }
+                                    }}
+                                    className="border rounded-lg px-3 py-2 text-sm"
+                                >
+                                    <option value="all">Tất cả các ngày</option>
+                                    <option value="date">Chọn ngày cụ thể</option>
+                                </select>
+
+                                {filterMode === "date" && (
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="border rounded-lg px-3 py-2 text-sm"
+                                    />
+                                )}
+                            </div>
+                            <button
+                                onClick={handleFilter}
+                                className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm"
+                            >
+                                Xem thống kê
+                            </button>
+                        </div>
+                    </div>
                     <button
                         onClick={exportToExcel}
                         className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition-all"
@@ -339,7 +379,12 @@ const Revenue = () => {
                     totalPages={totalPages}
                     total={total}
                     limit={ITEMS_PER_PAGE}
-                    onPageChange={(p) => fetchTransactions(p)}
+                    onPageChange={(p) =>
+                        fetchTransactions(
+                            p,
+                            filterMode === "all" ? "" : selectedDate
+                        )
+                    }
                 />
             </div>
         </div>
