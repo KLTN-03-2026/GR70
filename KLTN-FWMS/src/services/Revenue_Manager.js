@@ -19,10 +19,21 @@ export const Sum_Revenue_Month = async () => {
     }
 }
 
-export const Transaction_Revenue_Month = async (page = 1, limit = 15) => {
+export const Transaction_Revenue_Month = async (
+    page = 1,
+    limit = 15,
+    date = ""
+) => {
     try {
         const res = await api.get(
-            `revenue/sum-revenue-transaction-by-month?page=${page}&limit=${limit}`
+            `revenue/sum-revenue-transaction-by-month`,
+            {
+                params: {
+                    page,
+                    limit,
+                    ...(date && { date }), // 👈 chỉ thêm nếu có date
+                },
+            }
         );
         return res;
     } catch (error) {
