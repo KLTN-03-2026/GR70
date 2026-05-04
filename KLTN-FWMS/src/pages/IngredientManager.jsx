@@ -175,8 +175,13 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           getCategoryDishes(),
           getIngredientsByBrand(),
         ]);
+
         setCategories(Array.isArray(catRes?.data) ? catRes.data : []);
-        setIngredientsList(Array.isArray(ingRes?.data) ? ingRes.data : []);
+
+        // ingRes.data.data mới là mảng nguyên liệu
+        const ingList = Array.isArray(ingRes?.data?.data) ? ingRes.data.data : [];
+        setIngredientsList(ingList);
+
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
       }
@@ -231,7 +236,6 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
     loadRecipes();
   }, [isEdit, initial?.id, categories]);
 
-
   const handleInputChange = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
@@ -252,15 +256,27 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
   const handleRemoveIngredient = (index) =>
     setDishRecipes((prev) => prev.filter((_, i) => i !== index));
 
-  const handleRecipeChange = (index, field, value) =>
+  // Khi isEdit: chỉ cho đổi quantity, không cho đổi ingredient_id
+  const handleRecipeChange = (index, field, value) => {
+    if (isEdit && field === "ingredient_id") return; // khóa đổi nguyên liệu
     setDishRecipes((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
       return next;
     });
+  };
 
   const handleSave = async () => {
+    console.log("=== handleSave chạy ===");
+    console.log("form:", form);
+    console.log("priceRaw:", priceRaw);
+    console.log("dishRecipes:", dishRecipes);
+    console.log("brandId:", brandId);
+    console.log("userId:", userId);
+    console.log("userInfo role:", userInfo?.role);
+
     if (!form.name?.trim() || !form.category || !priceRaw) {
+      console.log("=== FAILED validation: thiếu tên/danh mục/giá ===");
       setError("Vui lòng nhập đầy đủ tên món, danh mục và giá.");
       return;
     }
@@ -273,7 +289,10 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
         quantity: Number(r.quantity),
       }));
 
+    console.log("validRecipes:", validRecipes);
+
     if (validRecipes.length < 2) {
+      console.log("=== FAILED: ít hơn 2 nguyên liệu, hiện có:", validRecipes.length);
       setError("Món ăn phải có ít nhất 2 nguyên liệu.");
       return;
     }
@@ -281,25 +300,41 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
     const hasInvalidQuantity = validRecipes.some(
       (r) => Number.isNaN(r.quantity) || r.quantity <= 0
     );
-
     if (hasInvalidQuantity) {
+      console.log("=== FAILED: số lượng không hợp lệ ===");
       setError("Số lượng nguyên liệu phải lớn hơn 0.");
       return;
     }
 
     const ingredientIds = validRecipes.map((r) => String(r.ingredient_id));
     const hasDuplicateIngredient = new Set(ingredientIds).size !== ingredientIds.length;
-
     if (hasDuplicateIngredient) {
+      console.log("=== FAILED: trùng nguyên liệu ===");
       setError("Không được chọn trùng nguyên liệu trong cùng một món ăn.");
       return;
     }
+
+    // ── Kiểm tra role: manager thì active luôn, kitchen thì chờ duyệt ──
+    const role = (userInfo?.role || "").toLowerCase();
+    const isManager = role === "manager" || role === "brand_manager";
+    console.log("=== isManager:", isManager, "| role:", role);
+
+    const payload = {
+      dish_category_id: form.category,
+      name: form.name.trim(),
+      price: Number(priceRaw),
+      des: form.des.trim() || "",
+      status: isManager ? true : false,
+      dish_recipes: validRecipes,
+    };
+    console.log("=== payload gửi lên ===", JSON.stringify(payload, null, 2));
 
     try {
       setLoading(true);
       setError("");
 
       if (isEdit && initial?.id) {
+        console.log("=== Đang UPDATE món ===", initial.id);
         await updateDish(initial.id, {
           dish_category_id: form.category,
           name: form.name.trim(),
@@ -309,27 +344,42 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
         });
         showToast("Cập nhật món ăn thành công!");
       } else {
-        await createDish(brandId, userId, {
-          dish_category_id: form.category,
-          name: form.name.trim(),
-          price: Number(priceRaw),
-          des: form.des.trim() || "",
-          status: false,
-          dish_recipes: validRecipes,
-        });
-        showToast("Thêm món ăn thành công! Đang chờ duyệt.");
+        console.log("=== Đang CREATE món, brandId:", brandId, "userId:", userId);
+        await createDish(brandId, userId, payload);
+        showToast(
+          isManager
+            ? "Thêm món ăn thành công!"
+            : "Thêm món ăn thành công! Đang chờ duyệt."
+        );
       }
 
+      console.log("=== Thành công, đóng modal ===");
       onSave();
       onClose();
     } catch (err) {
-      const msg = err?.response?.data?.message || "Có lỗi xảy ra khi lưu món ăn";
+      console.log("=== LỖI FULL ===", err);
+      console.log("=== response.data ===", err?.response?.data);
+      console.log("=== response.status ===", err?.response?.status);
+      console.log("=== err.message ===", err?.message);
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors ||
+        err?.message ||
+        "Có lỗi xảy ra khi lưu món ăn";
       setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Style dùng chung cho field readonly
+  const readonlyFieldClass =
+    "w-full px-4 py-2.5 border border-gray-100 rounded-xl text-sm bg-slate-50 text-slate-400 cursor-not-allowed select-none";
+  const readonlyLabel = (
+    <span className="ml-2 text-[10px] font-normal normal-case text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+      Không thể chỉnh sửa
+    </span>
+  );
 
   return (
     <Modal title={isEdit ? "Cập nhật món ăn" : "Thêm món ăn mới"} onClose={onClose}>
@@ -341,6 +391,7 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           </div>
         )}
 
+        {/* Banner người tạo — chỉ hiện khi thêm mới */}
         {!isEdit && (
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-2">
             <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#3b82f6" }}>person</span>
@@ -353,62 +404,108 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
           </div>
         )}
 
+        {/* Banner thông báo chế độ chỉ sửa số lượng — chỉ hiện khi edit */}
+        {isEdit && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>info</span>
+            Chế độ cập nhật: chỉ có thể chỉnh sửa <strong className="mx-1">số lượng nguyên liệu</strong>.
+          </div>
+        )}
+
+        {/* Tên món ăn */}
         <div>
-          <label className={labelClass}>Tên món ăn <span className="text-red-400">*</span></label>
-          <input
-            value={form.name}
-            onChange={handleInputChange("name")}
-            placeholder="VD: Phở bò tái chín"
-            className={inputClass}
-          />
+          <label className={labelClass}>
+            Tên món ăn {isEdit ? readonlyLabel : <span className="text-red-400">*</span>}
+          </label>
+          {isEdit ? (
+            <div className={readonlyFieldClass}>{form.name}</div>
+          ) : (
+            <input
+              value={form.name}
+              onChange={handleInputChange("name")}
+              placeholder="VD: Phở bò tái chín"
+              className={inputClass}
+            />
+          )}
         </div>
 
+        {/* Danh mục */}
         <div>
-          <label className={labelClass}>Danh mục <span className="text-red-400">*</span></label>
-          <select value={form.category} onChange={handleInputChange("category")} className={inputClass}>
-            <option value="">— Chọn danh mục —</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
+          <label className={labelClass}>
+            Danh mục {isEdit ? readonlyLabel : <span className="text-red-400">*</span>}
+          </label>
+          {isEdit ? (
+            <div className={readonlyFieldClass}>
+              {categories.find((c) => String(c.id) === String(form.category))?.name || form.category || "—"}
+            </div>
+          ) : (
+            <select value={form.category} onChange={handleInputChange("category")} className={inputClass}>
+              <option value="">— Chọn danh mục —</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
+        {/* Giá bán */}
         <div>
-          <label className={labelClass}>Giá bán <span className="text-red-400">*</span></label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={priceDisplay}
-            onFocus={handlePriceFocus}
-            onChange={handlePriceChange}
-            onBlur={handlePriceBlur}
-            placeholder="VD: 85000 → hiển thị 85,000 ₫"
-            className={inputClass}
-          />
+          <label className={labelClass}>
+            Giá bán {isEdit ? readonlyLabel : <span className="text-red-400">*</span>}
+          </label>
+          {isEdit ? (
+            <div className={readonlyFieldClass}>{priceDisplay || "—"}</div>
+          ) : (
+            <input
+              type="text"
+              inputMode="numeric"
+              value={priceDisplay}
+              onFocus={handlePriceFocus}
+              onChange={handlePriceChange}
+              onBlur={handlePriceBlur}
+              placeholder="VD: 85000 → hiển thị 85,000 ₫"
+              className={inputClass}
+            />
+          )}
         </div>
 
+        {/* Mô tả */}
         <div>
-          <label className={labelClass}>Mô tả món ăn</label>
-          <textarea
-            value={form.des}
-            onChange={handleInputChange("des")}
-            placeholder="Mô tả ngắn về món ăn..."
-            rows={3}
-            className={inputClass + " resize-y"}
-          />
+          <label className={labelClass}>
+            Mô tả món ăn {isEdit && readonlyLabel}
+          </label>
+          {isEdit ? (
+            <div className={readonlyFieldClass + " min-h-[72px] whitespace-pre-wrap"}>
+              {form.des || <span className="italic text-slate-300">Không có mô tả</span>}
+            </div>
+          ) : (
+            <textarea
+              value={form.des}
+              onChange={handleInputChange("des")}
+              placeholder="Mô tả ngắn về món ăn..."
+              rows={3}
+              className={inputClass + " resize-y"}
+            />
+          )}
         </div>
 
+        {/* Công thức nguyên liệu */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <label className={labelClass} style={{ marginBottom: 0 }}>Công thức nguyên liệu</label>
-            <button
-              type="button"
-              onClick={handleAddIngredient}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-              Thêm nguyên liệu
-            </button>
+            <label className={labelClass} style={{ marginBottom: 0 }}>
+              Công thức nguyên liệu
+            </label>
+            {/* Nút thêm nguyên liệu — ẩn khi edit */}
+            {!isEdit && (
+              <button
+                type="button"
+                onClick={handleAddIngredient}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                Thêm nguyên liệu
+              </button>
+            )}
           </div>
 
           {dishRecipes.length === 0 ? (
@@ -418,45 +515,65 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
             </div>
           ) : (
             <div className="space-y-3">
-              {dishRecipes.map((recipe, index) => (
-                <div key={`recipe-${index}`} className="flex gap-3 items-center bg-white p-3 rounded-xl border">
-                  <select
-                    value={recipe.ingredient_id}
-                    onChange={(e) => handleRecipeChange(index, "ingredient_id", e.target.value)}
-                    className="flex-1 border border-gray-200 p-3 rounded-xl text-sm focus:outline-none focus:border-green-400"
-                  >
-                    <option value="">— Chọn nguyên liệu —</option>
-                    {ingredientsList.map((ing) => (
-                      <option key={ing.id} value={String(ing.id)}>
-                        {ing.name} ({ing.unit})
-                      </option>
-                    ))}
-                  </select>
+              {dishRecipes.map((recipe, index) => {
+                const ing = ingredientsList.find(
+                  (i) => String(i.id) === String(recipe.ingredient_id)
+                );
 
-                  <div className="relative w-36">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={recipe.quantity}
-                      onChange={(e) => handleRecipeChange(index, "quantity", e.target.value)}
-                      className="w-full border border-gray-200 p-3 rounded-xl text-sm focus:outline-none focus:border-green-400"
-                    />
-                    {recipe.ingredient_id && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500">
-                        {ingredientsList.find((i) => String(i.id) === String(recipe.ingredient_id))?.unit || ""}
-                      </span>
+                return (
+                  <div
+                    key={`recipe-${index}`}
+                    className="flex gap-3 items-center bg-white p-3 rounded-xl border"
+                  >
+                    {/* Tên nguyên liệu — readonly khi edit */}
+                    {isEdit ? (
+                      <div className="flex-1 px-3 py-2.5 border border-gray-100 rounded-xl text-sm bg-slate-50 text-slate-500 cursor-not-allowed select-none">
+                        {ing ? `${ing.name} (${ing.unit})` : recipe.ingredient_id || "—"}
+                      </div>
+                    ) : (
+                      <select
+                        value={recipe.ingredient_id}
+                        onChange={(e) => handleRecipeChange(index, "ingredient_id", e.target.value)}
+                        className="flex-1 border border-gray-200 p-3 rounded-xl text-sm focus:outline-none focus:border-green-400"
+                      >
+                        <option value="">— Chọn nguyên liệu —</option>
+                        {ingredientsList.map((i) => (
+                          <option key={i.id} value={String(i.id)}>
+                            {i.name} ({i.unit})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Số lượng — luôn có thể chỉnh */}
+                    <div className="relative w-36">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={recipe.quantity}
+                        onChange={(e) => handleRecipeChange(index, "quantity", e.target.value)}
+                        className="w-full border border-gray-200 p-3 rounded-xl text-sm focus:outline-none focus:border-green-400"
+                      />
+                      {recipe.ingredient_id && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500">
+                          {ing?.unit || ""}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Nút xóa — ẩn khi edit */}
+                    {!isEdit && (
+                      <button
+                        onClick={() => handleRemoveIngredient(index)}
+                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
                     )}
                   </div>
-
-                  <button
-                    onClick={() => handleRemoveIngredient(index)}
-                    className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                  >
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -476,8 +593,9 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
     </Modal>
   );
 }
-
+// ─── Phan Trang ─────────────────────────────────────────────────────────
 function Pagination({ page, totalPages, total, pageSize, onChange, label }) {
+
   if (totalPages <= 1) return null;
 
   return (
@@ -577,6 +695,7 @@ export default function FoodsPage() {
     try {
       setLoadingFoods(true);
       const activeRes = await getAllDishes(page, ITEMS_PER_PAGE);
+      console.log("=== fetchFoods response ===", activeRes);
       const payload = activeRes?.data ?? {};
       const list = Array.isArray(payload?.data) ? payload.data : [];
 
@@ -597,15 +716,18 @@ export default function FoodsPage() {
   const fetchPendingFoods = useCallback(async (page = 1) => {
     try {
       setLoadingPending(true);
-      const pendingRes = await getAllDishesFalse(page, ITEMS_PER_PAGE);
-      const payload = pendingRes?.data ?? {};
-      const list = Array.isArray(payload?.data) ? payload.data : [];
+      const res = await getAllDishes(1, 100);
+      const payload = res?.data ?? {};
+      const allList = Array.isArray(payload?.data) ? payload.data
+        : Array.isArray(payload) ? payload : [];
+
+      const list = allList.filter(item => item.status === false);
 
       setPending(list);
-      setPendingTotal(Number(payload?.total) || 0);
-      setPendingTotalPages(Math.max(1, Number(payload?.totalPages) || 1));
-      setPendingPage(Number(payload?.page) || page);
-    } catch {
+      setPendingTotal(list.length);
+      setPendingTotalPages(1);
+      setPendingPage(page);
+    } catch (err) {
       setPending([]);
       setPendingTotal(0);
       setPendingTotalPages(1);
@@ -1058,7 +1180,10 @@ export default function FoodsPage() {
       {modal === "add" && (
         <FoodFormModal
           onClose={() => setModal(null)}
-          onSave={() => fetchFoods(foodPage)}
+          onSave={() => {
+            fetchFoods(1);
+            fetchPendingFoods(1);
+          }}
           isEdit={false}
           brandId={brandId}
           userId={userId}
@@ -1074,7 +1199,10 @@ export default function FoodsPage() {
         <FoodFormModal
           initial={modal.item}
           onClose={() => setModal(null)}
-          onSave={() => fetchFoods(foodPage)}
+          onSave={() => {
+            fetchFoods(foodPage);
+            fetchPendingFoods(pendingPage); // ← thêm dòng này
+          }}
           isEdit={true}
           brandId={brandId}
           userId={userId}
