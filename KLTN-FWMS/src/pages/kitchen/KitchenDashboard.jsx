@@ -13,6 +13,34 @@ const KitchenDashboard = () => {
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
 
+    const getUserNameFromToken = () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) return "Nguyễn Văn A";
+
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Thử lấy từ các trường khác nhau
+            let name =
+                payload.name ||
+                payload.fullName ||
+                payload.full_name ||
+                payload.username ||
+                payload.email?.split("@")[0] ||
+                "Nguyễn Văn A";
+
+            // Fix lỗi encoding
+            name = name
+                .replace(/Ä/g, "ă")
+                .replace(/Ä/g, "Ă")
+                .replace(/â/g, "â")
+                .replace(/Ä/g, "ă");
+
+            return name;
+        } catch (error) {
+            return "Nguyễn Văn A";
+        }
+    };
     // State cho dashboard data
     const [dashboardData, setDashboardData] = useState({
         wastePercent: "0",
@@ -152,8 +180,8 @@ const KitchenDashboard = () => {
             console.error("Fetch dashboard error:", err);
             setError(
                 err?.response?.data?.message ||
-                err?.message ||
-                "Có lỗi xảy ra khi tải dữ liệu",
+                    err?.message ||
+                    "Có lỗi xảy ra khi tải dữ liệu",
             );
         } finally {
             setLoading(false);
@@ -201,15 +229,15 @@ const KitchenDashboard = () => {
 
     return (
         <div className="min-h-screen w-full bg-[#f9f8fd]">
-            <main className="w-full px-4 md:px-8 py-6 md:py-8">
+            <main className="w-full px-4 md:px-8 py-4 md:py-4">
                 <div className="max-w-[1600px] mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Cột trái - 2/3 */}
                         <div className="lg:col-span-2 space-y-8">
                             {/* Banner chào buổi sáng */}
-                            <div className="bg-gradient-to-r from-[#10BC5D] to-[#10BC5D]/80 rounded-2xl py-10 md:py-12 px-6 md:px-8 text-white shadow-lg">
+                            <div className="bg-gradient-to-r from-[#10BC5D] to-[#10BC5D]/80 rounded-2xl py-8 md:py-10 px-6 md:px-8 text-white shadow-lg">
                                 <h4 className="text-white text-3xl md:text-4xl font-bold mb-2">
-                                    Chào buổi sáng, Nguyễn Văn A!
+                                    Chào buổi sáng, {getUserNameFromToken()}!
                                 </h4>
                                 <p className="text-sm md:text-base text-white/90 leading-relaxed">
                                     Hôm nay hệ thống ghi nhận món có tỷ lệ dư
@@ -220,7 +248,7 @@ const KitchenDashboard = () => {
 
                             {/* Cảnh báo lãng phí */}
                             <div>
-                                <h3 className="text-[#3b97d1] font-semibold text-xl md:text-2xl mb-5">
+                                <h3 className="text-[#3b97d1] font-semibold text-xl md:text-2xl mb-2">
                                     Cảnh báo lãng phí
                                 </h3>
 
@@ -228,7 +256,7 @@ const KitchenDashboard = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                     <div className="bg-white border rounded-2xl p-6 shadow-sm">
                                         <p className="text-base text-[#3D3D3D] mb-2">
-                                            % lãng phí hôm nay
+                                            % lãng phí hôm qua
                                         </p>
                                         <div className="mb-2">
                                             <span className="text-4xl md:text-5xl font-bold text-[#141C21]">
@@ -249,7 +277,7 @@ const KitchenDashboard = () => {
                                                 dashboardData.topWastedDish
                                                     .quantity
                                             }{" "}
-                                            suất dư hôm nay
+                                            suất dư hôm qua
                                             {dashboardData.topWastedDish.total >
                                                 0 &&
                                                 ` / Tổng ${dashboardData.topWastedDish.total} suất`}
@@ -269,14 +297,14 @@ const KitchenDashboard = () => {
                                                     </span>
                                                     <span className="text-xs text-gray-400 flex items-center gap-1">
                                                         <Clock size={12} />
-                                                        Hôm nay
+                                                        Hôm qua
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Tiêu đề Món dư cao hôm nay */}
                                             <h4 className="font-bold text-xl text-[#141C21] mb-3">
-                                                Món dư cao hôm nay
+                                                Món dư cao hôm qua
                                             </h4>
 
                                             {/* Nội dung chính */}
@@ -303,14 +331,14 @@ const KitchenDashboard = () => {
                                             </p>
 
                                             {/* Dòng cuối: Xem chi tiết + Đối chiếu dữ liệu */}
-                                            <div className="flex items-center justify-between mt-4 pt-2 border-t border-gray-100">
+                                            {/* <div className="flex items-center justify-between mt-4 pt-2 border-t border-gray-100">
                                                 <button className="text-red-500 font-semibold text-sm hover:text-red-700 transition">
                                                     Xem chi tiết
                                                 </button>
                                                 <button className="text-gray-400 text-xs hover:text-gray-600 transition">
                                                     Đối chiếu dữ liệu
                                                 </button>
-                                            </div>
+                                            </div> */}
                                         </div>
                                     )}
 
@@ -377,7 +405,8 @@ const KitchenDashboard = () => {
                                                         colSpan="5"
                                                         className="text-center py-8 text-[#8B8B8B]"
                                                     >
-                                                        Không có dữ liệu cảnh báo
+                                                        Không có dữ liệu cảnh
+                                                        báo
                                                     </td>
                                                 </tr>
                                             )}
@@ -398,7 +427,9 @@ const KitchenDashboard = () => {
                                         </h3>
                                     </div>
                                     <p className="text-base text-[#8B8B8B]">
-                                        Dự báo chuẩn bị cho ngày hôm nay
+                                        Dự báo chuẩn bị cho ngày hôm nay dựa
+                                        trên dữ liệu lịch sử và xu hướng khách
+                                        hàng.
                                     </p>
                                 </div>
 
@@ -410,25 +441,26 @@ const KitchenDashboard = () => {
                                                 📈 Dự đoán số lượng khách
                                             </span>
                                             <span
-                                                className={`text-sm px-2 py-1 rounded-full ${aiData.customerAI
+                                                className={`text-sm px-2 py-1 rounded-full ${
+                                                    aiData.customerAI
                                                         .risk_level === "high"
                                                         ? "bg-red-100 text-red-700"
                                                         : aiData.customerAI
-                                                            .risk_level ===
+                                                                .risk_level ===
                                                             "medium"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-green-100 text-green-700"
-                                                    }`}
+                                                          ? "bg-yellow-100 text-yellow-700"
+                                                          : "bg-green-100 text-green-700"
+                                                }`}
                                             >
                                                 Rủi ro:{" "}
                                                 {aiData.customerAI
                                                     .risk_level === "high"
                                                     ? "Cao"
                                                     : aiData.customerAI
-                                                        .risk_level ===
+                                                            .risk_level ===
                                                         "medium"
-                                                        ? "Trung bình"
-                                                        : "Thấp"}
+                                                      ? "Trung bình"
+                                                      : "Thấp"}
                                             </span>
                                         </div>
                                         <div className="text-3xl font-bold text-[#141C21] mb-2">
