@@ -14,9 +14,11 @@ exports.getAllBrand = async (req, res,next) => {
             page,
             size,
             filters,
-            // orderBy: req.query.orderBy || "id",
-            // order: req.query.orderType === "1" ? "ASC" : "DESC",
+            orderBy: req.query.orderBy || "id",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
         });
+        console.log("lỗi:",brand);
+        
         res.json(ApiSuccess.getSelect("Get all brand", brand));
     } catch (error) {
         return next(error);
