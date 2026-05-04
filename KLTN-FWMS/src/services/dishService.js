@@ -9,33 +9,38 @@ export const getAllDishes = async (page = 1, size = 10) => {
 };
 
 // Lấy tất cả món chưa active
+// dishService.js
 export const getAllDishesFalse = async (page = 1, size = 10) => {
+    const token = localStorage.getItem("token");
+    const payload = token ? JSON.parse(atob(token.split(".")[1])) : {};
+    const brandID = payload?.brandID || payload?.brandId || payload?.brand_id;
+
     const res = await api.get("/dishes/get-all-dishes-false", {
-        params: { page, size },
+        params: { page, size, brandID }, // ← thêm brandID
     });
     return res.data;
 };
 
 export const createDish = async (brandId, userId, data) => {
-    const formData = new FormData();
-
-    formData.append("dish_category_id", String(data.dish_category_id || ""));
-    formData.append("name", String(data.name || ""));
-    formData.append("price", String(data.price || 0));
-    formData.append("des", String(data.des || ""));
-    formData.append("status", data.status === true ? "true" : "false");
-
-    if (Array.isArray(data.dish_recipes) && data.dish_recipes.length > 0) {
-        data.dish_recipes.forEach((recipe, index) => {
-            formData.append(`dish_recipes[${index}][ingredient_id]`, recipe.ingredient_id);
-            formData.append(`dish_recipes[${index}][quantity]`, recipe.quantity);
-        });
-    } else {
-        formData.append("dish_recipes[0][ingredient_id]", "");
-        formData.append("dish_recipes[0][quantity]", "0");
-    }
-
-    const res = await api.post(`/dishes/create-dishes/${brandId}/${userId}`, formData);
+    const res = await api.post(
+        `/dishes/create-dishes/${brandId}/${userId}`,
+        {
+            dish_category_id: data.dish_category_id,
+            name: data.name,
+            price: data.price,
+            des: data.des || "",
+            status: data.status ?? false,
+            dish_recipes: Array.isArray(data.dish_recipes)
+                ? data.dish_recipes.map((r) => ({
+                    ingredient_id: r.ingredient_id,
+                    quantity: Number(r.quantity),
+                }))
+                : [],
+        },
+        {
+            headers: { "Content-Type": "application/json" },
+        }
+    );
     return res.data;
 };
 
@@ -60,7 +65,13 @@ export const getCategoryDishes = async () => {
 };
 
 export const getIngredientsByBrand = async () => {
-    const res = await api.get("/ingredients/get-ingredients-by-brand");
+    const token = localStorage.getItem("token");
+    const payload = token ? JSON.parse(atob(token.split(".")[1])) : {};
+    const brandID = payload?.brandID || payload?.brandId || payload?.brand_id;
+
+    const res = await api.get("/ingredients/get-ingredients-by-brand", {
+        params: { brandID, size: 1000, page: 1 }, 
+    });
     return res.data;
 };
 
