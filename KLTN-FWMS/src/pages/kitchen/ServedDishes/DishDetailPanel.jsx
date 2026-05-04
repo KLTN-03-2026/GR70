@@ -38,6 +38,16 @@ const DishDetailPanel = ({
     isReadOnly = false,
     allMasterDishes = [],
 }) => {
+    // Hàm kiểm tra món đã có món dư chưa
+    const isDishHasWaste = (dishName) => {
+        const existingDish = existingDishes.find(
+            (d) => d.name?.toLowerCase() === dishName?.toLowerCase(),
+        );
+        return existingDish
+            ? existingDish.waste > 0 || existingDish.hasWaste
+            : false;
+    };
+
     // Modal thêm món
     if (isModal) {
         const [dishName, setDishName] = useState("");
@@ -47,6 +57,7 @@ const DishDetailPanel = ({
         const [isDropdownOpen, setIsDropdownOpen] = useState(false);
         const [searchTerm, setSearchTerm] = useState("");
         const [selectedDishId, setSelectedDishId] = useState(null);
+        const [warningMessage, setWarningMessage] = useState(""); // 👈 THÊM STATE CHO CẢNH BÁO
 
         const formatDate = (date) => {
             return date.toLocaleDateString("vi-VN", {
@@ -60,17 +71,36 @@ const DishDetailPanel = ({
             dish.name.toLowerCase().includes(searchTerm.toLowerCase()),
         );
 
+        // 👉 HÀM KIỂM TRA LỖI KHI CHỌN MÓN
+        const checkDishError = (dishNameToCheck) => {
+            // Kiểm tra món dư
+            if (isDishHasWaste(dishNameToCheck)) {
+                setWarningMessage(
+                    `KHÔNG CÓ QUYỀN CẬP NHẬT!\n\n` +
+                        `Món "${dishNameToCheck}" đã được báo cáo là có món dư.\n\n` +
+                        `Bạn không thể thêm/cập nhật số lượng món ra sau khi đã nhập món dư.\n\n` +
+                        `Vui lòng liên hệ quản lý nếu cần điều chỉnh.`,
+                );
+                return false;
+            }
+            setWarningMessage("");
+            return true;
+        };
+
         const handleSelectDish = (dish) => {
             setDishName(dish.name);
             setSelectedDishId(dish.id);
             setSearchTerm("");
             setIsDropdownOpen(false);
             setError("");
+            // 👉 KIỂM TRA NGAY KHI CHỌN MÓN
+            checkDishError(dish.name);
         };
 
         const handleInputClick = () => {
             setIsDropdownOpen(true);
             setSearchTerm("");
+            setWarningMessage("");
         };
 
         const handleInputChange = (e) => {
@@ -80,6 +110,7 @@ const DishDetailPanel = ({
             setSearchTerm(value);
             setIsDropdownOpen(true);
             setError("");
+            setWarningMessage(""); // Reset warning khi nhập
         };
 
         const handleSubmit = async () => {
@@ -87,12 +118,25 @@ const DishDetailPanel = ({
                 setError("Vui lòng chọn hoặc nhập tên món ăn!");
                 return;
             }
+
+            // 👉 KIỂM TRA MÓN DƯ TRƯỚC KHI SUBMIT
+            if (isDishHasWaste(dishName.trim())) {
+                setWarningMessage(
+                    `KHÔNG CÓ QUYỀN CẬP NHẬT!\n\n` +
+                        `Món "${dishName.trim()}" đã được báo cáo là có món dư.\n\n` +
+                        `Bạn không thể thêm/cập nhật số lượng món ra sau khi đã nhập món dư.\n\n` +
+                        `Vui lòng liên hệ quản lý nếu cần điều chỉnh.`,
+                );
+                return;
+            }
+
             if (quantityPrepared <= 0) {
                 setError("Vui lòng nhập số lượng hợp lệ!");
                 return;
             }
 
             setError("");
+            setWarningMessage("");
             setLoading(true);
 
             try {
@@ -109,7 +153,6 @@ const DishDetailPanel = ({
                 console.error("Lỗi khi submit:", error);
 
                 let errorMsg = "Có lỗi xảy ra khi thêm món";
-
                 const errors = error.response?.data?.errors;
 
                 if (errors && typeof errors === "string") {
@@ -121,11 +164,21 @@ const DishDetailPanel = ({
                     }
                 } else if (error.response?.data?.message) {
                     errorMsg = error.response.data.message;
+                    // Kiểm tra lỗi từ message
+                    if (errorMsg.includes("Not enough ingredient")) {
+                        errorMsg =
+                            "⚠️ Không đủ nguyên liệu để thực hiện món này!";
+                    }
                 } else if (error.message) {
                     errorMsg = error.message;
                 }
 
-                setError(errorMsg);
+                // Nếu là lỗi nguyên liệu, hiển thị dưới dạng warning
+                if (errorMsg.includes("Không đủ nguyên liệu")) {
+                    setWarningMessage(errorMsg);
+                } else {
+                    setError(errorMsg);
+                }
             } finally {
                 setLoading(false);
             }
@@ -175,7 +228,11 @@ const DishDetailPanel = ({
                                             onClick={handleInputClick}
                                             disabled={loading}
                                             placeholder="Nhập hoặc chọn món ăn..."
-                                            className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#10bc5d] focus:border-transparent disabled:bg-gray-100 pr-10"
+                                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#10bc5d] focus:border-transparent disabled:bg-gray-100 pr-10 ${
+                                                warningMessage
+                                                    ? "border-red-500 bg-red-50"
+                                                    : ""
+                                            }`}
                                         />
                                         <button
                                             type="button"
@@ -215,21 +272,48 @@ const DishDetailPanel = ({
                                             <div className="max-h-60 overflow-auto">
                                                 {filteredDishes.length > 0 ? (
                                                     filteredDishes.map(
-                                                        (dish) => (
-                                                            <div
-                                                                key={dish.id}
-                                                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                                                                onClick={() =>
-                                                                    handleSelectDish(
-                                                                        dish,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <div className="font-medium text-gray-900">
-                                                                    {dish.name}
+                                                        (dish) => {
+                                                            // Kiểm tra món có bị khóa không
+                                                            const hasWaste =
+                                                                isDishHasWaste(
+                                                                    dish.name,
+                                                                );
+                                                            return (
+                                                                <div
+                                                                    key={
+                                                                        dish.id
+                                                                    }
+                                                                    className={`px-4 py-3 border-b last:border-b-0 ${
+                                                                        hasWaste
+                                                                            ? "opacity-50 bg-gray-50 cursor-not-allowed"
+                                                                            : "hover:bg-gray-50 cursor-pointer"
+                                                                    }`}
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            !hasWaste
+                                                                        ) {
+                                                                            handleSelectDish(
+                                                                                dish,
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <div className="font-medium text-gray-900">
+                                                                        {
+                                                                            dish.name
+                                                                        }
+                                                                        {hasWaste && (
+                                                                            <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                                                                                Đã
+                                                                                có
+                                                                                món
+                                                                                dư
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        ),
+                                                            );
+                                                        },
                                                     )
                                                 ) : (
                                                     <div className="px-4 py-8 text-center text-gray-500">
@@ -247,6 +331,15 @@ const DishDetailPanel = ({
                                         </div>
                                     )}
                                 </div>
+
+                                {/* 👉 HIỂN THỊ THÔNG BÁO LỖI NGAY DƯỚI Ô INPUT */}
+                                {warningMessage && (
+                                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                        <p className="text-red-600 text-sm whitespace-pre-line">
+                                            {warningMessage}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -291,7 +384,8 @@ const DishDetailPanel = ({
                                 disabled={
                                     loading ||
                                     !dishName.trim() ||
-                                    quantityPrepared <= 0
+                                    quantityPrepared <= 0 ||
+                                    !!warningMessage
                                 }
                                 className="flex-1 px-4 py-2.5 bg-[#10bc5d] text-white rounded-lg hover:bg-[#0c9c4a] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
@@ -326,70 +420,86 @@ const DishDetailPanel = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {dishes.map((dishItem) => (
-                            <tr
-                                key={dishItem.id}
-                                className={`border-b cursor-pointer hover:bg-gray-50 ${
-                                    selectedDish?.id === dishItem.id
-                                        ? "bg-green-50"
-                                        : ""
-                                }`}
-                                onClick={() => onRowClick(dishItem)}
-                            >
-                                <td className="px-5 py-4">
-                                    <div className="font-semibold">
-                                        {dishItem.name}
-                                    </div>
-                                    <div className="text-xs text-[#8b8b8b]">
-                                        {dishItem.category}
-                                    </div>
-                                </td>
-                                <td className="px-5 py-4">
-                                    {dishItem.served} phần
-                                </td>
-                                <td className="px-5 py-4">
-                                    {dishItem.quantity_wasted > 0 ? (
-                                        <div>
-                                            <span className="text-red-600 font-semibold">
-                                                {dishItem.quantity_wasted} phần
-                                            </span>
-                                            <span className="text-xs text-red-500 block">
-                                                (
-                                                {formatPrice
-                                                    ? formatPrice(
-                                                          dishItem.waste_cost,
-                                                      )
-                                                    : `${dishItem.waste_cost}₫`}
-                                                )
-                                            </span>
+                        {dishes.map((dishItem) => {
+                            const hasWaste =
+                                dishItem.waste > 0 ||
+                                dishItem.quantity_wasted > 0;
+                            return (
+                                <tr
+                                    key={dishItem.id}
+                                    className={`border-b cursor-pointer hover:bg-gray-50 ${
+                                        selectedDish?.id === dishItem.id
+                                            ? "bg-green-50"
+                                            : ""
+                                    } ${hasWaste ? "opacity-60" : ""}`}
+                                    onClick={() => onRowClick(dishItem)}
+                                >
+                                    <td className="px-5 py-4">
+                                        <div className="font-semibold">
+                                            {dishItem.name}
+                                            {hasWaste && (
+                                                <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                                                    Đã đóng
+                                                </span>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <span className="text-gray-400">
-                                            0 phần
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="px-5 py-4">
-                                    {formatPrice
-                                        ? formatPrice(
-                                              dishItem.revenue_cost || 0,
-                                          )
-                                        : `${dishItem.revenue_cost || 0}₫`}
-                                </td>
-                                <td className="px-5 py-4 text-center">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEditClick(dishItem);
-                                        }}
-                                        className="text-[#10bc5d] hover:text-[#0c9c4a]"
-                                        disabled={isReadOnly}
-                                    >
-                                        <Edit2 size={18} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                                        <div className="text-xs text-[#8b8b8b]">
+                                            {dishItem.category}
+                                        </div>
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {dishItem.served || dishItem.prepared}{" "}
+                                        phần
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {dishItem.waste > 0 ||
+                                        dishItem.quantity_wasted > 0 ? (
+                                            <div>
+                                                <span className="text-red-600 font-semibold">
+                                                    {dishItem.waste ||
+                                                        dishItem.quantity_wasted}{" "}
+                                                    phần
+                                                </span>
+                                                <span className="text-xs text-red-500 block">
+                                                    (
+                                                    {formatPrice
+                                                        ? formatPrice(
+                                                              dishItem.waste_cost,
+                                                          )
+                                                        : `${dishItem.waste_cost}₫`}
+                                                    )
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">
+                                                0 phần
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {formatPrice
+                                            ? formatPrice(
+                                                  dishItem.revenue_cost || 0,
+                                              )
+                                            : `${dishItem.revenue_cost || 0}₫`}
+                                    </td>
+                                    <td className="px-5 py-4 text-center">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!hasWaste) {
+                                                    onEditClick(dishItem);
+                                                }
+                                            }}
+                                            className={`text-[#10bc5d] hover:text-[#0c9c4a] ${hasWaste ? "opacity-50 cursor-not-allowed" : ""}`}
+                                            disabled={hasWaste}
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
                 <div className="px-5 py-4 border-t flex justify-between items-center">

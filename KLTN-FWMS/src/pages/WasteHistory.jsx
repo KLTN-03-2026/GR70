@@ -255,6 +255,11 @@ export default function WasteHistory() {
             "MÓN DƯ": `${item.quantity_wasted || 0} suất`,
             "TỈ LỆ DƯ": `${(item.waste_percentage || 0).toFixed(1)}%`,
             "CHI PHÍ LÃNG PHÍ": `${(item.waste_cost || 0).toLocaleString()}đ`,
+            "SL AI ĐỀ XUẤT":
+                item.predicted_waste_quantity !== null &&
+                item.predicted_waste_quantity !== undefined
+                    ? `${item.predicted_waste_quantity} suất`
+                    : "Chưa có dữ liệu",
             "GỢI Ý AI": item.suggestion_note || "Chưa có dữ liệu",
         }));
 
@@ -266,6 +271,7 @@ export default function WasteHistory() {
             { wch: 10 },
             { wch: 10 },
             { wch: 10 },
+            { wch: 15 },
             { wch: 15 },
             { wch: 50 },
         ];
@@ -296,18 +302,18 @@ export default function WasteHistory() {
 
     return (
         <div className="h-screen bg-gray-50 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 h-full overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-4 h-full overflow-y-auto hide-scrollbar">
                 {/* Title */}
                 <div className="mb-2">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2.5">
                         Lịch sử lãng phí (dư thừa)
                     </h1>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     {/* Card 1: Tổng món dư */}
-                    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <p className="text-gray-500 text-sm uppercase tracking-wide">
@@ -320,26 +326,26 @@ export default function WasteHistory() {
                                     </span>
                                 </h2>
                             </div>
-                            <div className="bg-gradient-to-br from-green-400 to-green-600 p-3 rounded-xl shadow-md">
+                            <div className="bg-gradient-to-br from-green-400 to-green-600 p-3.5 rounded-xl shadow-md">
                                 <span className="text-2xl">📊</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Card 2: So với tháng trước */}
-                    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <p className="text-gray-500 text-sm uppercase tracking-wide">
                                     So với tháng trước
                                 </p>
                                 <h2
-                                    className={`text-3xl md:text-4xl font-bold mt-2 ${stats.comparePercent > 0 ? "text-red-500" : stats.comparePercent < 0 ? "text-green-500" : "text-gray-500"}`}
+                                    className={`text-3xl md:text-4xl font-bold mt-2.5 ${stats.comparePercent > 0 ? "text-red-500" : stats.comparePercent < 0 ? "text-green-500" : "text-gray-500"}`}
                                 >
                                     {stats.comparePercent > 0 ? "+" : ""}
                                     {stats.comparePercent.toFixed(1)}%
                                 </h2>
-                                <p className="text-xs text-gray-400 mt-1">
+                                <p className="text-sm text-gray-400 mt-1.5">
                                     {stats.comparePercent > 0
                                         ? "📈 Tăng"
                                         : stats.comparePercent < 0
@@ -348,7 +354,7 @@ export default function WasteHistory() {
                                     so với tháng trước
                                 </p>
                             </div>
-                            <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-3 rounded-xl shadow-md">
+                            <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-3.5 rounded-xl shadow-md">
                                 <span className="text-2xl">📈</span>
                             </div>
                         </div>
@@ -356,9 +362,9 @@ export default function WasteHistory() {
                 </div>
 
                 {/* Filter */}
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-2">
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-3 mb-4">
                     {filterError && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                        <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                             {filterError}
                         </div>
                     )}
@@ -375,22 +381,22 @@ export default function WasteHistory() {
                                 onChange={(e) =>
                                     handleDateChange(e.target.value)
                                 }
-                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                             />
                         </div>
 
                         {/* Nhóm nút bấm */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
                                 onClick={handleFilter}
-                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all whitespace-nowrap"
+                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-7 py-3 rounded-lg text-base font-medium hover:from-green-600 hover:to-green-700 transition-all whitespace-nowrap"
                             >
                                 🔍 Lọc dữ liệu
                             </button>
                             {(appliedDate || date) && (
                                 <button
                                     onClick={handleResetFilters}
-                                    className="px-6 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                                    className="px-7 py-3 rounded-lg text-base font-medium border border-gray-300 hover:bg-gray-50 transition-colors whitespace-nowrap"
                                 >
                                     Xóa lọc
                                 </button>
@@ -401,7 +407,7 @@ export default function WasteHistory() {
 
                 {/* Table */}
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 border-b border-gray-100 bg-gray-50/50">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 border-b border-gray-100 bg-gray-50/50">
                         <h3 className="font-semibold text-gray-800 text-lg">
                             {appliedDate ? (
                                 filteredData.length > 0 ? (
@@ -422,7 +428,7 @@ export default function WasteHistory() {
                         <button
                             onClick={exportAllToExcel}
                             disabled={filteredData.length === 0}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl text-sm font-bold hover:from-green-600 hover:to-green-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-bold hover:from-green-600 hover:to-green-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <svg
                                 className="w-4 h-4"
@@ -441,32 +447,35 @@ export default function WasteHistory() {
                         </button>
                     </div>
 
-                    <div className="overflow-hidden">
-                        <table className="w-full text-sm">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm table-fixed">
                             <thead className="bg-gray-100 text-gray-600">
                                 <tr>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[100px]">
                                         NGÀY
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[150px]">
                                         TÊN MÓN
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[90px]">
                                         MÓN RA
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[90px]">
                                         MÓN DÙNG
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[90px]">
                                         MÓN DƯ
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[100px]">
                                         TỈ LỆ DƯ
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[120px]">
                                         CHI PHÍ
                                     </th>
-                                    <th className="p-4 text-left font-semibold">
+                                    <th className="p-4 text-left font-semibold text-sm w-[130px]">
+                                        SL AI ĐỀ XUẤT
+                                    </th>
+                                    <th className="p-4 text-left font-semibold text-sm w-[200px]">
                                         GỢI Ý AI
                                     </th>
                                 </tr>
@@ -475,12 +484,14 @@ export default function WasteHistory() {
                                 {loading ? (
                                     <tr>
                                         <td
-                                            colSpan="8"
-                                            className="text-center p-8 text-gray-500"
+                                            colSpan="9"
+                                            className="text-center p-9 text-gray-500"
                                         >
-                                            <div className="flex flex-col items-center gap-2">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-                                                <span>Đang tải dữ liệu...</span>
+                                            <div className="flex flex-col items-center gap-2.5">
+                                                <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-green-500"></div>
+                                                <span className="text-base">
+                                                    Đang tải dữ liệu...
+                                                </span>
                                             </div>
                                         </td>
                                     </tr>
@@ -489,6 +500,20 @@ export default function WasteHistory() {
                                         const aiLevel = getAILevel(
                                             item.waste_percentage,
                                         );
+                                        const suggestionText =
+                                            item.suggestion_note;
+                                        const hasLongSuggestion =
+                                            suggestionText &&
+                                            suggestionText.length > 60;
+                                        const displaySuggestion =
+                                            suggestionText &&
+                                            suggestionText.length > 60
+                                                ? suggestionText.substring(
+                                                      0,
+                                                      60,
+                                                  ) + "..."
+                                                : suggestionText;
+
                                         return (
                                             <tr
                                                 key={index}
@@ -498,25 +523,25 @@ export default function WasteHistory() {
                                                         : ""
                                                 }`}
                                             >
-                                                <td className="p-4 whitespace-nowrap">
+                                                <td className="p-4 whitespace-nowrap text-sm overflow-hidden text-ellipsis">
                                                     {item.date}
                                                 </td>
-                                                <td className="p-4 font-medium text-gray-800">
+                                                <td className="p-4 font-medium text-gray-800 text-sm whitespace-nowrap overflow-hidden text-ellipsis">
                                                     {item.dish_name}
                                                 </td>
-                                                <td className="p-4 whitespace-nowrap">
+                                                <td className="p-4 whitespace-nowrap text-sm">
                                                     {item.quantity_prepared}{" "}
                                                     suất
                                                 </td>
-                                                <td className="p-4 whitespace-nowrap">
+                                                <td className="p-4 whitespace-nowrap text-sm">
                                                     {item.quantity_used} suất
                                                 </td>
-                                                <td className="p-4 text-red-500 font-semibold whitespace-nowrap">
+                                                <td className="p-4 text-red-500 font-semibold whitespace-nowrap text-sm">
                                                     {item.quantity_wasted} suất
                                                 </td>
-                                                <td className="p-4 whitespace-nowrap">
+                                                <td className="p-4 whitespace-nowrap text-sm">
                                                     <span
-                                                        className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full ${
+                                                        className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
                                                             aiLevel.level ===
                                                             "High"
                                                                 ? "bg-red-100 text-red-700"
@@ -535,33 +560,77 @@ export default function WasteHistory() {
                                                         %
                                                     </span>
                                                 </td>
-                                                <td className="p-4 whitespace-nowrap font-medium">
+                                                <td className="p-4 whitespace-nowrap font-medium text-sm">
                                                     {(
                                                         item.waste_cost || 0
                                                     ).toLocaleString()}
                                                     đ
                                                 </td>
-                                                <td className="p-4 text-gray-600 text-sm">
-                                                    {item.suggestion_note &&
-                                                    item.suggestion_note
-                                                        .length > 80 ? (
-                                                        <button
-                                                            onClick={() =>
-                                                                setSelectedSuggestion(
-                                                                    item.suggestion_note,
-                                                                )
-                                                            }
-                                                            className="text-left hover:text-green-600 transition-colors"
-                                                        >
-                                                            {item.suggestion_note.substring(
-                                                                0,
-                                                                80,
-                                                            )}
-                                                            ...
-                                                        </button>
+                                                <td className="p-4 whitespace-nowrap text-sm">
+                                                    {item.predicted_waste_quantity !==
+                                                        null &&
+                                                    item.predicted_waste_quantity !==
+                                                        undefined ? (
+                                                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 font-semibold rounded-full">
+                                                            {
+                                                                item.predicted_waste_quantity
+                                                            }{" "}
+                                                            suất
+                                                        </span>
                                                     ) : (
-                                                        item.suggestion_note ||
-                                                        "Chưa có dữ liệu"
+                                                        <span className="text-gray-400">
+                                                            Chưa có dữ liệu
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-gray-600 text-sm">
+                                                    {suggestionText ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                                                                {
+                                                                    displaySuggestion
+                                                                }
+                                                            </span>
+                                                            {hasLongSuggestion && (
+                                                                <button
+                                                                    onClick={() =>
+                                                                        setSelectedSuggestion(
+                                                                            suggestionText,
+                                                                        )
+                                                                    }
+                                                                    className="text-blue-500 hover:text-blue-700 transition-colors flex-shrink-0"
+                                                                    title="Xem chi tiết gợi ý"
+                                                                >
+                                                                    <svg
+                                                                        className="w-5 h-5"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={
+                                                                                2
+                                                                            }
+                                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                                        />
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={
+                                                                                2
+                                                                            }
+                                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                                        />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400">
+                                                            Chưa có dữ liệu
+                                                        </span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -570,12 +639,12 @@ export default function WasteHistory() {
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan="8"
-                                            className="text-center p-8 text-gray-400"
+                                            colSpan="9"
+                                            className="text-center p-9 text-gray-400"
                                         >
-                                            <div className="flex flex-col items-center gap-2">
+                                            <div className="flex flex-col items-center gap-2.5">
                                                 <svg
-                                                    className="w-12 h-12 text-gray-300"
+                                                    className="w-14 h-14 text-gray-300"
                                                     fill="none"
                                                     stroke="currentColor"
                                                     viewBox="0 0 24 24"
@@ -587,7 +656,9 @@ export default function WasteHistory() {
                                                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                                     />
                                                 </svg>
-                                                <span>Không có dữ liệu</span>
+                                                <span className="text-base">
+                                                    Không có dữ liệu
+                                                </span>
                                             </div>
                                         </td>
                                     </tr>

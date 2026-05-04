@@ -21,11 +21,14 @@ const SurplusDishes = () => {
     const [brandId, setBrandId] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [refreshKey, setRefreshKey] = useState(0); // 👈 THÊM: key để trigger refresh
+    
     // ========== PHÂN TRANG - LẤY TỪ API ==========
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(5);
+    
     // Hàm sắp xếp món mới nhất lên đầu
     const sortDishesByLatest = (dishesList) => {
         return [...dishesList].sort((a, b) => {
@@ -35,6 +38,7 @@ const SurplusDishes = () => {
             return 0;
         });
     };
+    
     // Lấy brandID từ token
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -126,6 +130,12 @@ const SurplusDishes = () => {
             setLoading(false);
         }
     }, [brandId, selectedDate, currentPage, pageSize, activeTab]);
+
+    // 👉 THÊM: Hàm refresh dữ liệu
+    const refreshData = useCallback(() => {
+        fetchDishes();
+        setRefreshKey(prev => prev + 1);
+    }, [fetchDishes]);
 
     // Reset về trang 1 khi đổi ngày hoặc đổi tab
     useEffect(() => {
@@ -225,7 +235,6 @@ const SurplusDishes = () => {
 
     const handleSaveReport = async () => {
         if (selectedDish) {
-            // Kiểm tra nếu món đã có món dư thì không cho cập nhật
             if (selectedDish.waste > 0) {
                 toast.error(
                     `KHÔNG CÓ QUYỀN CẬP NHẬT!\n\n` +
@@ -246,7 +255,6 @@ const SurplusDishes = () => {
                 return;
             }
 
-            // Kiểm tra không cho phép đặt số lượng về 0
             if (quantity === 0) {
                 toast.error(
                     "Không thể đặt số lượng món dư về 0!\n\nVui lòng liên hệ quản lý nếu cần điều chỉnh.",
@@ -332,7 +340,6 @@ const SurplusDishes = () => {
     };
 
     const handleEditClick = (dish) => {
-        // Kiểm tra nếu món đã có món dư thì không cho sửa
         if (dish.waste > 0) {
             toast.error(
                 `Món "${dish.name}" đã có món dư, không thể chỉnh sửa!`,
@@ -514,6 +521,8 @@ const SurplusDishes = () => {
                 <ServedDishes
                     surplusData={dishes}
                     selectedDate={selectedDate}
+                    onDataChange={refreshData} // 👈 TRUYỀN callback xuống
+                    key={refreshKey} // 👈 THÊM key để force re-render
                 />
             )}
         </div>
