@@ -7,4 +7,5 @@ router.get('/get-all-brand', authorize(["Admin"]), ManagerAllBrandController.get
 router.get('/get-brand-detail/:brandID', authorize(["Admin"]), ManagerAllBrandController.getDetailBrand);
 router.put('/unlock-brand/:brandID', authorize(["Admin"]), ManagerAllBrandController.unLockBrand);
 router.put('/lock-brand/:brandID', authorize(["Admin"]), ManagerAllBrandController.lockBrand);
+router.get('/get-total-brand', authorize(["Admin"]), ManagerAllBrandController.TotalBrand);
 module.exports = router;

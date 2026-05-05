@@ -15,6 +15,14 @@ class CheckRepository {
     async AllBrand() {
         return await BrandModel.findAll({where: {status: true}});
     }
+    //lấy tất cả brand của hệ thống true và false
+    async AllBrandTrueFalse() {
+        return await BrandModel.findAll({attributes: ['id']});
+    }
+    // đếm tổng cửa hàng hệ thống
+    async CountBrand() {
+        return await BrandModel.count();
+    }
     // check brand
     async checkBrand(id) {
         return await BrandModel.findOne({where: {id: id, status: true}});
