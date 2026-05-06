@@ -348,11 +348,7 @@ class DailyRepository {
         {
           model: DishModel,
           attributes: ["name"],
-          where:{
-            dish_category_id: {
-              [Op.ne]: caterogy || null
-            }
-          }
+          where: caterogy ? { dish_category_id: caterogy } : {},
         },
       ],
       ...options

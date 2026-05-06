@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
-    console.log("🟢🟢🟢 [SERVED DISHES] Component đã được render 🟢🟢🟢");
-
+const ServedDishes = ({
+    surplusData = [],
+    selectedDate: propSelectedDate,
+    onDataChange,
+}) => {
     const [activeTab, setActiveTab] = useState("all");
     const [selectedDish, setSelectedDish] = useState(null);
     const [quantity, setQuantity] = useState(0);
@@ -32,6 +34,9 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(5);
 
+    // 👉 THÊM STATE ĐỂ LƯU THÔNG BÁO LỖI CHO TỪNG MÓN
+    const [dishErrors, setDishErrors] = useState({});
+
     // Hàm sắp xếp món mới nhất lên đầu
     const sortDishesByLatest = (dishesList) => {
         return [...dishesList].sort((a, b) => {
@@ -42,22 +47,24 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
         });
     };
 
-    // Hàm xử lý lỗi thiếu nguyên liệu (dùng chung)
+    // Hàm xử lý lỗi thiếu nguyên liệu
     const formatIngredientError = (errors) => {
         if (
             typeof errors === "string" &&
             errors.includes("Not enough ingredient")
         ) {
-            const match = errors.match(
-                /Not enough ingredient: (.*?)\. Required: ([\d.]+), Available: ([\d.]+)/,
-            );
-            if (match) {
-                const ingredient = match[1].trim();
-                const required = parseFloat(match[2]);
-                const available = parseFloat(match[3]);
-                return `Không đủ nguyên liệu để thực hiện món này!`;
+            return "⚠️ Không đủ nguyên liệu để thực hiện món này!";
+        }
+        if (errors && typeof errors === "object") {
+            // Kiểm tra nếu errors là object chứa thông báo
+            for (const key in errors) {
+                if (
+                    typeof errors[key] === "string" &&
+                    errors[key].includes("Not enough ingredient")
+                ) {
+                    return "⚠️ Không đủ nguyên liệu để thực hiện món này!";
+                }
             }
-            return `Không đủ nguyên liệu để thực hiện món này!`;
         }
         return null;
     };
@@ -177,6 +184,9 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                 setDishes(sortedDishes);
                 setTotalPages(response.data.totalPages || 1);
                 setTotalItems(response.data.total || 0);
+
+                // Reset errors khi load lại dữ liệu
+                setDishErrors({});
             } else {
                 setError(response.message || "Không thể tải dữ liệu");
             }
@@ -300,10 +310,10 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                         : getWasteQuantity(selectedDish.name);
 
                 toast.error(
-                    `⛔ KHÔNG CÓ QUYỀN CẬP NHẬT!\n\n` +
+                    `KHÔNG CÓ QUYỀN CẬP NHẬT!\n\n` +
                         `Món "${selectedDish.name}" đã được báo cáo là có ${wasteQty} phần MÓN DƯ.\n\n` +
-                        `⚠️ Bạn không thể cập nhật số lượng món ra sau khi đã nhập món dư.\n\n` +
-                        `💡 Vui lòng liên hệ quản lý nếu cần điều chỉnh.`,
+                        `Bạn không thể cập nhật số lượng món ra sau khi đã nhập món dư.\n\n` +
+                        `Vui lòng liên hệ quản lý nếu cần điều chỉnh.`,
                     {
                         duration: 6000,
                         position: "top-center",
@@ -321,7 +331,7 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
             // Kiểm tra không cho phép đặt số lượng về 0
             if (quantity === 0) {
                 toast.error(
-                    "❌ Không thể đặt số lượng món ra về 0!\n\nVui lòng liên hệ quản lý nếu muốn xóa món.",
+                    "Không thể đặt số lượng món ra về 0!\n\nVui lòng liên hệ quản lý nếu muốn xóa món.",
                     { duration: 4000, position: "top-center" },
                 );
                 return;
@@ -330,7 +340,7 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
             // Kiểm tra không cho giảm số lượng
             if (quantity < selectedDish.served) {
                 toast.error(
-                    "❌ Không thể giảm số lượng món ra!\n\nChỉ có thể tăng thêm số lượng món đã làm ra.",
+                    "Không thể giảm số lượng món ra!\n\nChỉ có thể tăng thêm số lượng món đã làm ra.",
                     { duration: 4000, position: "top-center" },
                 );
                 return;
@@ -342,15 +352,16 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                     quantity_prepared: quantity,
                     quantity_wasted: selectedDish.quantity_wasted || 0,
                 };
-
                 const response = await kitchenDishAPI.updateDishesOutput(
                     selectedDish.dailyDetailId,
                     updateData,
                 );
-
                 if (response.success) {
                     await fetchDishes();
                     setSelectedDish(null);
+                    if (onDataChange) {
+                        onDataChange();
+                    }
                     toast.success(
                         `Đã cập nhật số lượng cho món ${selectedDish.name}: ${quantity} phần`,
                         { id: toastId, duration: 3000 },
@@ -362,18 +373,17 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                 console.error("Error updating dish:", error);
 
                 let errorMessage = "Có lỗi xảy ra khi cập nhật số lượng";
+                const ingredientError = formatIngredientError(
+                    error.response?.data?.errors || error.message,
+                );
 
-                if (error.response?.data?.errors) {
-                    const errors = error.response.data.errors;
-                    const formattedError = formatIngredientError(errors);
-                    if (formattedError) {
-                        errorMessage = formattedError;
-                    } else if (typeof errors === "string") {
-                        errorMessage = errors;
-                    } else {
-                        errorMessage =
-                            error.response.data.message || "Có lỗi xảy ra";
-                    }
+                if (ingredientError) {
+                    errorMessage = ingredientError;
+                    // Lưu lỗi vào state để hiển thị trong panel
+                    setDishErrors((prev) => ({
+                        ...prev,
+                        [selectedDish.name]: ingredientError,
+                    }));
                 } else if (error.response?.data?.message) {
                     errorMessage = error.response.data.message;
                 } else if (error.message) {
@@ -384,69 +394,53 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
             }
         }
     };
-    // Thêm món ra mới hoặc cập nhật món đã có
+    // Thêm món ra mới hoặc cập nhật món đã có - ĐÃ SỬA (KHÔNG TOAST ERROR)
     const handleAddNewDish = async (newDishData) => {
-        const toastId = toast.loading("Đang thêm món...");
+        // KHÔNG hiển thị toast loading
         try {
             if (!newDishData.name || !newDishData.quantity_prepared) {
-                toast.error("Vui lòng nhập đầy đủ thông tin", { id: toastId });
-                return;
+                throw new Error("Vui lòng nhập đầy đủ thông tin");
             }
             if (newDishData.quantity_prepared <= 0) {
-                toast.error("❌ Số lượng thêm vào phải lớn hơn 0!", {
-                    id: toastId,
-                });
-                return;
+                throw new Error("Số lượng thêm vào phải lớn hơn 0!");
             }
+
             const existingDailyDish = dishes.find(
                 (d) => d.name.toLowerCase() === newDishData.name.toLowerCase(),
             );
+
             if (existingDailyDish) {
                 // KIỂM TRA MÓN ĐÃ CÓ MÓN DƯ CHƯA
                 const hasWaste =
                     existingDailyDish.hasWaste ||
                     existingDailyDish.quantity_wasted > 0 ||
                     isDishHasWaste(existingDailyDish.name);
+
                 if (hasWaste) {
-                    toast.error(
+                    throw new Error(
                         `KHÔNG CÓ QUYỀN CẬP NHẬT!\n\n` +
                             `Món "${existingDailyDish.name}" đã được báo cáo là có món dư.\n\n` +
                             `Bạn không thể thêm/cập nhật số lượng món ra sau khi đã nhập món dư.\n\n` +
                             `Vui lòng liên hệ quản lý nếu cần điều chỉnh.`,
-                        { id: toastId, duration: 5000 },
                     );
-                    return;
                 }
+
                 const updatedQuantity =
                     existingDailyDish.served + newDishData.quantity_prepared;
-                try {
-                    await kitchenDishAPI.updateDishesOutput(
-                        existingDailyDish.dailyDetailId,
-                        { quantity_prepared: updatedQuantity },
-                    );
-                    await fetchDishes();
-                    toast.success(
-                        `Món đã có nên cập nhật thêm món ${existingDailyDish.name}: +${newDishData.quantity_prepared} phần`,
-                        { id: toastId, duration: 3000 },
-                    );
-                } catch (error) {
-                    let errorMessage = "Cập nhật thất bại";
-                    if (error.response?.data?.errors) {
-                        const errors = error.response.data.errors;
-                        const formattedError = formatIngredientError(errors);
-                        if (formattedError) {
-                            errorMessage = formattedError;
-                        } else if (typeof errors === "string") {
-                            errorMessage = errors;
-                        }
-                    } else if (error.response?.data?.message) {
-                        errorMessage = error.response.data.message;
-                    } else if (error.message) {
-                        errorMessage = error.message;
-                    }
-                    toast.error(errorMessage, { id: toastId, duration: 5000 });
-                    return;
+
+                await kitchenDishAPI.updateDishesOutput(
+                    existingDailyDish.dailyDetailId,
+                    { quantity_prepared: updatedQuantity },
+                );
+                await fetchDishes();
+                if (onDataChange) {
+                    onDataChange();
                 }
+                setShowAddForm(false);
+                toast.success(
+                    `Món đã có nên cập nhật thêm món ${existingDailyDish.name}: +${newDishData.quantity_prepared} phần`,
+                    { duration: 3000 },
+                );
             } else {
                 const existingMasterDish = allMasterDishes.find(
                     (d) =>
@@ -454,74 +448,68 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                 );
 
                 if (!existingMasterDish) {
-                    toast.error(
-                        `❌ Món "${newDishData.name}" không có trong hệ thống.`,
-                        { id: toastId },
+                    throw new Error(
+                        `Món "${newDishData.name}" không có trong hệ thống.`,
                     );
-                    return;
                 }
 
-                try {
-                    await kitchenDishAPI.createDishesDaily(brandId, {
-                        dishes_id: existingMasterDish.id,
-                        quantity_prepared: Number(
-                            newDishData.quantity_prepared,
-                        ),
-                    });
-                    await fetchDishes();
-                    toast.success(
-                        `✅ Đã thêm món ${newDishData.name} thành công`,
-                        { id: toastId, duration: 3000 },
-                    );
-                } catch (error) {
-                    let errorMessage = "Có lỗi xảy ra khi thêm món";
-                    if (error.response?.data?.errors) {
-                        const errors = error.response.data.errors;
-                        const formattedError = formatIngredientError(errors);
-                        if (formattedError) {
-                            errorMessage = formattedError;
-                        } else if (typeof errors === "string") {
-                            errorMessage = errors;
-                        }
-                    } else if (error.response?.data?.message) {
-                        errorMessage = error.response.data.message;
-                    } else if (error.message) {
-                        errorMessage = error.message;
-                    }
-                    toast.error(errorMessage, { id: toastId, duration: 5000 });
-                    return;
+                await kitchenDishAPI.createDishesDaily(brandId, {
+                    dishes_id: existingMasterDish.id,
+                    quantity_prepared: Number(newDishData.quantity_prepared),
+                });
+                await fetchDishes();
+                if (onDataChange) {
+                    onDataChange();
                 }
+                setShowAddForm(false);
+                toast.success(`Đã thêm món ${newDishData.name} thành công`, {
+                    duration: 3000,
+                });
             }
-
-            setShowAddForm(false);
         } catch (error) {
             console.error("Error adding dish:", error);
-            let errorMessage = "Có lỗi xảy ra khi thêm món";
 
-            if (error.response?.data?.errors) {
-                const errors = error.response.data.errors;
-                const formattedError = formatIngredientError(errors);
-                if (formattedError) {
-                    errorMessage = formattedError;
-                } else if (typeof errors === "string") {
+            let errorMessage = "Có lỗi xảy ra khi thêm món";
+            const errors = error.response?.data?.errors;
+
+            if (errors && typeof errors === "string") {
+                if (errors.includes("Not enough ingredient")) {
+                    errorMessage =
+                        "⚠️ Không đủ nguyên liệu để thực hiện món này!";
+                } else {
                     errorMessage = errors;
                 }
             } else if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
+                if (errorMessage.includes("Not enough ingredient")) {
+                    errorMessage =
+                        "⚠️ Không đủ nguyên liệu để thực hiện món này!";
+                }
             } else if (error.message) {
                 errorMessage = error.message;
             }
 
-            toast.error(errorMessage, { id: toastId, duration: 5000 });
+            // 👉 Ném lỗi lên modal xử lý - KHÔNG gọi toast.error
+            throw new Error(errorMessage);
         }
     };
 
     const handleEditClick = (dish) => {
+        // Kiểm tra lỗi trước khi mở panel
+        if (dishErrors[dish.name]) {
+            toast.error(dishErrors[dish.name], { duration: 5000 });
+            return;
+        }
         setSelectedDish(dish);
         setQuantity(dish.served);
     };
 
     const handleRowClick = (dish) => {
+        // Kiểm tra lỗi trước khi mở panel
+        if (dishErrors[dish.name]) {
+            toast.error(dishErrors[dish.name], { duration: 5000 });
+            return;
+        }
         setSelectedDish(dish);
         setQuantity(dish.served);
     };
@@ -616,11 +604,22 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                                             ? dishItem.quantity_wasted
                                             : getWasteQuantity(dishItem.name);
                                     const hasWaste = wasteQty > 0;
+                                    const hasError = dishErrors[dishItem.name];
+
+                                    // Xác định class cho hàng dựa trên lỗi
+                                    let rowClassName =
+                                        "border-b cursor-pointer hover:bg-gray-50";
+                                    if (selectedDish?.id === dishItem.id)
+                                        rowClassName += " bg-green-50";
+                                    if (hasWaste) rowClassName += " opacity-60";
+                                    if (hasError && !hasWaste)
+                                        rowClassName +=
+                                            " bg-red-50 hover:bg-red-100";
 
                                     return (
                                         <tr
                                             key={dishItem.id}
-                                            className={`border-b cursor-pointer hover:bg-gray-50 ${selectedDish?.id === dishItem.id ? "bg-green-50" : ""} ${hasWaste ? "opacity-60" : ""}`}
+                                            className={rowClassName}
                                             onClick={() =>
                                                 handleRowClick(dishItem)
                                             }
@@ -633,10 +632,21 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                                                             Đã đóng
                                                         </span>
                                                     )}
+                                                    {hasError && !hasWaste && (
+                                                        <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
+                                                            Thiếu nguyên liệu
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="text-xs text-[#8b8b8b]">
                                                     {dishItem.category}
                                                 </div>
+                                                {/* Hiển thị lỗi dưới tên món */}
+                                                {hasError && !hasWaste && (
+                                                    <div className="text-xs text-red-600 mt-1">
+                                                        {hasError}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-5 py-4">
                                                 {dishItem.served} phần
@@ -670,21 +680,33 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (!hasWaste) {
+                                                        if (
+                                                            !hasWaste &&
+                                                            !hasError
+                                                        ) {
                                                             handleEditClick(
                                                                 dishItem,
                                                             );
+                                                        } else if (hasError) {
+                                                            toast.error(
+                                                                hasError,
+                                                                {
+                                                                    duration: 3000,
+                                                                },
+                                                            );
                                                         } else {
                                                             toast.error(
-                                                                `❌ Món "${dishItem.name}" đã có món dư, không thể chỉnh sửa!`,
+                                                                `Món "${dishItem.name}" đã có món dư, không thể chỉnh sửa!`,
                                                                 {
                                                                     duration: 3000,
                                                                 },
                                                             );
                                                         }
                                                     }}
-                                                    className={`text-[#10bc5d] hover:text-[#0c9c4a] ${hasWaste ? "opacity-50 cursor-not-allowed" : ""}`}
-                                                    disabled={hasWaste}
+                                                    className={`text-[#10bc5d] hover:text-[#0c9c4a] ${hasWaste || hasError ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                    disabled={
+                                                        hasWaste || hasError
+                                                    }
                                                 >
                                                     <Edit2 size={18} />
                                                 </button>
@@ -697,7 +719,6 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                         {renderPagination()}
                     </div>
                 </div>
-
                 {selectedDish && (
                     <DishDetailPanel
                         isDetail={true}
@@ -712,11 +733,12 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                                 new Date().toDateString() ||
                             selectedDish.hasWaste ||
                             selectedDish.quantity_wasted > 0 ||
-                            isDishHasWaste(selectedDish.name)
+                            isDishHasWaste(selectedDish.name) ||
+                            !!dishErrors[selectedDish.name]
                         }
+                        errorMessage={dishErrors[selectedDish.name]} // Truyền lỗi xuống panel
                     />
                 )}
-
                 {showAddForm && (
                     <DishDetailPanel
                         isModal={true}
@@ -725,6 +747,17 @@ const ServedDishes = ({ surplusData = [], selectedDate: propSelectedDate }) => {
                         existingDishes={dishes}
                         selectedDate={selectedDate}
                         allMasterDishes={allMasterDishes}
+                        onError={(errorMsg, dishName) => {
+                            // Callback để nhận lỗi từ modal
+                            const ingredientError =
+                                formatIngredientError(errorMsg);
+                            if (ingredientError && dishName) {
+                                setDishErrors((prev) => ({
+                                    ...prev,
+                                    [dishName]: ingredientError,
+                                }));
+                            }
+                        }}
                     />
                 )}
             </div>

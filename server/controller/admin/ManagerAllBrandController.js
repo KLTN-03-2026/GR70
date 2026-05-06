@@ -1,6 +1,9 @@
 const ApiSuccess = require("../../utils/ApiSuccess");
 const ApiError = require("../../utils/ApiError");
 const ManagerAllBrandRepository = require("../../repository/admin/ManagerAllBrandRepository");
+const BrandRepository = require("../../repository/CheckRepostory");
+const DashboardAdminRepository = require("../../repository/DashboardAdminRepository");
+const CheckRepostory = require("../../repository/CheckRepostory");
 exports.getAllBrand = async (req, res,next) => {
     try {
         const page = req.query.page || 1;
@@ -14,9 +17,10 @@ exports.getAllBrand = async (req, res,next) => {
             page,
             size,
             filters,
-            // orderBy: req.query.orderBy || "id",
-            // order: req.query.orderType === "1" ? "ASC" : "DESC",
+            orderBy: req.query.orderBy || "id",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
         });
+        console.log("lỗi:",brand);
         res.json(ApiSuccess.getSelect("Get all brand", brand));
     } catch (error) {
         return next(error);
@@ -67,4 +71,41 @@ exports.unLockBrand = async (req, res, next) => {
     }catch (error) {
         return next(error);
     }
+};
+
+// tổng cửa hàng, tổng hoạt động, tổng doanh thu
+exports.TotalBrand = async (req, res, next) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const totalRevenuePromise = async () => {
+      const allBrand = await BrandRepository.AllBrandTrueFalse();
+
+      const revenues = await Promise.all(
+        allBrand.map((brand) =>
+          ManagerAllBrandRepository.SumRevenueYearBrand(brand.id, year)
+        )
+      );
+
+      return revenues.reduce((sum, revenue) => sum + Number(revenue || 0), 0);
+    };
+
+    const [totalBrand, activeBrand, totalRevenue] = await Promise.all([
+      CheckRepostory.CountBrand(),
+      DashboardAdminRepository.CountBrandActive(),
+      totalRevenuePromise()
+    ]);
+
+    const result = [
+      {
+        totalBrand,
+        activeBrand,
+        totalRevenue
+      }
+    ];
+
+    return res.json(ApiSuccess.getSelect("Total brand", result));
+  } catch (error) {
+    return next(error);
+  }
 };

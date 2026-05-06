@@ -29,7 +29,7 @@ const KitchenSidebar = () => {
         kitchen: true,
         report: true,
     });
-    
+
     const token = localStorage.getItem("token");
     const decode = jwtDecode(token);
 
@@ -43,7 +43,7 @@ const KitchenSidebar = () => {
     const logout = () => {
         localStorage.removeItem("token");
         navigate("/");
-    }
+    };
 
     const isKitchenActive = location.pathname.includes("/kitchen");
 
@@ -74,9 +74,10 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            isActive
+                                ? "bg-[#10BC5D] text-white"
+                                : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -88,25 +89,25 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen/manager-dish"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            isActive
+                                ? "bg-[#10BC5D] text-white"
+                                : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
                     <Plus size={18} />
-                    <span className="text-sm font-medium">
-                        Thêm món ăn
-                    </span>
+                    <span className="text-sm font-medium">Thêm món ăn</span>
                 </NavLink>
 
                 {/* Báo cáo lãng phí (giữ lại để tương thích cũ) */}
                 <NavLink
                     to="/kitchen/waste-report"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            isActive
+                                ? "bg-[#10BC5D] text-white"
+                                : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -119,9 +120,10 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen/waste-base"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            isActive
+                                ? "bg-[#10BC5D] text-white"
+                                : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -135,30 +137,33 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen/surplus-dishes"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            isActive
+                                ? "bg-[#10BC5D] text-white"
+                                : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
                     <PlusCircle size={18} />
-                    <span className="text-sm font-medium">Món dư</span>
+                    <span className="text-sm font-medium">Ghi nhận món ăn</span>
                 </NavLink>
 
                 {/* Thông tin cá nhân */}
                 <NavLink
                     to="/kitchen/profile"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            isActive
+                                ? "bg-[#10BC5D] text-white"
+                                : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
                     <User size={18} />
-                    <span className="text-sm font-medium">Thông tin cá nhân</span>
+                    <span className="text-sm font-medium">
+                        Thông tin cá nhân
+                    </span>
                 </NavLink>
-
             </div>
 
             {/* User Info - Cố định dưới cùng */}
@@ -170,15 +175,16 @@ const KitchenSidebar = () => {
                     <div>
                         <p className="text-xs font-medium text-[#141C21]">
                             {decode?.name}
-
                         </p>
                         <p className="text-[10px] text-[#8B8B8B]">
                             {decode?.email}
-
                         </p>
                     </div>
                 </div>
-                <button onClick={logout} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
+                <button
+                    onClick={logout}
+                    className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs"
+                >
                     <LogOut size={14} />
                     <span>Đăng xuất</span>
                 </button>
