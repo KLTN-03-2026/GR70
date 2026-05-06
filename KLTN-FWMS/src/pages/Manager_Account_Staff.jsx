@@ -62,7 +62,6 @@ const Manager_Account_Staff = () => {
         if (!/[@$!%*?&]/.test(formaddkitchen.password)) {
             return toast.error("Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (@, $, !, %, *, ?, &)");
         }
-        if (formaddkitchen.password.length <= 5) return toast.error("Mật khẩu của bạn quá ngắn!");
         try {
             const res = await axios.post(
                 `https://system-waste-less-ai.onrender.com/api/users/register-kitchen/${userID}`,

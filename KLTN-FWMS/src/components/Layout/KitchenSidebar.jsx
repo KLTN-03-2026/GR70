@@ -1,4 +1,3 @@
-// src/components/Layout/KitchenSidebar.jsx
 import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import logo from "../../assets/Logo.svg";
 import { jwtDecode } from "jwt-decode";
+import ConfirmLogoutModal from "../ConfirmLogoutModal";
 
 const KitchenSidebar = () => {
     const location = useLocation();
@@ -40,6 +40,7 @@ const KitchenSidebar = () => {
         }));
     };
 
+    const [openModal, setOpenModal] = useState(false);
     const logout = () => {
         localStorage.removeItem("token");
         navigate("/");
@@ -181,13 +182,15 @@ const KitchenSidebar = () => {
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={logout}
-                    className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs"
-                >
+                <button onClick={() => setOpenModal(true)} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
                     <LogOut size={14} />
                     <span>Đăng xuất</span>
                 </button>
+                <ConfirmLogoutModal
+                    isOpen={openModal}
+                    onClose={() => setOpenModal(false)}
+                    onConfirm={logout}
+                />
             </div>
         </div>
     );
