@@ -427,7 +427,8 @@ export const Row_Account_Staff = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 ">
-
+                                    
+                                    
                                     {filteredStaff.map((staff, index) => (
                                         <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors group text-center">
 
@@ -479,6 +480,9 @@ export const Row_Account_Staff = () => {
                                             </td>
                                         </tr>
                                     ))}
+                                    {filteredStaff.length === 0 && (
+                                        <div className='text-gray-500 flex left-1/2 -translate-x-1/2 absolute mt-8'>Chưa có nhân viên nào!</div>
+                                    )}
                                     {openform_changekitchen && (
                                         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                                             <div className="bg-white w-full max-w-[520px] rounded-xl shadow-2xl overflow-hidden">
