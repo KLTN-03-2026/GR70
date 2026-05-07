@@ -51,7 +51,7 @@ const ConfirmLogoutModal = ({ isOpen, onClose, onConfirm }) => {
                 </div>
             </div>
         </div>,
-        document.body // 🔥 QUAN TRỌNG
+        document.body
     );
 };
 

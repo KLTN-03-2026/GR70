@@ -13,7 +13,7 @@ function Register() {
         password: "",
         address: "",
         province: "",
-        businessType: "",
+        rolebrand: "",
         nameBrand: "",
         addressBrand: "",
     });
@@ -96,7 +96,7 @@ function Register() {
         if (!form.address.trim()) {
             return toast.error("Vui lòng nhập địa chỉ");
         }
-        if (!form.businessType) {
+        if (!form.rolebrand) {
             return toast.error("Vui lòng chọn loại hình");
         }
         if (!form.nameBrand.trim()) {
@@ -210,8 +210,8 @@ function Register() {
                         Thông tin nhà hàng - khách sạn
                     </h3>
                     <select
-                        name="businessType"
-                        value={form.businessType}
+                        name="rolebrand"
+                        value={form.rolebrand}
                         onChange={handleChange}
                         className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 mb-4"
                     >

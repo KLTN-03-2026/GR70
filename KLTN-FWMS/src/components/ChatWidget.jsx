@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import socket from "../services/Socket";
 import axios from "axios";
+import { createPortal } from "react-dom";
 
 export default function ChatWidget({ userId }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -463,9 +464,10 @@ export default function ChatWidget({ userId }) {
         isSameId(c.id, activeChat)
     );
 
-    return (
+    return createPortal(
         <>
             <div
+            className="z-[9999]"
                 onClick={handleToggleWidget}
                 style={{
                     position: "fixed",
@@ -486,7 +488,7 @@ export default function ChatWidget({ userId }) {
             </div>
 
             {isOpen && (
-                <div className="fixed bottom-24 right-10 w-[500px] h-[600px] bg-white rounded-2xl shadow-2xl flex overflow-hidden">
+                <div className="fixed z-[9999] bottom-24 right-10 w-[500px] h-[600px] bg-white rounded-2xl shadow-2xl flex overflow-hidden">
                     <div className="w-[180px] bg-gray-50 border-r flex flex-col">
                         <div className="p-3">
                             <input
@@ -596,6 +598,10 @@ export default function ChatWidget({ userId }) {
                                 );
                             })}
 
+                            {!activeChat && (
+                                <p className="mt-4 w-full items-center text-center text-gray-500">Chọn một cuộc trò chuyện để bắt đầu.</p>
+                            )}
+
                             <div ref={bottomRef} />
                         </div>
 
@@ -621,6 +627,7 @@ export default function ChatWidget({ userId }) {
                     </div>
                 </div>
             )}
-        </>
+        </>,
+        document.body
     );
 }
