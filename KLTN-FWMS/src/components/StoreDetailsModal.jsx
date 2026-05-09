@@ -5,18 +5,18 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
     const [detail, setDetail] = useState(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [loadingLock, setLoadingLock] = useState(false);
-    const [lockMsg, setLockMsg] = useState("");
+    const [lockResult, setLockResult] = useState(null); // { success: bool, msg: string }
 
     useEffect(() => {
         if (!isOpen || !store?.id) return;
         setDetail(null);
-        setLockMsg("");
+        setLockResult(null);
         setLoadingDetail(true);
         getBrandDetail(store.id)
             .then((res) => {
                 if (res?.data) setDetail(mapBrand(res.data));
             })
-            .catch(() => setDetail(store)) // fallback về data list nếu lỗi
+            .catch(() => setDetail(store))
             .finally(() => setLoadingDetail(false));
     }, [isOpen, store?.id]);
 
@@ -32,21 +32,18 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
         text4: "#D1D1D1",
     };
 
-    const getStatusLabel = (status) => {
-        if (status === "active") return "Hoạt động";
-        if (status === "locked") return "Đã khóa";
-        return "Cảnh báo";
-    };
+    const getStatusLabel = (s) =>
+        s === "active" ? "Hoạt động" : s === "locked" ? "Đã khóa" : "Cảnh báo";
 
-    const getStatusBadgeStyles = (status) => {
-        if (status === "active") return { backgroundColor: "#10BC5D15", color: colors.primary };
-        if (status === "locked") return { backgroundColor: "#141C2110", color: colors.text2 };
+    const getStatusBadgeStyles = (s) => {
+        if (s === "active") return { backgroundColor: "#10BC5D15", color: colors.primary };
+        if (s === "locked") return { backgroundColor: "#141C2110", color: colors.text2 };
         return { backgroundColor: "#FF980015", color: "#FF9800" };
     };
 
     const handleToggleLock = async () => {
         setLoadingLock(true);
-        setLockMsg("");
+        setLockResult(null);
         try {
             let res;
             if (displayed.status === "locked") {
@@ -57,9 +54,12 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
             const newStatus = displayed.status === "locked" ? "active" : "locked";
             setDetail((prev) => ({ ...(prev ?? store), status: newStatus }));
             onStatusChange?.(displayed.id, newStatus);
-            setLockMsg(res?.message ?? "Thành công");
+            setLockResult({ success: true, msg: res?.message ?? "Thành công" });
         } catch (e) {
-            setLockMsg(e?.response?.data?.message ?? "Đã xảy ra lỗi");
+            setLockResult({
+                success: false,
+                msg: e?.response?.data?.message ?? e?.message ?? "Đã xảy ra lỗi",
+            });
         } finally {
             setLoadingLock(false);
         }
@@ -87,25 +87,28 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
                 </div>
 
                 <div className="p-8 space-y-10">
-                    {/* Loading skeleton */}
                     {loadingDetail ? (
                         <div className="space-y-4">
                             {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="h-4 rounded-lg animate-pulse bg-gray-100" style={{ width: i % 2 === 0 ? "60%" : "40%" }} />
+                                <div key={i} className="h-4 rounded-lg animate-pulse bg-gray-100"
+                                    style={{ width: i % 2 === 0 ? "60%" : "40%" }} />
                             ))}
                         </div>
                     ) : (
                         <>
                             {/* Thông báo lock/unlock */}
-                            {lockMsg && (
-                                <div className="text-sm px-4 py-2.5 rounded-xl"
+                            {lockResult && (
+                                <div
+                                    className="text-sm px-4 py-2.5 rounded-xl flex items-center gap-2"
                                     style={{
-                                        background: lockMsg.includes("lỗi") || lockMsg.includes("không")
-                                            ? "#FF000015" : "#10BC5D15",
-                                        color: lockMsg.includes("lỗi") || lockMsg.includes("không")
-                                            ? "#dc2626" : colors.primary
-                                    }}>
-                                    {lockMsg}
+                                        background: lockResult.success ? "#10BC5D15" : "#FF000015",
+                                        color: lockResult.success ? colors.primary : "#dc2626",
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                        {lockResult.success ? "check_circle" : "error"}
+                                    </span>
+                                    {lockResult.msg}
                                 </div>
                             )}
 
@@ -123,7 +126,7 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
                                     ].map((item, idx) => (
                                         <div key={idx}>
                                             <p className="text-[11px] uppercase mb-1 font-bold" style={{ color: colors.text3 }}>{item.label}</p>
-                                            <p className="font-semibold" style={{ color: colors.text2 }}>{item.value}</p>
+                                            <p className="font-semibold" style={{ color: colors.text2 }}>{item.value || "—"}</p>
                                         </div>
                                     ))}
                                     <div>
@@ -171,8 +174,8 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-6 border-t flex justify-between items-center bg-gray-50/50" style={{ borderColor: colors.text4 + "50" }}>
-                    {/* Nút lock/unlock */}
+                <div className="px-8 py-6 border-t flex justify-between items-center bg-gray-50/50"
+                    style={{ borderColor: colors.text4 + "50" }}>
                     <button
                         onClick={handleToggleLock}
                         disabled={loadingLock || loadingDetail}
@@ -183,12 +186,9 @@ export const StoreDetailsModal = ({ isOpen, onClose, store, onStatusChange }) =>
                         }
                     >
                         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                            {displayed.status === "locked" ? "lock_open" : "lock"}
+                            {loadingLock ? "progress_activity" : displayed.status === "locked" ? "lock_open" : "lock"}
                         </span>
-                        {loadingLock
-                            ? "Đang xử lý..."
-                            : displayed.status === "locked" ? "Mở khóa" : "Khóa cửa hàng"
-                        }
+                        {loadingLock ? "Đang xử lý..." : displayed.status === "locked" ? "Mở khóa" : "Khóa cửa hàng"}
                     </button>
 
                     <button
