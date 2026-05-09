@@ -151,12 +151,6 @@ function Login() {
                                 <input type="checkbox" className="mr-2" />
                                 Ghi nhớ tôi
                             </label>
-                            <a
-                                href="#"
-                                className="text-sm text-green-600 hover:underline"
-                            >
-                                Quên mật khẩu?
-                            </a>
                         </div>
                         {/* Button */}
                         <button
