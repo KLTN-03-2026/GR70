@@ -42,3 +42,8 @@ export const unlockBrand = async (id) => {
     }
     return res.data;
 };
+
+export const getTotalBrand = async () => {
+    const res = await api.get("admin/get-total-brand");
+    return res.data;
+};

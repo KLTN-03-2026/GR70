@@ -345,12 +345,17 @@ function FoodFormModal({ initial, onClose, onSave, isEdit, brandId, userId, show
         showToast("Cập nhật món ăn thành công!");
       } else {
         console.log("=== Đang CREATE món, brandId:", brandId, "userId:", userId);
-        await createDish(brandId, userId, payload);
-        showToast(
-          isManager
-            ? "Thêm món ăn thành công!"
-            : "Thêm món ăn thành công! Đang chờ duyệt."
-        );
+
+        const result = await createDish(brandId, userId, payload);
+
+        if (result?.success === false) {
+          setError(result.message || "Nguyên liệu không phù hợp với món ăn này.");
+          return; // không đóng modal
+        }
+
+        showToast(isManager ? "Thêm món ăn thành công!" : "Thêm món ăn thành công! Đang chờ duyệt.");
+        onSave();
+        onClose();
       }
 
       console.log("=== Thành công, đóng modal ===");
@@ -716,12 +721,10 @@ export default function FoodsPage() {
   const fetchPendingFoods = useCallback(async (page = 1) => {
     try {
       setLoadingPending(true);
-      const res = await getAllDishes(1, 100);
-      const payload = res?.data ?? {};
-      const allList = Array.isArray(payload?.data) ? payload.data
-        : Array.isArray(payload) ? payload : [];
+      const res = await getAllDishesFalse(page, ITEMS_PER_PAGE);
 
-      const list = allList.filter(item => item.status === false);
+      // API trả { success, data: [...] } — array thẳng, không phân trang
+      const list = Array.isArray(res?.data) ? res.data : [];
 
       setPending(list);
       setPendingTotal(list.length);
