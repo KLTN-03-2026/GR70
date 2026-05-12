@@ -19,6 +19,7 @@ const Customers = () => {
     // ===== FILTER & SORT STATE =====
     const [selectedDate, setSelectedDate] = useState("");
     const [appliedDate, setAppliedDate] = useState("");
+    const [dateError, setDateError] = useState(""); // State for date validation error
 
     // ===== PAGINATION STATE =====
     const [currentPage, setCurrentPage] = useState(1);
@@ -38,6 +39,20 @@ const Customers = () => {
         if (dateString.includes("T")) return dateString.split("T")[0];
         if (dateString.includes(" ")) return dateString.split(" ")[0];
         return dateString;
+    }, []);
+
+    // Kiểm tra ngày có phải trong tương lai không
+    const isFutureDate = useCallback((dateString) => {
+        if (!dateString) return false;
+        const selectedDateObj = new Date(dateString);
+        const today = new Date();
+
+        // Reset time về 00:00:00 để so sánh chính xác
+        today.setHours(0, 0, 0, 0);
+        selectedDateObj.setHours(0, 0, 0, 0);
+
+        // Chỉ trả về true nếu ngày được chọn LỚN HƠN ngày hiện tại
+        return selectedDateObj > today;
     }, []);
 
     // Sắp xếp dữ liệu theo ngày
@@ -161,12 +176,21 @@ const Customers = () => {
     };
     // ===== HANDLE FILTER & SORT =====
     const handleApplyFilter = () => {
+        // Validate future date
+        if (selectedDate && isFutureDate(selectedDate)) {
+            setDateError("Không thể lọc dữ liệu ngày tương lai.");
+            return;
+        }
+
+        setDateError("");
         setAppliedDate(selectedDate);
         setCurrentPage(1);
     };
+
     const handleResetFilter = () => {
         setSelectedDate("");
         setAppliedDate("");
+        setDateError("");
         setCurrentPage(1);
     };
 
@@ -181,6 +205,7 @@ const Customers = () => {
     useEffect(() => {
         updatePagination();
     }, [customerData, currentPage, updatePagination]);
+
     // ===== FORMAT FUNCTIONS =====
     const formatDateDisplay = useCallback(
         (row) => {
@@ -315,13 +340,28 @@ const Customers = () => {
                 <h3 className="text-base font-semibold text-[#141C21] mb-4">
                     Bộ lọc tìm kiếm
                 </h3>
-                <div className="flex gap-4 flex-wrap">
-                    <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] flex-1 min-w-[200px]"
-                    />
+                <div className="flex gap-4 flex-wrap items-start">
+                    <div className="flex-1 min-w-[200px]">
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                setDateError("");
+                            }}
+                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] ${
+                                dateError ? "border-red-500" : "border-gray-200"
+                            }`}
+                        />
+                        {/* Container cố định chiều cao cho lỗi */}
+                        <div className="h-5 mt-1">
+                            {dateError && (
+                                <p className="text-red-500 text-xs">
+                                    {dateError}
+                                </p>
+                            )}
+                        </div>
+                    </div>
                     <div className="flex gap-2">
                         <button
                             onClick={handleApplyFilter}
@@ -338,6 +378,8 @@ const Customers = () => {
                                 Xóa lọc
                             </button>
                         )}
+                        {/* Container giữ chỗ để đồng bộ chiều cao */}
+                        <div className="h-5 mt-1"></div>
                     </div>
                 </div>
             </div>

@@ -168,10 +168,10 @@ const KitchenDashboard = () => {
             } else {
                 // Fallback theo hình ảnh nếu không có dữ liệu
                 setTopWastedToday({
-                    name: "Cơm trắng",
-                    served: 100,
-                    wasted: 10,
-                    wastePercentage: "10.0",
+                    name: "",
+                    served: 0,
+                    wasted: 0,
+                    wastePercentage: "0",
                 });
             }
 

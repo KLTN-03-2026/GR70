@@ -8,6 +8,7 @@ const FoodData = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [categories, setCategories] = useState([]);
+    const [dateError, setDateError] = useState("");
 
     // ===== FILTER STATE =====
     const [selectedDate, setSelectedDate] = useState("");
@@ -53,6 +54,18 @@ const FoodData = () => {
         } catch {
             return "N/A";
         }
+    };
+
+    // Kiểm tra ngày có phải trong tương lai không
+    const isFutureDate = (dateString) => {
+        if (!dateString) return false;
+        const selectedDateObj = new Date(dateString);
+        const today = new Date();
+        // Reset time về 00:00:00 để so sánh chính xác
+        today.setHours(0, 0, 0, 0);
+        selectedDateObj.setHours(0, 0, 0, 0);
+        // Chỉ trả về true nếu ngày được chọn LỚN HƠN ngày hiện tại
+        return selectedDateObj > today;
     };
 
     const getCategoryName = (categoryId) => {
@@ -178,6 +191,12 @@ const FoodData = () => {
 
     // ===== HANDLE FILTERS =====
     const handleApplyFilters = () => {
+        if (selectedDate && isFutureDate(selectedDate)) {
+            setDateError("Không thể lọc dữ liệu ngày tương lai.");
+            return;
+        }
+
+        setDateError(""); // Clear error if validation passes
         setCurrentPage(1);
         setAppliedDate(selectedDate);
         setAppliedCategoryId(selectedCategoryId);
@@ -190,6 +209,7 @@ const FoodData = () => {
         setAppliedCategoryId("");
         setCurrentPage(1);
         setError(null);
+        setDateError("");
     };
 
     const handlePageChange = (newPage) => {
@@ -310,7 +330,8 @@ const FoodData = () => {
                 <h3 className="text-base font-semibold text-[#141C21] mb-4">
                     Bộ lọc tìm kiếm
                 </h3>
-                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    {/* Cột ngày tháng */}
                     <div className="flex-1">
                         <label className="block text-sm text-gray-600 mb-2">
                             Chọn ngày
@@ -318,10 +339,25 @@ const FoodData = () => {
                         <input
                             type="date"
                             value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] w-full"
+                            onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                setDateError("");
+                            }}
+                            className={`border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10BC5D] w-full ${
+                                dateError ? "border-red-500" : "border-gray-200"
+                            }`}
                         />
+                        {/* Container cố định chiều cao cho lỗi */}
+                        <div className="h-5 mt-1">
+                            {dateError && (
+                                <p className="text-red-500 text-xs">
+                                    {dateError}
+                                </p>
+                            )}
+                        </div>
                     </div>
+
+                    {/* Cột loại món */}
                     <div className="flex-1">
                         <label className="block text-sm text-gray-600 mb-2">
                             Loại món
@@ -340,8 +376,12 @@ const FoodData = () => {
                                 </option>
                             ))}
                         </select>
+                        {/* Container giữ chỗ để đồng bộ chiều cao với cột ngày */}
+                        <div className="h-5 mt-1"></div>
                     </div>
-                    <div className="flex gap-2">
+
+                    {/* Cột buttons */}
+                    <div className="flex mt-7">
                         <button
                             onClick={handleApplyFilters}
                             className="flex items-center justify-center gap-2 bg-[#10BC5D] text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-green-600"
@@ -356,6 +396,8 @@ const FoodData = () => {
                                 Xóa lọc
                             </button>
                         )}
+                        {/* Container giữ chỗ để đồng bộ chiều cao với cột ngày */}
+                        <div className="h-5 mt-1"></div>
                     </div>
                 </div>
             </div>
