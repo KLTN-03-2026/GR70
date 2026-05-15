@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { StoreListSection } from "../../components/StoreListSection";
 import { StoreDetailsModal } from "../../components/StoreDetailsModal";
-import { getAllBrands, mapBrand } from "../../services/adminService";
+import { getAllBrands, getTotalBrand, mapBrand } from "../../services/adminService";
+
 
 export const StoreManager = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,31 +13,21 @@ export const StoreManager = () => {
         { label: "Tổng cửa hàng", value: "...", icon: "storefront", color: "text-blue-600", bg: "bg-blue-50" },
         { label: "Đang hoạt động", value: "...", icon: "check_circle", color: "text-[#10BC5D]", bg: "bg-[#10BC5D]/10" },
         { label: "Tổng doanh thu năm", value: "...", icon: "payments", color: "text-orange-600", bg: "bg-orange-50" },
-        { label: "Tỉ lệ tăng trưởng", value: "+12.5%", icon: "trending_up", color: "text-purple-600", bg: "bg-purple-50" },
     ]);
 
     // Fetch stats — lấy trang đầu size 100 để có overview
     const fetchStats = useCallback(async () => {
         try {
-            const res = await getAllBrands({ page: 1, size: 100 });
-            const inner = res?.data ?? res;
-            const list = Array.isArray(inner?.data) ? inner.data
-                : Array.isArray(inner) ? inner
-                : [];
-            const mapped = list.map(mapBrand);
-
-            const totalCount = inner?.total ?? mapped.length;
-            const activeCount = mapped.filter((s) => s.status === "active").length;
-            const revenue = mapped.reduce((sum, s) => {
-                const val = parseInt(s.annualRevenue?.replace(/\D/g, "") || 0);
-                return sum + val;
-            }, 0);
+            const res = await getTotalBrand();
+            const d = Array.isArray(res?.data) ? res.data[0] : {};
 
             setStats([
-                { label: "Tổng cửa hàng", value: totalCount, icon: "storefront", color: "text-blue-600", bg: "bg-blue-50" },
-                { label: "Đang hoạt động", value: activeCount, icon: "check_circle", color: "text-[#10BC5D]", bg: "bg-[#10BC5D]/10" },
-                { label: "Tổng doanh thu năm", value: revenue > 0 ? revenue.toLocaleString("vi-VN") + "đ" : "—", icon: "payments", color: "text-orange-600", bg: "bg-orange-50" },
-                { label: "Tỉ lệ tăng trưởng", value: "+12.5%", icon: "trending_up", color: "text-purple-600", bg: "bg-purple-50" },
+                { label: "Tổng cửa hàng", value: d.totalBrand ?? "—", icon: "storefront", color: "text-blue-600", bg: "bg-blue-50" },
+                { label: "Đang hoạt động", value: d.activeBrand ?? "—", icon: "check_circle", color: "text-[#10BC5D]", bg: "bg-[#10BC5D]/10" },
+                {
+                    label: "Tổng doanh thu năm", value: d.totalRevenue ? Number(d.totalRevenue).toLocaleString("vi-VN") + "đ" : "—",
+                    icon: "payments", color: "text-orange-600", bg: "bg-orange-50"
+                },
             ]);
         } catch (e) {
             console.error("Lỗi tải stats:", e);

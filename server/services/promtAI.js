@@ -148,11 +148,14 @@ export const generatePromptCheckIngredientForDish = ({
   ingredient = []
 } = {}) => {
   return `
-Bạn là AI kiểm tra độ phù hợp giữa tên món ăn và các nguyên liệu.
+Bạn là AI kiểm tra nguyên liệu có hợp lý khi thêm vào một món ăn hay không.
 
 Nhiệm vụ:
-- Xác định nguyên liệu nào KHÔNG phù hợp với món ăn.
-- Đưa ra đánh giá tổng thể công thức có hợp lý hay không.
+- Chỉ kiểm tra từng nguyên liệu trong danh sách có PHÙ HỢP hoặc CÓ THỂ CHẤP NHẬN khi dùng cho món ăn này hay không.
+- Không đánh giá công thức có đầy đủ để nấu ra món ăn hay không.
+- Không yêu cầu món phải có đủ nguyên liệu truyền thống.
+- Không chấm điểm công thức.
+- Không tự thêm nguyên liệu còn thiếu.
 
 =====================
 ## INPUT
@@ -164,28 +167,29 @@ Nhiệm vụ:
 }
 
 =====================
-## QUY TẮC
+## QUY TẮC ĐÁNH GIÁ
 =====================
-- "unsuitable": nguyên liệu sai rõ ràng, không thuộc món
-- "suitable": nguyên liệu hợp lý với món
+- Chỉ đánh dấu "unsuitable" nếu nguyên liệu rõ ràng không hợp lý, lạc món, hoặc rất khó dùng trong món này.
+- Nếu nguyên liệu có thể dùng trong món, món ăn kèm, topping, gia vị, rau ăn kèm, nước dùng, nhân, hoặc biến thể hợp lý thì xem là phù hợp.
+- Không bắt buộc nguyên liệu phải là thành phần chính/truyền thống của món.
+- Không đánh giá thiếu nguyên liệu.
+- Không đánh giá món có đúng công thức chuẩn hay không.
+- Không vì món thiếu nguyên liệu chính mà kết luận không hợp lý.
+- Không vì category chưa khớp hoàn toàn mà đánh dấu sai nguyên liệu, trừ khi nguyên liệu thật sự lạc món.
 
-- Đánh giá dựa trên:
-  1. Tên món
-  2. Category
-  3. Kiến thức ẩm thực phổ biến
-
-- Ví dụ:
-  - "mì quảng" + "dưa hấu" => unsuitable
-  - "mì quảng" + "bún" => unsuitable
-
-- Không được đoán bừa
-- Không được thêm nguyên liệu mới
-- Không giải thích dài dòng
+Ví dụ:
+- "mì quảng" + "mì ký" => phù hợp
+- "mì quảng" + "hành lá" => phù hợp
+- "mì quảng" + "thịt heo" => phù hợp
+- "mì quảng" + "rau muống" => có thể phù hợp nếu dùng như rau ăn kèm hoặc biến thể
+- "mì quảng" + "dưa hấu" => không phù hợp
+- "mì quảng" + "kem tươi" => không phù hợp
+- "cháo lòng" + "thịt mèo" => không phù hợp
 
 =====================
-## OUTPUT (BẮT BUỘC)
+## OUTPUT BẮT BUỘC
 =====================
-Chỉ trả về JSON đúng format:
+Chỉ trả về JSON đúng format sau:
 
 {
   "is_recipe_reasonable": true,
@@ -194,12 +198,14 @@ Chỉ trả về JSON đúng format:
 }
 
 =====================
-## RÀNG BUỘC
+## RÀNG BUỘC OUTPUT
 =====================
-- Chỉ JSON, không markdown
-- Không thêm field khác
-- "invalid_ingredients": chỉ chứa nguyên liệu "unsuitable"
-- Nếu có nguyên liệu sai nghiêm trọng → is_recipe_reasonable = false
-- "summary": ngắn gọn 1 câu
+- Chỉ JSON, không markdown.
+- Không thêm field khác.
+- "invalid_ingredients" chỉ chứa nguyên liệu thật sự không phù hợp.
+- Nếu không có nguyên liệu nào lạc món, "invalid_ingredients" = [].
+- "is_recipe_reasonable" = false chỉ khi có ít nhất 1 nguyên liệu không phù hợp.
+- "is_recipe_reasonable" = true nếu tất cả nguyên liệu đều hợp lý hoặc có thể chấp nhận.
+- "summary" viết ngắn gọn 1 câu.
 `.trim();
 };

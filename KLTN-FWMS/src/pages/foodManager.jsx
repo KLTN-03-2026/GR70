@@ -54,7 +54,7 @@ function mapIngredient(raw) {
         unit: raw.unit,
         current_stock: isNaN(stock) ? 0 : stock,
         minimum_stock: isNaN(minimum) ? 0 : minimum,
-        is_used_in_dish: raw.is_used_in_dish ?? raw.isUsedInDish ?? false,
+        haveDish: raw.haveDish ?? false,  // ← thêm dòng này
     };
 }
 
@@ -456,8 +456,7 @@ export default function IngredientsPage() {
     const searchTimer = useRef(null);
 
 
-    const [usedIngredients, setUsedIngredients] = useState(new Set());
-    const [loadingUsed, setLoadingUsed] = useState(false);
+
 
     // Fetch danh sách nguyên liệu đang được sử dụng (chi tiết từng món)
     useEffect(() => {
@@ -657,7 +656,7 @@ export default function IngredientsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {loading || loadingUsed ? (
+                                        {loading ? (
                                             Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={6} />)
                                         ) : ingredients.length === 0 ? (
                                             <tr>
@@ -667,8 +666,8 @@ export default function IngredientsPage() {
                                             </tr>
                                         ) : (
                                             ingredients.map((item) => {
-                                                const ingredientNameLower = item.name?.trim().toLowerCase();
-                                                const isUsedInDish = usedIngredients.has(ingredientNameLower);
+
+                                                const isUsedInDish = item.haveDish;
 
                                                 return (
                                                     <tr
