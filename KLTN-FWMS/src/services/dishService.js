@@ -16,10 +16,11 @@ export const getAllDishesFalse = async (page = 1, size = 10) => {
     const brandID = payload?.brandID || payload?.brandId || payload?.brand_id;
 
     const res = await api.get("/dishes/get-all-dishes-false", {
-        params: { page, size, brandID }, // ← thêm brandID
+        params: { page, size, brandID }, 
     });
     return res.data;
 };
+
 
 export const createDish = async (brandId, userId, data) => {
     const res = await api.post(
@@ -41,8 +42,17 @@ export const createDish = async (brandId, userId, data) => {
             headers: { "Content-Type": "application/json" },
         }
     );
+
+    if (res.data?.success === false) {
+        const err = new Error(res.data?.message || "Nguyên liệu không phù hợp với món ăn.");
+        err.isAIValidation = true;
+        err.response = { data: res.data };
+        throw err;
+    }
+
     return res.data;
 };
+
 
 export const updateDish = async (id, data) => {
     const res = await api.put(`/dishes/update-dishes/${id}`, data);

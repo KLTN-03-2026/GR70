@@ -64,6 +64,7 @@ function AddPeopleForm({ onClose }) {
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const fetchCustomerCount = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -112,6 +113,7 @@ function AddPeopleForm({ onClose }) {
         }
         // Clear error trước khi gọi API
         setError("");
+        setSuccessMessage(""); // Clear success message cũ
 
         try {
             const token = localStorage.getItem("token");
@@ -128,6 +130,10 @@ function AddPeopleForm({ onClose }) {
 
             //điều kiện
             if (response.data?.success === true) {
+                // Hiển thị thông báo thành công
+                setSuccessMessage("✅ Thêm thành công!");
+
+                // Cập nhật box "Đã thêm hôm nay"
                 setEntries([
                     {
                         count: Number(count),
@@ -136,7 +142,14 @@ function AddPeopleForm({ onClose }) {
                     },
                 ]);
                 setCount("");
-                setError(""); // Clear error khi thành công
+                setError("");
+
+                // Sau 1.5 giây, đóng modal và reload trang
+                setTimeout(() => {
+                    window.location.reload(); // Reload lại trang
+                    onClose(); // Đóng modal
+                }, 1500);
+
                 console.log("Đã thêm thành công:", count, "người");
             } else {
                 setError("Cập nhật thất bại, vui lòng thử lại!");
@@ -220,6 +233,11 @@ function AddPeopleForm({ onClose }) {
                                 error
                             </span>
                             {error}
+                        </p>
+                    )}
+                    {successMessage && (
+                        <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
+                            {successMessage}
                         </p>
                     )}
                 </div>
@@ -875,9 +893,7 @@ export default function Dashboard() {
                                             color: "var(--color-primary)",
                                             fontFamily: "'Nunito', sans-serif",
                                         }}
-                                    >
-
-                                    </button>
+                                    ></button>
                                 </div>
                                 <table className="w-full text-left">
                                     <thead>
@@ -910,10 +926,11 @@ export default function Dashboard() {
                                     </thead>
 
                                     <tbody>
-                                        {lowstockingredient?.map((value, index) => {
-                                            const isLow =
-                                                value.current_stock <
-                                                (value.minimum_stock) / 2;
+                                        {lowstockingredient?.map(
+                                            (value, index) => {
+                                                const isLow =
+                                                    value.current_stock <
+                                                    value.minimum_stock / 2;
 
                                                 return (
                                                     <tr
@@ -950,27 +967,29 @@ export default function Dashboard() {
                                                             )}
                                                         </td>
 
-                                                    {/* Status */}
-                                                    <td className="px-6 py-4">
-                                                        <span
-                                                            className="px-2 py-1 rounded text-xs font-bold"
-                                                            style={{
-                                                                background: isLow
-                                                                    ? "#fee2e2"
-                                                                    : "#FFF7ED",
-                                                                color: isLow
-                                                                    ? "#dc2626"
-                                                                    : "#F97316",
-                                                            }}
-                                                        >
-                                                            {isLow
-                                                                ? "Khẩn cấp"
-                                                                : "Cảnh báo"}
-                                                        </span>
-                                                    </td>  
-                                                </tr>
-                                            );
-                                        })}
+                                                        {/* Status */}
+                                                        <td className="px-6 py-4">
+                                                            <span
+                                                                className="px-2 py-1 rounded text-xs font-bold"
+                                                                style={{
+                                                                    background:
+                                                                        isLow
+                                                                            ? "#fee2e2"
+                                                                            : "#FFF7ED",
+                                                                    color: isLow
+                                                                        ? "#dc2626"
+                                                                        : "#F97316",
+                                                                }}
+                                                            >
+                                                                {isLow
+                                                                    ? "Khẩn cấp"
+                                                                    : "Cảnh báo"}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            },
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -1002,16 +1021,19 @@ export default function Dashboard() {
                                                     📈 Dự đoán số lượng khách
                                                 </span>
                                                 <span
-                                                    className={`text-[14px] px-2 py-1 rounded-full ${Customer_AI?.risk_level === "high"
-                                                        ? "bg-red-100 text-red-700"
-                                                        : Customer_AI?.risk_level ===
-                                                            "medium"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-green-100 text-green-700"
-                                                        }`}
+                                                    className={`text-[14px] px-2 py-1 rounded-full ${
+                                                        Customer_AI?.risk_level ===
+                                                        "high"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : Customer_AI?.risk_level ===
+                                                                "medium"
+                                                              ? "bg-yellow-100 text-yellow-700"
+                                                              : "bg-green-100 text-green-700"
+                                                    }`}
                                                 >
                                                     Rủi ro:{" "}
-                                                    {Customer_AI?.risk_level === "high"
+                                                    {Customer_AI?.risk_level ===
+                                                    "high"
                                                         ? "Cao"
                                                         : Customer_AI?.risk_level ===
                                                             "medium"
@@ -1020,9 +1042,7 @@ export default function Dashboard() {
                                                 </span>
                                             </div>
                                             <div className="text-3xl font-bold text-[#141C21] mb-2">
-                                                {
-                                                    Customer_AI?.ai_customer_count
-                                                }{" "}
+                                                {Customer_AI?.ai_customer_count}{" "}
                                                 khách
                                             </div>
                                             <p className="text-sm text-[#8B8B8B] leading-relaxed">

@@ -18,10 +18,10 @@ const formatDateVN = (date) => {
 export default function WasteHistory() {
     // State cho dữ liệu
     const [filteredData, setFilteredData] = useState([]);
-    const [currentPageData, setCurrentPageData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filterError, setFilterError] = useState("");
     const [selectedSuggestion, setSelectedSuggestion] = useState(null);
+    const [dateError, setDateError] = useState("");
 
     // State cho filter
     const [date, setDate] = useState("");
@@ -33,103 +33,75 @@ export default function WasteHistory() {
         comparePercent: 0,
     });
 
+    // ===== PAGINATION - TÍNH TOÁN TRỰC TIẾP =====
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(5);
+
+    // Tính toán trực tiếp, không cần state riêng
+    const totalItems = filteredData.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const currentPageData = filteredData.slice(startIndex, endIndex);
+
+    // Reset về trang 1 khi dữ liệu thay đổi
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filteredData]);
+
     // Lấy tháng hiện tại (YYYY-MM)
     const getCurrentMonth = () => {
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     };
 
-    // ===== PAGINATION STATE =====
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
-    const [pageSize] = useState(5);
-
-    // Cập nhật dữ liệu phân trang
-    const updatePagination = useCallback(
-        (dataArray) => {
-            const total = dataArray.length;
-            const pages = Math.ceil(total / pageSize);
-            setTotalItems(total);
-            setTotalPages(pages);
-            if (currentPage > pages && pages > 0) {
-                setCurrentPage(1);
-            }
-            const startIndex = (currentPage - 1) * pageSize;
-            const endIndex = startIndex + pageSize;
-            setCurrentPageData(dataArray.slice(startIndex, endIndex));
-        },
-        [currentPage, pageSize],
-    );
-
     // Hàm fetch thống kê (tổng món dư và tỉ lệ so sánh)
     const fetchStats = useCallback(async () => {
         try {
             const currentMonth = getCurrentMonth();
-
-            // Lấy tổng món dư theo tháng hiện tại
             const sumResponse = await getSumWasteByMonth(currentMonth);
             const totalWaste = sumResponse?.data?.total_waste || 0;
-
-            // Lấy phần trăm so sánh với tháng trước
             const compareResponse =
                 await getSumWasteByMonthCompare(currentMonth);
             const comparePercent = parseFloat(compareResponse?.data) || 0;
-
-            setStats({
-                totalWaste: totalWaste,
-                comparePercent: comparePercent,
-            });
+            setStats({ totalWaste, comparePercent });
         } catch (error) {
             console.error("Error fetching stats:", error);
         }
     }, []);
 
-    // Hàm fetch dữ liệu chính (gửi filter lên BE)
-    const fetchData = useCallback(
-        async (filterDate) => {
-            try {
-                setLoading(true);
-                setFilterError("");
+    // Hàm fetch dữ liệu chính - Lọc hoàn toàn ở FE
+    const fetchData = useCallback(async (filterDate) => {
+        try {
+            setLoading(true);
+            setFilterError("");
+            setDateError("");
 
-                const params = {};
-                if (filterDate && filterDate !== "") {
-                    params.date = filterDate;
-                }
+            // Gọi API lấy tất cả dữ liệu
+            const response = await getListWasteByIngredient({});
+            const allData = response?.data || [];
 
-                console.log("📡 Gọi API với params:", params);
-                const response = await getListWasteByIngredient(params);
-                const rawData = response?.data || [];
-
-                // Lọc thủ công ở FE theo ngày đã chọn
-                let filteredResult = rawData;
-                if (filterDate && filterDate !== "") {
-                    filteredResult = rawData.filter(
-                        (item) => item.date === filterDate,
-                    );
-                    console.log(
-                        `📅 Lọc FE: ${rawData.length} -> ${filteredResult.length} records cho ngày ${filterDate}`,
-                    );
-                }
-
-                setFilteredData(filteredResult);
-                updatePagination(filteredResult);
-            } catch (err) {
-                console.error("Fetch error:", err);
-                setFilterError(
-                    err.response?.data?.message ||
-                        "Có lỗi xảy ra khi tải dữ liệu",
-                );
-                setFilteredData([]);
-                setCurrentPageData([]);
-                setTotalItems(0);
-                setTotalPages(1);
-            } finally {
-                setLoading(false);
+            // Lọc dữ liệu theo ngày (nếu có filterDate)
+            let result = allData;
+            if (filterDate && filterDate !== "") {
+                const targetDate = filterDate.split("T")[0];
+                result = allData.filter((item) => {
+                    const itemDate = item.date.split("T")[0];
+                    return itemDate === targetDate;
+                });
             }
-        },
-        [updatePagination],
-    );
+
+            setFilteredData(result);
+        } catch (err) {
+            console.error("Fetch error:", err);
+            setFilterError(
+                err.response?.data?.message || "Có lỗi xảy ra khi tải dữ liệu",
+            );
+            setFilteredData([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     // Load dữ liệu ban đầu và thống kê
     useEffect(() => {
@@ -137,26 +109,14 @@ export default function WasteHistory() {
         fetchStats();
     }, [fetchData, fetchStats]);
 
-    // Khi appliedDate thay đổi, gọi API mới
+    // Khi appliedDate thay đổi, fetch dữ liệu mới
     useEffect(() => {
-        if (appliedDate !== undefined) {
-            fetchData(appliedDate);
-        }
+        fetchData(appliedDate);
     }, [appliedDate, fetchData]);
-
-    // Cập nhật phân trang khi filteredData thay đổi
-    useEffect(() => {
-        if (filteredData.length > 0) {
-            const startIndex = (currentPage - 1) * pageSize;
-            const endIndex = startIndex + pageSize;
-            setCurrentPageData(filteredData.slice(startIndex, endIndex));
-        } else {
-            setCurrentPageData([]);
-        }
-    }, [currentPage, filteredData, pageSize]);
 
     const handleDateChange = (value) => {
         setDate(value);
+        setDateError("");
         if (filterError) setFilterError("");
     };
 
@@ -164,15 +124,24 @@ export default function WasteHistory() {
         setDate("");
         setAppliedDate("");
         setFilterError("");
+        setDateError("");
         setCurrentPage(1);
-        fetchData("");
     };
 
     const handleFilter = () => {
         if (!date) {
-            setFilterError("⚠️ Vui lòng chọn ngày cần lọc");
+            setFilterError("Vui lòng chọn ngày cần lọc");
             return;
         }
+
+        // Kiểm tra ngày tương lai
+        const today = new Date().toISOString().split("T")[0];
+        if (date > today) {
+            setDateError("Không thể lọc dữ liệu ngày tương lai.");
+            return;
+        }
+
+        setDateError("");
         setFilterError("");
         setCurrentPage(1);
         setAppliedDate(date);
@@ -187,8 +156,8 @@ export default function WasteHistory() {
     const renderPagination = () => {
         if (totalPages <= 1) return null;
 
-        const startItem = (currentPage - 1) * pageSize + 1;
-        const endItem = Math.min(currentPage * pageSize, totalItems);
+        const startItem = startIndex + 1;
+        const endItem = Math.min(endIndex, totalItems);
 
         const getPageNumbers = () => {
             const pages = [];
@@ -305,14 +274,13 @@ export default function WasteHistory() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-4 h-full overflow-y-auto hide-scrollbar">
                 {/* Title */}
                 <div className="mb-2">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2.5">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
                         Lịch sử lãng phí (dư thừa)
                     </h1>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    {/* Card 1: Tổng món dư */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
                     <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -332,8 +300,7 @@ export default function WasteHistory() {
                         </div>
                     </div>
 
-                    {/* Card 2: So với tháng trước */}
-                    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                    <div className="bg-white p-3.5 rounded-xl shadow-md border border-gray-100">
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <p className="text-gray-500 text-sm uppercase tracking-wide">
@@ -369,10 +336,9 @@ export default function WasteHistory() {
                         </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row gap-4 items-end">
-                        {/* Ô chọn ngày */}
+                    <div className="flex flex-col sm:flex-row gap-4 items-start">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700">
                                 Chọn ngày
                             </label>
                             <input
@@ -381,12 +347,26 @@ export default function WasteHistory() {
                                 onChange={(e) =>
                                     handleDateChange(e.target.value)
                                 }
-                                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                max={new Date().toISOString().split("T")[0]}
+                                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                                    dateError
+                                        ? "border-red-500"
+                                        : "border-gray-300"
+                                }`}
                             />
+                            <div className="h-5 mt-1">
+                                {dateError && (
+                                    <p className="text-red-500 text-xs flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-xs">
+                                            error
+                                        </span>
+                                        {dateError}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Nhóm nút bấm */}
-                        <div className="flex gap-3">
+                        <div className="flex mt-5">
                             <button
                                 onClick={handleFilter}
                                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-7 py-3 rounded-lg text-base font-medium hover:from-green-600 hover:to-green-700 transition-all whitespace-nowrap"
@@ -396,7 +376,7 @@ export default function WasteHistory() {
                             {(appliedDate || date) && (
                                 <button
                                     onClick={handleResetFilters}
-                                    className="px-7 py-3 rounded-lg text-base font-medium border border-gray-300 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                                    className="px-7 py-3 rounded-lg text-base font-medium border border-gray-300 hover:bg-gray-50 transition-colors whitespace-nowrap ml-1"
                                 >
                                     Xóa lọc
                                 </button>
@@ -517,11 +497,7 @@ export default function WasteHistory() {
                                         return (
                                             <tr
                                                 key={index}
-                                                className={`border-t border-gray-100 hover:bg-gray-50 transition ${
-                                                    aiLevel.level === "High"
-                                                        ? "bg-red-50/50"
-                                                        : ""
-                                                }`}
+                                                className={`border-t border-gray-100 hover:bg-gray-50 transition ${aiLevel.level === "High" ? "bg-red-50/50" : ""}`}
                                             >
                                                 <td className="p-4 whitespace-nowrap text-sm overflow-hidden text-ellipsis">
                                                     {item.date}
@@ -667,7 +643,6 @@ export default function WasteHistory() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     {!loading && totalItems > 0 && renderPagination()}
                 </div>
             </div>
