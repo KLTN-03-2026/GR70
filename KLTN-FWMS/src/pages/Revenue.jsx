@@ -15,7 +15,8 @@ import axios from "axios";
 import {
     Sum_Revenue_Month,
     Sum_Revenue_yesterday,
-    Transaction_Revenue_Month
+    Transaction_Revenue_Month,
+    Excel_Revenue_Month
 } from "../services/Revenue_Manager.js";
 
 const Revenue = () => {
@@ -26,6 +27,7 @@ const Revenue = () => {
     const [sum_Revenue_Yesterday, setSum_Revenue_Yesterday] = useState([]);
     const [sum_Revenue_Month, setSum_Revenue_Month] = useState([]);
     const [transactions_Revenue_Month, settransactions_Revenue_Month] = useState([]);
+    const [Excel_Revenue_Month_Data, setExcel_Revenue_Month_Data] = useState([]);
     const [loading, setLoading] = useState(false);
     // Pagination
     const [page, setPage] = useState(1);
@@ -40,13 +42,16 @@ const Revenue = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [res, res1] = await Promise.all([
+                const [res, res1, res2] = await Promise.all([
                     Sum_Revenue_yesterday(),
                     Sum_Revenue_Month(),
+                    Excel_Revenue_Month(),
                 ])
                 setSum_Revenue_Yesterday(res.data.data.total_revenue);
                 setSum_Revenue_Month(res1.data.data.total_revenue);
-
+                setExcel_Revenue_Month_Data(res2.data.data);
+                // console.log(res2.data.data);
+                
             } catch (err) {
                 console.error("Lỗi load dữ liệu:", err);
             } finally {
@@ -97,15 +102,15 @@ const Revenue = () => {
         return <div className="p-8">Đang tải dữ liệu...</div>;
     }
 
-    // THÊM HÀM XUẤT EXCEL (thêm vào trong component Revenue, trước return)
+    // THÊM HÀM XUẤT EXCEL
     const exportToExcel = () => {
         // Chuẩn bị dữ liệu cho Excel
-        const excelData = transactions_Revenue_Month.map((item) => ({
+        const excelData = Excel_Revenue_Month_Data.map((item) => ({
             "Ngày giao dịch": item?.daily_operation?.operation_date,
             "Danh mục": item?.dish?.name,
             "Số lượng": item.quantity_used || 0,
             "Số tiền": item.revenue_cost?.toLocaleString("vi-VN") + " VNĐ" || "0 VNĐ",
-            "Trạng thái": item.status === "success" ? "Thành công" : "Đang xử lý",
+            // "Trạng thái": item.status === "success" ? "Thành công" : "Đang xử lý",
         }));
 
         // Tạo worksheet
@@ -117,7 +122,7 @@ const Revenue = () => {
             { wch: 20 }, // Danh mục
             { wch: 12 }, // Số lượng
             { wch: 18 }, // Số tiền
-            { wch: 12 }, // Trạng thái
+            // { wch: 12 }, // Trạng thái
         ];
         worksheet["!cols"] = colWidths;
 
@@ -140,36 +145,36 @@ const Revenue = () => {
     };
 
     // THÊM HÀM XUẤT EXCEL CHO TỪNG GIAO DỊCH
-    const exportSingleToExcel = (item) => {
-        const singleData = [
-            {
-                "Ngày giao dịch": item?.daily_operation?.operation_date,
-                "Danh mục": item?.dish?.name,
-                "Số lượng": item.quantity_used || 0,
-                "Số tiền":
-                    Number(item.revenue_cost || 0).toLocaleString("vi-VN") + " VNĐ",
-            },
-        ];
+    // const exportSingleToExcel = (item) => {
+    //     const singleData = [
+    //         {
+    //             "Ngày giao dịch": item?.daily_operation?.operation_date,
+    //             "Danh mục": item?.dish?.name,
+    //             "Số lượng": item.quantity_used || 0,
+    //             "Số tiền":
+    //                 Number(item.revenue_cost || 0).toLocaleString("vi-VN") + " VNĐ",
+    //         },
+    //     ];
 
-        const worksheet = XLSX.utils.json_to_sheet(singleData);
+    //     const worksheet = XLSX.utils.json_to_sheet(singleData);
 
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Giao dịch");
+    //     const workbook = XLSX.utils.book_new();
+    //     XLSX.utils.book_append_sheet(workbook, worksheet, "Giao dịch");
 
-        const excelBuffer = XLSX.write(workbook, {
-            bookType: "xlsx",
-            type: "array",
-        });
+    //     const excelBuffer = XLSX.write(workbook, {
+    //         bookType: "xlsx",
+    //         type: "array",
+    //     });
 
-        const data = new Blob([excelBuffer], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
+    //     const data = new Blob([excelBuffer], {
+    //         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    //     });
 
-        saveAs(
-            data,
-            `giao_dich_${item["daily_operation.operation_date"]}_${item["dish.name"]}.xlsx`
-        );
-    };
+    //     saveAs(
+    //         data,
+    //         `giao_dich_${item["daily_operation.operation_date"]}_${item["dish.name"]}.xlsx`
+    //     );
+    // };
 
     return (
         <div className="p-8 ml-8 bg-gray-50 min-h-screen">
@@ -300,12 +305,12 @@ const Revenue = () => {
 
                 <table className="w-full">
                     <thead className="bg-gray-50 text-sm text-gray-500">
-                        <tr>
+                        <tr className="">
                             <th className="text-left p-4">Ngày giao dịch</th>
                             <th className="text-left p-4">Tên món</th>
-                            <th className="text-left p-4">Số lượng</th>
-                            <th className="text-left p-4">Số tiền</th>
-                            <th className="text-left p-4">Trạng thái</th>
+                            <th className="text-center p-4">Số lượng</th>
+                            <th className="text-center p-4">Số tiền</th>
+                            {/* <th className="text-left p-4">Trạng thái</th> */}
                         </tr>
                     </thead>
 
@@ -320,10 +325,10 @@ const Revenue = () => {
                                     <td className="p-4 text-center">
                                         {item.quantity_used || 0}
                                     </td>
-                                    <td className="p-4 font-semibold">
+                                    <td className="p-4 font-semibold text-center">
                                         {(Number(item.revenue_cost)).toLocaleString("vi-VN")} VND
                                     </td>
-                                    <td className="p-4">
+                                    {/* <td className="p-4">
                                         <span
                                             className={`px-3 py-1 rounded-full text-xs ${item.status === "success"
                                                 ? "bg-green-100 text-green-600"
@@ -334,7 +339,7 @@ const Revenue = () => {
                                                 ? "Thành công"
                                                 : "Đang xử lý"}
                                         </span>
-                                    </td>
+                                    </td> */}
                                     {/* THÊM CỘT THAO TÁC VỚI NÚT XUẤT EXCEL */}
                                     {/* <td className="p-4">
                                         <button
