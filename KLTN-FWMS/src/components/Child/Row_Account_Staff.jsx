@@ -422,7 +422,7 @@ export const Row_Account_Staff = () => {
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Họ và tên</th>
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Vai trò</th>
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Trạng thái</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Active</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Hoạt động</th>
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Thao tác</th>
                                     </tr>
                                 </thead>
@@ -464,11 +464,11 @@ export const Row_Account_Staff = () => {
                                                 </span>
                                             </td>
 
-                                            <td onClick={() => Lock_UnLock_Kitchen(staff.id, staff.status)} className='flex justify-center text-[24px] mt-[24%]'>
+                                            <td onClick={() => Lock_UnLock_Kitchen(staff.id, staff.status)} className='align-middle text-center text-[24px] cursor-pointer'>
                                                 {staff.status == true ? (<i class="fa-solid fa-toggle-on text-emerald-600 cursor-pointer"></i>) : (<i class="fa-solid fa-toggle-off text-[#94A3B8] cursor-pointer"></i>)}
                                             </td>
 
-                                            <td className="px-3 py-4 text-right w-1">
+                                            <td className="px-3 py-4 text-right">
                                                 <div className="flex items-center justify-center gap-2 transition-opacity">
                                                     <button key={staff.id} onClick={() => { setSelectedStaff(staff); setcountID(index + 1) }} className="p-2 hover:bg-slate-200 rounded-lg text-slate-600" title="Xem thông tin">
                                                         <span className="material-symbols-outlined text-[20px] mt-[6px]">visibility</span>
