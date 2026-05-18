@@ -42,3 +42,13 @@ exports.TransactionByMonth = async function (req, res, next) {
         return next(error);
     }
 }
+exports.ExcelRevenueOnTheMonth = async function (req, res, next) {
+    try {
+        const brandID = req.user.brandID;
+        const month = await DailyServices.checkMonth();
+        const result = await DailyRepository.ExcelTransactionByMonth(brandID, month);
+        return res.json(ApiSuccess.getSelect("Excel Revenue", result));
+    } catch (error) {
+        return next(error);
+    }
+};

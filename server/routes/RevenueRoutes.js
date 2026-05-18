@@ -6,5 +6,6 @@ const authorize = require('../middleware/authorize');
 router.get('/sum-revenue-by-month',authorize(["Manager"]), RevenueController.SumRevenueByMonth);
 router.get('/sum-revenue-yesterday',authorize(["Manager"]), RevenueController.SumRevenueYesterday);
 router.get("/sum-revenue-transaction-by-month",authorize(["Manager"]), RevenueController.TransactionByMonth);
+router.get('/excel-revenue',authorize(["Manager"]), RevenueController.ExcelRevenueOnTheMonth);
 
 module.exports = router;

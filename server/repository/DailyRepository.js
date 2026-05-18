@@ -529,6 +529,34 @@ async SumWasteByMonth(brandID, month = null) {
     });
     return result;
   }
+  async ExcelTransactionByMonth(brandID,month) {
+    const operationWhere = {
+      brand_id: brandID,
+    };
+  
+    operationWhere.operation_date = {
+      [Op.between]: [month.startDate, month.endDate],
+    };
+    return await DailyDetailModel.findAll({
+      attributes: ["id","revenue_cost",
+        [
+          sequelize.literal("quantity_prepared - quantity_wasted"),
+          "quantity_used",
+        ],
+      ],
+      include: [
+        {
+          model: DailyOperationModel,
+          attributes: ["operation_date"],
+          required: true,
+          where: operationWhere,
+        },{
+          model: DishModel,
+          attributes: ["name"],
+        }
+      ],
+    })
+  }
   //lấy số lượng khách hàng hằng ngày
   async GetCustomerCount(brandID) {
     return await DailyOperationModel.findOne({

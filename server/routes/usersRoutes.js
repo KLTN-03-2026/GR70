@@ -3,6 +3,7 @@ var router = express.Router();
 var UserController = require('../controller/UserController');
 const authorize = require('../middleware/authorize');
 var CustomerController = require('../controller/kitchen/CustomerController');
+const updateInfoValidator = require('../middleware/validator/updateInfo');
 /* GET users listing. */
 // cập nhật số lượng khách hàng trong ngày
 router.put('/update-customer-count',authorize(["Manager"]), CustomerController.UpdateCustomerCount);
@@ -11,7 +12,7 @@ router.get('/get-customer-count',authorize(["Manager"]), CustomerController.GetC
 router.post('/register-kitchen/:id', authorize(["Manager", "Admin"]), UserController.RegisterKitchen);
 // router.put('/update-kitchen/:id', UserController.UpdateKitchen);
 router.get('/info', UserController.GetInfoUser);
-router.put('/update-info', UserController.UpdateInfoUser);
+router.put('/update-info',updateInfoValidator, UserController.UpdateInfoUser);
 router.put('/lock-kitchen/:id', authorize(["Manager", "Admin"]), UserController.LockKitchen);
 router.put('/unlock-kitchen/:id', authorize(["Manager", "Admin"]), UserController.UnlockKitchen);
 router.get('/get-kitchen-staff', authorize(["Manager"]), UserController.GetKitchenStaff);

@@ -41,3 +41,13 @@ export const Transaction_Revenue_Month = async (
         throw error;
     }
 };
+
+export const Excel_Revenue_Month = async () => {
+    try {
+        const res = await api.get("revenue/excel-revenue")
+        return res;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}
