@@ -203,7 +203,7 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
                         <input type="number" min={0} value={form.minimum_stock} onChange={(e) => setForm((f) => ({ ...f, minimum_stock: e.target.value }))} placeholder="0" className={inputClass} />
                     </div>
                     <div>
-                        <label className={labelClass}>Số lượng tồn kho</label>
+                        <label className={labelClass}>Số lượng nhập kho</label>
                         <input type="number" min={0} value={form.current_stock} onChange={(e) => setForm((f) => ({ ...f, current_stock: e.target.value }))} placeholder="0" className={inputClass} />
                     </div>
                 </div>
@@ -215,21 +215,39 @@ function AddIngredientModal({ onClose, onSave, brandId, categories }) {
 
 // ── CHỈ cho chỉnh sửa minimum_stock ──────────────────────────────────────────
 function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
+    const [name, setName] = useState(ingredient.name ?? "");
+    const [unit, setUnit] = useState(ingredient.unit ?? "");
     const [minimumStock, setMinimumStock] = useState(String(ingredient.minimum_stock ?? ""));
+    const [categoryId, setCategoryId] = useState(ingredient.ingredient_category_id ?? "");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const handleSave = async () => {
+        if (!name.trim()) return setError("Vui lòng nhập tên nguyên liệu");
+        if (!unit.trim()) return setError("Vui lòng nhập đơn vị");
+        if (!categoryId) return setError("Vui lòng chọn danh mục");
+        if (minimumStock === "" || isNaN(parseFloat(minimumStock))) return setError("Vui lòng nhập tồn kho tối thiểu");
+
         setLoading(true);
         setError("");
         try {
             await updateIngredient(ingredient.id, {
-                name: ingredient.name,
-                unit: ingredient.unit,
-                minimum_stock: minimumStock,
-                ingredient_category_id: ingredient.ingredient_category_id,
+                name: name.trim(),
+                unit: unit.trim(),
+                minimum_stock: String(parseFloat(minimumStock)),
+                ingredient_category_id: categoryId,
             });
-            onSave(mapIngredient({ ...ingredient, minimum_stock: minimumStock }));
+            onSave(mapIngredient({
+                ...ingredient,
+                name: name.trim(),
+                unit: unit.trim(),
+                minimum_stock: minimumStock,
+                ingredient_category_id: categoryId,
+                ingredient_category: {
+                    id: categoryId,
+                    name: categories.find(c => (c.id ?? c.ingredient_category_id) === categoryId)?.name ?? ingredient.category,
+                },
+            }));
             onClose();
         } catch (e) {
             setError(e?.response?.data?.message ?? e.message);
@@ -238,8 +256,6 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
         }
     };
 
-    const readonlyFieldClass = "w-full px-4 py-2.5 border border-gray-100 rounded-xl text-sm bg-slate-50 text-slate-400 cursor-not-allowed select-none";
-
     return (
         <Modal title="Cập nhật nguyên liệu" onClose={onClose}>
             <div className="space-y-4" style={{ fontFamily: "'Nunito', sans-serif" }}>
@@ -247,26 +263,48 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
 
                 <div>
                     <label className={labelClass} style={{ color: "var(--color-text-3)" }}>
-                        Tên nguyên liệu
-                        <span className="ml-2 text-[10px] font-normal normal-case text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">Không thể chỉnh sửa</span>
+                        Tên nguyên liệu <span className="text-red-400">*</span>
                     </label>
-                    <div className={readonlyFieldClass}>{ingredient.name}</div>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={inputClass}
+                        style={{ color: "var(--color-text-1)" }}
+                        autoFocus
+                    />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={labelClass} style={{ color: "var(--color-text-3)" }}>
-                            Danh mục
-                            <span className="ml-2 text-[10px] font-normal normal-case text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">Không thể chỉnh sửa</span>
+                            Danh mục <span className="text-red-400">*</span>
                         </label>
-                        <div className={readonlyFieldClass}>{ingredient.category}</div>
+                        <select
+                            value={categoryId}
+                            onChange={(e) => setCategoryId(e.target.value)}
+                            className={inputClass}
+                            style={{ color: "var(--color-text-1)" }}
+                        >
+                            <option value="">-- Chọn danh mục --</option>
+                            {(categories ?? []).map((c) => {
+                                const id = c.id ?? c.ingredient_category_id;
+                                const label = c.name ?? c.category_name;
+                                return <option key={id} value={id}>{label}</option>;
+                            })}
+                        </select>
                     </div>
                     <div>
                         <label className={labelClass} style={{ color: "var(--color-text-3)" }}>
-                            Đơn vị
-                            <span className="ml-2 text-[10px] font-normal normal-case text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">Không thể chỉnh sửa</span>
+                            Đơn vị <span className="text-red-400">*</span>
                         </label>
-                        <div className={readonlyFieldClass}>{ingredient.unit}</div>
+                        <input
+                            type="text"
+                            value={unit}
+                            onChange={(e) => setUnit(e.target.value)}
+                            className={inputClass}
+                            style={{ color: "var(--color-text-1)" }}
+                        />
                     </div>
                 </div>
 
@@ -280,7 +318,6 @@ function UpdateIngredientModal({ ingredient, onClose, onSave, categories }) {
                         onChange={(e) => setMinimumStock(e.target.value)}
                         className={inputClass}
                         style={{ color: "var(--color-text-1)" }}
-                        autoFocus
                     />
                 </div>
 
@@ -454,8 +491,7 @@ export default function IngredientsPage() {
     const [toast, setToast] = useState(null);
     const showToast = (message, type = "success") => setToast({ message, type });
     const searchTimer = useRef(null);
-
-
+    const [loadingUsed, setLoadingUsed] = useState(false);
 
 
     // Fetch danh sách nguyên liệu đang được sử dụng (chi tiết từng món)
@@ -734,7 +770,12 @@ export default function IngredientsPage() {
                                                                         <span className="material-symbols-outlined" style={{ fontSize: 20, color: "var(--color-primary)" }}>add_box</span>
                                                                     </button>
 
-                                                                    <button onClick={() => setModal({ type: "update", item })} className="p-2.5 rounded-xl hover:bg-slate-100 transition-colors" title="Chỉnh sửa">
+                                                                    <button
+                                                                        onClick={() => !isUsedInDish && setModal({ type: "update", item })}
+                                                                        disabled={isUsedInDish}
+                                                                        className={`p-2.5 rounded-xl transition-all ${isUsedInDish ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-100"}`}
+                                                                        title={isUsedInDish ? "Không thể chỉnh sửa vì nguyên liệu đang được dùng trong món ăn" : "Chỉnh sửa"}
+                                                                    >
                                                                         <span className="material-symbols-outlined" style={{ fontSize: 20, color: "var(--color-text-3)" }}>edit</span>
                                                                     </button>
 
