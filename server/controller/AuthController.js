@@ -24,7 +24,7 @@ exports.register=async (req, res, next) => {
             province: data.province
         }
         if(!brand.name || !brand.address){
-            throw ApiError.ValidationError("Brand name and address are required");
+            throw ApiError.ValidationError("Ten va dia chi thuong hieu la bat buoc");
         }
         // check email tồn tại
         data.email = data.email.toLowerCase().trim();
@@ -63,7 +63,7 @@ exports.verifiMail = async (req, res, next) => {
         if (Date.now() - temuser.createdAt > MAX_AGE) {
             // xóa user tạm
             tempUsers.delete(token);
-            throw ApiError.Unauthorized("Token has expired. Please register again.");
+            throw ApiError.Unauthorized("Token da het han. Vui long dang ky lai.");
         }
         // desTeamUser = temuser;
         // await AuthRepository.createUser(temuser);

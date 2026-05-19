@@ -4,11 +4,11 @@ class ChatServices {
     async checkMessage(id){
         try {
             if(!id){
-                throw ApiError.ValidationError("Message id is required");
+                throw ApiError.ValidationError("ID tin nhan la bat buoc");
             }
             const message = await ChatRepository.chetMessage(id);
             if(!message){
-                throw ApiError.NotFound("Message not found");
+                throw ApiError.NotFound("Khong tim thay tin nhan");
             }
             return message;
         } catch (error) {

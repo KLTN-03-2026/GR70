@@ -176,7 +176,7 @@ class EventDateServices {
 
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Failed to fetch weather data: ${response.statusText}`);
+            throw new Error(`Lay du lieu thoi tiet that bai: ${response.statusText}`);
         }
         const data = await response.json();
         return {

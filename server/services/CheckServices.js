@@ -28,7 +28,7 @@ class CheckServices {
             await this.checkBrand(user.brand?.id);
             const check = await this.checkHash(password, user.password);
             if(!user || !check){
-                throw ApiError.Unauthorized("Invalid email or password");
+                throw ApiError.Unauthorized("Email hoac mat khau khong hop le");
             }
             return user;
         } catch (error) {
@@ -73,7 +73,7 @@ class CheckServices {
         try {
             const category = await CheckRepository.checkCategoryIngredient(id);
             if(!category){
-                throw ApiError.NotFound("Category not found");
+                throw ApiError.NotFound("Khong tim thay danh muc");
             }
             return category
         } catch (error) {
@@ -85,7 +85,7 @@ class CheckServices {
         try {
             const category = await CheckRepository.checkCategoryDishes(id);
             if(!category){
-                throw ApiError.NotFound("Category not found");
+                throw ApiError.NotFound("Khong tim thay danh muc");
             }
             return category
         } catch (error) {
@@ -97,7 +97,7 @@ class CheckServices {
         try {
             const dish = await CheckRepository.checkDish(id);
             if(!dish){
-                throw ApiError.NotFound("Dish not found");
+                throw ApiError.NotFound("Khong tim thay mon an");
             }
             return dish
         } catch (error) {
@@ -109,7 +109,7 @@ class CheckServices {
         try {
             const brand = await CheckRepository.checkBrand(id);
             if(!brand){
-                throw ApiError.NotFound("Brand not found");
+                throw ApiError.NotFound("Khong tim thay thuong hieu");
             }
             return brand
         } catch (error) {
@@ -122,7 +122,7 @@ class CheckServices {
             const user =  await AuthRepository.checkUserAdmin(dataEmail);
             const check = await this.checkHash(password, user.password);
             if(!user || !check){
-                throw ApiError.Unauthorized("Invalid email or password");
+                throw ApiError.Unauthorized("Email hoac mat khau khong hop le");
             }
             return user;
         } catch (error) {
@@ -133,7 +133,7 @@ class CheckServices {
         try {
             const role = await CheckRepository.checkRole(id);
             if(!role){
-                throw ApiError.NotFound("Role not found");
+                throw ApiError.NotFound("Khong tim thay vai tro");
             }
             // console.log(role);
             return role?.roles?.name
@@ -145,7 +145,7 @@ class CheckServices {
         try {
             const user = await AuthRepository.checkStautsUser(id);
             if(!user){
-                throw ApiError.NotFound("User not found");
+                throw ApiError.NotFound("Khong tim thay nguoi dung");
             }
             return user
         } catch (error) {

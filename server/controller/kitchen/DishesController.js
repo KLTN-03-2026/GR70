@@ -20,7 +20,7 @@ exports.CreateDishesForKitchen = async function (req, res, next) {
 
     if (!brandID || !userID) {
       throw ApiError.ValidationError(
-        "Missing required fields brandID or userID",
+        "Thieu truong bat buoc brandID hoac userID",
       );
     }
     if (
@@ -30,10 +30,10 @@ exports.CreateDishesForKitchen = async function (req, res, next) {
       !data.des ||
       !data.dish_recipes
     ) {
-      throw ApiError.ValidationError("Missing required fields");
+      throw ApiError.ValidationError("Thieu cac truong bat buoc");
     }
     if (!Array.isArray(data.dish_recipes) || data.dish_recipes.length === 0) {
-      throw ApiError.ValidationError("dish_recipes must be a non-empty array");
+      throw ApiError.ValidationError("dish_recipes phai la mang khong rong");
     }
     await CheckServices.checkCategoryDishes(data.dish_category_id);
     const createDishes = await DishesRepository.CreateDishes(
@@ -45,11 +45,17 @@ exports.CreateDishesForKitchen = async function (req, res, next) {
     // tạo dish_recipes mới bằng vòng lặp
     await Promise.all(
       data.dish_recipes.map(async (item) => {
-        if (!item.quantity || !item.ingredient_id) {
+        const recipeQuantity = Number(item.quantity);
+        if (
+          !item.ingredient_id ||
+          !Number.isFinite(recipeQuantity) ||
+          recipeQuantity <= 0
+        ) {
           throw ApiError.ValidationError(
-            "Missing required fields quantity or ingredient_id in dish_recipes",
+            "quantity trong dish_recipes phai la so lon hon 0",
           );
         }
+        item.quantity = recipeQuantity;
         return DishesRepository.CreateDishRecipes(item, createDishes.id, {
           transaction: t,
         });
@@ -75,20 +81,25 @@ exports.CreateDishesOutput = async function (req, res, next) {
     const brandID = req.params.brandID;
     // console.log("brand", brandID);
     if (!brandID) {
-      throw ApiError.ValidationError("Missing required field brandID");
+      throw ApiError.ValidationError("Thieu truong bat buoc brandID");
     }
     // tìm kiếm ngày hiện tại lấy id ở operation_daily
     // const TakeIDOperation = await DailyRepository.TakeIDOperation(brandID);
     const TakeIDOperation = await DailyServices.checkDailyOperation(brandID);
     // console.log("take", TakeIDOperation);
     if (!TakeIDOperation) {
-      throw ApiError.ValidationError("NotFound operation_daily for today");
+      throw ApiError.ValidationError("Khong tim thay operation_daily cua hom nay");
     }
-    if (!data.dishes_id || !data.quantity_prepared) {
+    if (!data.dishes_id || data.quantity_prepared == null) {
       throw ApiError.ValidationError(
-        "Missing required fields dishes_id or quantity_prepared",
+        "Thieu truong bat buoc dishes_id hoac quantity_prepared",
       );
     }
+    const quantityPrepared = Number(data.quantity_prepared);
+    if (!Number.isFinite(quantityPrepared) || quantityPrepared <= 0) {
+      throw ApiError.ValidationError("quantity_prepared phai la so lon hon 0");
+    }
+    data.quantity_prepared = quantityPrepared;
     await CheckServices.checkDish(data.dishes_id);
     // kiểm tra món ăn đó đã được tạo món ra trong ngày chưa, nếu có rồi thì không được tạo nữa
     const checkDishesOutput = await DailyRepository.CheckDishesOutputByDishID(
@@ -96,7 +107,7 @@ exports.CreateDishesOutput = async function (req, res, next) {
       TakeIDOperation,
     );
     if (checkDishesOutput) {
-      throw ApiError.Notification("Dish output already exists");
+      throw ApiError.Notification("Mon an da duoc tao output trong ngay");
     }
     // kiểm tra xem nguyên liệu có đủ để tạo món ăn mới không
     const checkIngredient = await IngredientServices.CheckIngredientOutput(
@@ -139,29 +150,29 @@ exports.UpdateDishesLeftoverOutput = async function (req, res, next) {
     const DailyDetailID = req.params.DailyDetailID;
 
     if (!DailyDetailID) {
-      throw ApiError.ValidationError("Missing required field DailyDetailID");
+      throw ApiError.ValidationError("Thieu truong bat buoc DailyDetailID");
     }
 
     if (data.quantity_wasted == null) {
-      throw ApiError.ValidationError("Missing required field quantity_wasted");
+      throw ApiError.ValidationError("Thieu truong bat buoc quantity_wasted");
     }
 
     const quantityWasted = Number(data.quantity_wasted);
 
     if (Number.isNaN(quantityWasted) || quantityWasted < 0) {
-      throw ApiError.ValidationError("quantity_wasted must be a number >= 0");
+      throw ApiError.ValidationError("quantity_wasted phai la so lon hon hoac bang 0");
     }
 
     const dishOutput = await DailyRepository.GetDishesOutputByID(DailyDetailID);
     if (!dishOutput) {
       throw ApiError.ValidationError(
-        "NotFound dish output with id: " + DailyDetailID,
+        "Khong tim thay dish output voi id: " + DailyDetailID,
       );
     }
 
     if (quantityWasted > Number(dishOutput.quantity_prepared)) {
       throw ApiError.ValidationError(
-        "quantity_wasted cannot be greater than quantity_prepared",
+        "quantity_wasted khong duoc lon hon quantity_prepared",
       );
     }
 
@@ -197,37 +208,37 @@ exports.UpdateDishesOutput = async function (req, res, next) {
     const DailyDetailID = req.params.DailyDetailID;
 
     if (!DailyDetailID) {
-      throw ApiError.ValidationError("Missing required field DailyDetailID");
+      throw ApiError.ValidationError("Thieu truong bat buoc DailyDetailID");
     }
 
     if (data.quantity_prepared == null) {
       throw ApiError.ValidationError(
-        "Missing required field quantity_prepared",
+        "Thieu truong bat buoc quantity_prepared",
       );
     }
 
     const quantityPrepared = Number(data.quantity_prepared);
 
     if (Number.isNaN(quantityPrepared) || quantityPrepared < 0) {
-      throw ApiError.ValidationError("quantity_prepared must be a number >= 0");
+      throw ApiError.ValidationError("quantity_prepared phai la so lon hon hoac bang 0");
     }
 
     const dishOutput = await DailyRepository.GetDishesOutputByID(DailyDetailID);
     if (!dishOutput) {
       throw ApiError.ValidationError(
-        "NotFound dish output with id: " + DailyDetailID,
+        "Khong tim thay dish output voi id: " + DailyDetailID,
       );
     }
     if(Number(dishOutput.quantity_wasted>0)) {
       throw ApiError.ValidationError(
-        "Cannot update quantity_prepared when quantity_wasted is already set. Please update quantity_wasted",
+        "Khong the cap nhat quantity_prepared khi quantity_wasted da duoc thiet lap. Vui long cap nhat quantity_wasted",
       );
     }
     const quantityWasted = Number(dishOutput.quantity_wasted || 0);
 
     if (quantityPrepared < quantityWasted) {
       throw ApiError.ValidationError(
-        "quantity_prepared cannot be less than quantity_wasted",
+        "quantity_prepared khong duoc nho hon quantity_wasted",
       );
     }
 
@@ -276,11 +287,11 @@ exports.GetDishesOutputByDate = async function (req, res, next) {
     const page = parseInt(req.query.page) || 1;
     const size = parseInt(req.query.size) || 10;
     if (!brandID) {
-      throw ApiError.ValidationError("Missing required field brandID");
+      throw ApiError.ValidationError("Thieu truong bat buoc brandID");
     }
     const checkBrand = await CheckServices.checkBrand(brandID);
     if (!checkBrand) {
-      throw ApiError.ValidationError("Brand not found with id: " + brandID);
+      throw ApiError.ValidationError("Khong tim thay thuong hieu voi id: " + brandID);
     }
     const checkDaily = await DailyServices.checkDailyOperation(brandID);
     const dishesOutput = await DailyRepository.GetDishesOutputByDate(checkDaily,{
@@ -299,7 +310,7 @@ exports.GetAllDishesTrueKitchen = async function (req, res, next) {
   try {
     const BrandID = req.user.brandID;
     if (!BrandID) {
-      throw ApiError.Unauthorized("Brand ID is required");
+      throw ApiError.Unauthorized("ID thuong hieu la bat buoc");
     }
     await CheckServices.checkBrand(BrandID);
     const getAllDishes = await DishesRepository.GetAllDishesTrueKitchen(BrandID);

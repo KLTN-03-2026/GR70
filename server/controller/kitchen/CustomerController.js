@@ -9,7 +9,7 @@ exports.UpdateCustomerCount = async function (req, res, next) {
     const customer_count = req.body.customer_count;
     const brandID = req.user.brandID;
     if (!customer_count || customer_count < 0) {
-      throw ApiError.ValidationError("Customer count must be a positive number");
+      throw ApiError.ValidationError("So luong khach hang phai la so duong");
     }
     await CheckServices.checkBrand(brandID);
     const checkDailyOperation = await DailyServices.checkDailyOperation(brandID);

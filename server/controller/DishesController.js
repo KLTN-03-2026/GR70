@@ -24,13 +24,13 @@ exports.CreateDishes = async function (req, res, next) {
         // console.log("data", data);
         
         if(!brandID || !userID){
-            throw ApiError.ValidationError("Missing required fields brandID or userID");
+            throw ApiError.ValidationError("Thieu truong bat buoc brandID hoac userID");
         }
         if (!data.name || !data.price || !data.dish_category_id || !data.des || !data.dish_recipes) {
-            throw ApiError.ValidationError("Missing required fields");
+            throw ApiError.ValidationError("Thieu cac truong bat buoc");
         }
         if(!Array.isArray(data.dish_recipes) || data.dish_recipes.length === 0){
-            throw ApiError.ValidationError("dish_recipes must be a non-empty array");
+            throw ApiError.ValidationError("dish_recipes phai la mang khong rong");
         }
         const checkCategory = await CheckServices.checkCategoryDishes(data.dish_category_id);
         let dishRecipes =[];
@@ -38,7 +38,7 @@ exports.CreateDishes = async function (req, res, next) {
             data.dish_recipes.map(async (item) => {
                 if (!item.quantity || !item.ingredient_id) {
                     throw ApiError.ValidationError(
-                        "Missing required fields quantity or ingredient_id in dish_recipes"
+                        "Thieu truong bat buoc quantity hoac ingredient_id trong dish_recipes"
                     );
                 }
                 const data=await IngredientRepository.getIngredientName(item.ingredient_id);
@@ -51,7 +51,7 @@ exports.CreateDishes = async function (req, res, next) {
             checkIngredientAI= await AIServices.CheckIngredientOutput(data.name, checkCategory.name, dishRecipes);
         } catch (error) {
             checkIngredientAI = null;
-            aiCheckFailed = 'errors AI';
+            aiCheckFailed = 'Loi AI';
         }
         if(checkIngredientAI && checkIngredientAI.is_recipe_reasonable === false){
             throw ApiError.Notification(`${checkIngredientAI.summary} Cụ thể là các nguyên liệu như: ${checkIngredientAI.invalid_ingredients.join(", ")}`);
@@ -81,7 +81,7 @@ exports.UpdateDishes = async function (req, res, next) {
         const id = req.params.DishID;
         await CheckServices.checkDish(id);
         if (!data.name || !data.price || !data.dish_category_id || !data.des || !data.dish_recipes) {
-            throw ApiError.ValidationError("Missing required fields");
+            throw ApiError.ValidationError("Thieu cac truong bat buoc");
         }
         
         await CheckServices.checkCategoryDishes(data.dish_category_id);
@@ -90,7 +90,7 @@ exports.UpdateDishes = async function (req, res, next) {
             data.dish_recipes.map(async (item) => {
                 if (!item.quantity || !item.ingredient_id) {
                     throw ApiError.ValidationError(
-                        "Missing required fields quantity or ingredient_id in dish_recipes"
+                        "Thieu truong bat buoc quantity hoac ingredient_id trong dish_recipes"
                     );
                 }
                 if(!item.id){
@@ -98,7 +98,7 @@ exports.UpdateDishes = async function (req, res, next) {
                 }else{
                     const checkRecipeID = await DishesRepository.CheckDishRecipesID(item.id);
                     if(!checkRecipeID){
-                        throw ApiError.NotFound("Dish recipe not found");
+                        throw ApiError.NotFound("Khong tim thay cong thuc mon an");
                     }
                     return DishesRepository.UpdateDishRecipes(item, item.id, { transaction: t });
                 }
@@ -131,7 +131,7 @@ exports.GetAllDishesFalse = async function (req, res, next) {
     try {
         const BrandID = req.user.brandID;
         if(!BrandID){
-            throw ApiError.Unauthorized("Brand ID is required");
+            throw ApiError.Unauthorized("ID thuong hieu la bat buoc");
         }
         await CheckServices.checkBrand(BrandID);
         const getAllDishes = await DishesRepository.GetAllDishesFalse(BrandID);
@@ -159,7 +159,7 @@ exports.GetAllDishesTrue = async function (req, res, next) {
         const page = parseInt(req.query.page) || 1;
         const size = parseInt(req.query.size) || 10;
         if(!BrandID){
-            throw ApiError.Unauthorized("Brand ID is required");
+            throw ApiError.Unauthorized("ID thuong hieu la bat buoc");
         }
         await CheckServices.checkBrand(BrandID);
             const getAllDishes = await DishesRepository.GetAllDishesTrue(BrandID,{

@@ -1,6 +1,6 @@
 const { connectAI } = require("../config/connectAI");
 const ApiSuccess = require("../utils/ApiSuccess");
-const ApiErorr = require("../utils/ApiError");
+const ApiError = require("../utils/ApiError");
 const AIRepository = require("../repository/AIRepository");
 const checkRepository = require("../repository/CheckRepostory");
 
@@ -8,7 +8,7 @@ exports.WasteLessAI = async (req, res, next) => {
   try {
     const brandID =req.user.brandID;
     if(!brandID){
-        throw ApiError.Unauthorized("Brand ID is required");
+        throw ApiError.Unauthorized("ID thuong hieu la bat buoc");
     }
     await checkRepository.checkBrand(brandID);
     const result = await AIRepository.getAi_Analysis_By_BrandID(brandID);
@@ -22,7 +22,7 @@ exports.CustomerAI = async (req, res, next) => {
     try {
         const brandID =req.user.brandID;
         if(!brandID){
-            throw ApiError.Unauthorized("Brand ID is required");
+            throw ApiError.Unauthorized("ID thuong hieu la bat buoc");
         }
         await checkRepository.checkBrand(brandID);
         const result = await AIRepository.getAi_Analysis_Customer_By_BrandID(brandID);

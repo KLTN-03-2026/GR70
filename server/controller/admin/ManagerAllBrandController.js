@@ -50,7 +50,7 @@ exports.lockBrand = async (req, res, next) => {
         const brandID = req.params.brandID;
         const checkStatus = await ManagerAllBrandRepository.checkStatusBrand(brandID);
         if(checkStatus.status === false){
-            throw ApiError.Notification("Brand is locked");
+            throw ApiError.Notification("Thuong hieu da bi khoa");
         }
         const result = await ManagerAllBrandRepository.lockBrand(brandID);
         return res.json(ApiSuccess.updateStatus("Lock brand", result));
@@ -63,7 +63,7 @@ exports.unLockBrand = async (req, res, next) => {
         const brandID = req.params.brandID;
         const checkStatus = await ManagerAllBrandRepository.checkStatusBrand(brandID);
         if(checkStatus.status === true){
-            throw ApiError.Notification("Brand is not locked");
+            throw ApiError.Notification("Thuong hieu chua bi khoa");
         }
         const result = await ManagerAllBrandRepository.unlockBrand(brandID);
         return res.json(ApiSuccess.updateStatus("Unlock brand", result));
