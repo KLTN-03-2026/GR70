@@ -109,34 +109,6 @@ const Manager_Account_Staff = () => {
             <div className="flex min-h-screen pl-8">
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-w-0">
-                    {/* Header */}
-                    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
-                        <div className="flex items-center flex-1">
-                            <div className="relative max-w-md w-full">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                    search
-                                </span>
-                                <input
-                                    className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-primary/50 text-sm"
-                                    placeholder="Tìm kiếm tài khoản..."
-                                    type="text"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative">
-                                <span className="material-symbols-outlined">
-                                    notifications
-                                </span>
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white " />
-                            </button>
-                            <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full">
-                                <span className="material-symbols-outlined">
-                                    help_outline
-                                </span>
-                            </button>
-                        </div>
-                    </header>
 
                     <div className="p-8 space-y-8 max-w-7xl mx-auto w-full">
                         {/* Page Title & Actions */}
@@ -163,7 +135,7 @@ const Manager_Account_Staff = () => {
 
                         {/* List Kitchen Staff  */}
                         <Row_Account_Staff />
-                        {/* List Kitchen Staff  */}
+                        
                     </div>
                     {/* form add kitchen */}
                     {openform_addkitchen && (
