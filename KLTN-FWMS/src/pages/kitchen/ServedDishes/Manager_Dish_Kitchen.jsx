@@ -95,14 +95,25 @@ function FoodFormModal({
           getCategoryDishes(),
           getIngredientsByBrand(),
         ]);
+
         setCategories(Array.isArray(catRes?.data) ? catRes.data : []);
-        setIngredientsList(Array.isArray(ingRes?.data) ? ingRes.data : []);
+
+        const inner = ingRes?.data ?? ingRes;
+        const list = Array.isArray(inner?.data) ? inner.data : [];
+
+        setIngredientsList(list);
+
+        console.log("ingredients:", list);
+
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
       }
     };
+
     fetchData();
   }, []);
+  console.log(ingredientsList);
+
 
   // Load công thức khi edit
   useEffect(() => {
