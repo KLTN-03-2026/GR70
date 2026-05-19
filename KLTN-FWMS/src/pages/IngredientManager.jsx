@@ -1145,13 +1145,6 @@ export default function FoodsPage() {
 
                         <div className="flex gap-3 flex-shrink-0">
                           <button
-                            onClick={() => handleReject(item.id)}
-                            className="px-5 py-2 rounded-xl text-sm font-bold border-2 transition-all hover:bg-red-50"
-                            style={{ borderColor: "#ef4444", color: "#ef4444" }}
-                          >
-                            Từ chối
-                          </button>
-                          <button
                             onClick={() => handleApprove(item.id)}
                             className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
                             style={{
