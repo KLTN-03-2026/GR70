@@ -75,10 +75,9 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
-                            isActive
-                                ? "bg-[#10BC5D] text-white"
-                                : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
+                            ? "bg-[#10BC5D] text-white"
+                            : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -90,10 +89,9 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen/manager-dish"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
-                            isActive
-                                ? "bg-[#10BC5D] text-white"
-                                : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
+                            ? "bg-[#10BC5D] text-white"
+                            : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -101,30 +99,29 @@ const KitchenSidebar = () => {
                     <span className="text-sm font-medium">Thêm món ăn</span>
                 </NavLink>
 
-                {/* Báo cáo lãng phí (giữ lại để tương thích cũ) */}
-                <NavLink
-                    to="/kitchen/waste-report"
-                    className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
-                            isActive
-                                ? "bg-[#10BC5D] text-white"
-                                : "text-[#3D3D3D] hover:bg-gray-100"
-                        }`
-                    }
-                >
-                    <BarChart3 size={18} />
-                    <span className="text-sm font-medium">
-                        Cảnh báo lãng phí
-                    </span>
-                </NavLink>
+                {/* Báo cáo lãng phí (giữ lại để tương thích cũ)
+                    <NavLink
+                        to="/kitchen/waste-report"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                                isActive
+                                    ? "bg-[#10BC5D] text-white"
+                                    : "text-[#3D3D3D] hover:bg-gray-100"
+                            }`
+                        }
+                    >
+                        <BarChart3 size={18} />
+                        <span className="text-sm font-medium">
+                            Cảnh báo lãng phí
+                        </span>
+                    </NavLink> */}
 
                 <NavLink
                     to="/kitchen/waste-base"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
-                            isActive
-                                ? "bg-[#10BC5D] text-white"
-                                : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
+                            ? "bg-[#10BC5D] text-white"
+                            : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -138,10 +135,9 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen/surplus-dishes"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
-                            isActive
-                                ? "bg-[#10BC5D] text-white"
-                                : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
+                            ? "bg-[#10BC5D] text-white"
+                            : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
@@ -153,10 +149,9 @@ const KitchenSidebar = () => {
                 <NavLink
                     to="/kitchen/profile"
                     className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
-                            isActive
-                                ? "bg-[#10BC5D] text-white"
-                                : "text-[#3D3D3D] hover:bg-gray-100"
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
+                            ? "bg-[#10BC5D] text-white"
+                            : "text-[#3D3D3D] hover:bg-gray-100"
                         }`
                     }
                 >
