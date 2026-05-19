@@ -400,7 +400,7 @@ async SumWasteByMonth(brandID, month = null) {
     ],
     raw: true,
   });
-  return result;
+  return result || 0;
 }
   // danh sách lãng phí món ăn theo nguyên liệu
   async ListWasteByIngredient(brandID, month) {

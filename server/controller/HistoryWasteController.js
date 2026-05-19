@@ -25,7 +25,7 @@ exports.SumWasteByMonthCompare = async (req, res, next) => {
       month: prev.getMonth(),
     };
     const Current = await DailyRepository.SumWasteByMonth(brandID);
-    const Previous = await DailyRepository.SumWasteByMonth(brandID, month);
+    const Previous = await DailyRepository.SumWasteByMonth(brandID, month) || 0;
     // console.log("Current", Current.total_waste);
     // console.log("Previous", Previous.total_waste);
 
