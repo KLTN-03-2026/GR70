@@ -20,7 +20,6 @@ exports.getAllBrand = async (req, res,next) => {
             orderBy: req.query.orderBy || "id",
             order: req.query.orderType === "1" ? "ASC" : "DESC",
         });
-        console.log("lỗi:",brand);
         res.json(ApiSuccess.getSelect("Get all brand", brand));
     } catch (error) {
         return next(error);
@@ -54,7 +53,7 @@ exports.lockBrand = async (req, res, next) => {
             throw ApiError.Notification("Brand is locked");
         }
         const result = await ManagerAllBrandRepository.lockBrand(brandID);
-        res.json(ApiSuccess.updateStatus("Lock brand", result));
+        return res.json(ApiSuccess.updateStatus("Lock brand", result));
     } catch (error) {
         return next(error);
     }
@@ -67,7 +66,7 @@ exports.unLockBrand = async (req, res, next) => {
             throw ApiError.Notification("Brand is not locked");
         }
         const result = await ManagerAllBrandRepository.unlockBrand(brandID);
-        return next(error);
+        return res.json(ApiSuccess.updateStatus("Unlock brand", result));
     }catch (error) {
         return next(error);
     }
