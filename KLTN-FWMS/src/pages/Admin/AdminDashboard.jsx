@@ -132,17 +132,7 @@ export const AdminDashboard = () => {
                         Dashboard quản trị hệ thống
                     </h1>
 
-                    <div className="flex items-center gap-3">
-                        <button className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
-                            Xuất dữ liệu
-                        </button>
-                        <button
-                            onClick={fetchData}
-                            className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-sm"
-                        >
-                            Làm mới thống kê
-                        </button>
-                    </div>
+                    
                 </header>
 
                 <p className="mt-4 ml-10 text-sm text-slate-500">
