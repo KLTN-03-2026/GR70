@@ -108,10 +108,11 @@ class DashboardRepository {
             where: {
                 brand_id: brandID,
                 current_stock: {
-                    [Op.lt]: col('minimum_stock')
+                    [Op.lte]: col('minimum_stock')
                 }
             },
-            attributes: ['id', 'name', 'current_stock', 'minimum_stock', 'unit']
+            attributes: ['id', 'name', 'current_stock', 'minimum_stock', 'unit'],
+            logging: console.log
         });
         return lowStockIngredients;
     }
