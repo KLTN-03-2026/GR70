@@ -27,7 +27,7 @@ export const SiderbarAdmin = () => {
         { name: "Bảng điều khiển", icon: "dashboard", path: "/admin/dashboard" },
         { name: "Quản lý tài khoản", icon: "user_attributes", path: "/admin/user" },
         { name: "Quản lý cửa hàng", icon: "storefront", path: "/admin/storeManager" },
-        { name: "Thống kê hệ thống", icon: "analytics", path: "/admin/statistical" },
+        
     ];
 
     const [openModal, setOpenModal] = useState(false);
