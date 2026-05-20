@@ -8,11 +8,11 @@ exports.GetReportDishes = async function (req, res, next) {
     try {
         const brandID = req.user.brandID;
         if (!brandID) {
-            throw ApiError.ValidationError("Missing required field brandID");
+            throw ApiError.ValidationError("Thieu truong bat buoc brandID");
         }
         const checkBrand = await CheckServices.checkBrand(brandID);
         if (!checkBrand) {
-            throw ApiError.ValidationError("Brand not found with id: " + brandID);
+            throw ApiError.ValidationError("Khong tim thay thuong hieu voi id: " + brandID);
         }
         const reportDishes = await DashboardRepository.getSumDishes(brandID);
         return res.json(ApiSuccess.getSelect("Report dishes", reportDishes));
@@ -25,11 +25,11 @@ exports.GetReportRevenue = async function (req, res, next) {
     try {
         const brandID = req.user.brandID;
         if (!brandID) {
-            throw ApiError.ValidationError("Missing required field brandID");
+            throw ApiError.ValidationError("Thieu truong bat buoc brandID");
         }
         const checkBrand = await CheckServices.checkBrand(brandID);
         if (!checkBrand) {
-            throw ApiError.ValidationError("Brand not found with id: " + brandID);
+            throw ApiError.ValidationError("Khong tim thay thuong hieu voi id: " + brandID);
         }
         // Get current month date range using checkMonth for consistency
         const monthRange = await DailyServices.checkMonth();
@@ -45,11 +45,11 @@ exports.GetReportWaste = async function (req, res, next) {
     try {
         const brandID = req.user.brandID;
         if (!brandID) {
-            throw ApiError.ValidationError("Missing required field brandID");
+            throw ApiError.ValidationError("Thieu truong bat buoc brandID");
         }
         const checkBrand = await CheckServices.checkBrand(brandID);
         if (!checkBrand) {
-            throw ApiError.ValidationError("Brand not found with id: " + brandID);
+            throw ApiError.ValidationError("Khong tim thay thuong hieu voi id: " + brandID);
         }
         const reportWaste = await DashboardRepository.getPayDish7Day(brandID);
         const totalDishes = reportWaste.total_prepared + reportWaste.total_wasted;
@@ -64,11 +64,11 @@ exports.GetLowStockIngredients = async function (req, res, next) {
     try {
         const brandID = req.user.brandID;
         if (!brandID) {
-            throw ApiError.ValidationError("Missing required field brandID");
+            throw ApiError.ValidationError("Thieu truong bat buoc brandID");
         }
         const checkBrand = await CheckServices.checkBrand(brandID);
         if (!checkBrand) {
-            throw ApiError.ValidationError("Brand not found with id: " + brandID);
+            throw ApiError.ValidationError("Khong tim thay thuong hieu voi id: " + brandID);
         }
         const lowStockIngredients = await DashboardRepository.getLowStockIngredients(brandID);
         return res.json(ApiSuccess.getSelect("Low stock ingredients", lowStockIngredients));

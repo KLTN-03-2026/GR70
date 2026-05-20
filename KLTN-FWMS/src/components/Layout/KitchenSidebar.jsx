@@ -1,4 +1,3 @@
-// src/components/Layout/KitchenSidebar.jsx
 import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -20,6 +19,8 @@ import {
     Plus,
 } from "lucide-react";
 import logo from "../../assets/Logo.svg";
+import { jwtDecode } from "jwt-decode";
+import ConfirmLogoutModal from "../ConfirmLogoutModal";
 
 const KitchenSidebar = () => {
     const location = useLocation();
@@ -29,6 +30,9 @@ const KitchenSidebar = () => {
         report: true,
     });
 
+    const token = localStorage.getItem("token");
+    const decode = jwtDecode(token);
+
     const toggleMenu = (menu) => {
         setOpenMenus((prev) => ({
             ...prev,
@@ -36,10 +40,11 @@ const KitchenSidebar = () => {
         }));
     };
 
+    const [openModal, setOpenModal] = useState(false);
     const logout = () => {
         localStorage.removeItem("token");
         navigate("/");
-    }
+    };
 
     const isKitchenActive = location.pathname.includes("/kitchen");
 
@@ -91,26 +96,25 @@ const KitchenSidebar = () => {
                     }
                 >
                     <Plus size={18} />
-                    <span className="text-sm font-medium">
-                        Thêm món ăn
-                    </span>
+                    <span className="text-sm font-medium">Thêm món ăn</span>
                 </NavLink>
 
-                {/* Báo cáo lãng phí (giữ lại để tương thích cũ) */}
-                <NavLink
-                    to="/kitchen/waste-report"
-                    className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive
-                            ? "bg-[#10BC5D] text-white"
-                            : "text-[#3D3D3D] hover:bg-gray-100"
-                        }`
-                    }
-                >
-                    <BarChart3 size={18} />
-                    <span className="text-sm font-medium">
-                        Cảnh báo lãng phí
-                    </span>
-                </NavLink>
+                {/* Báo cáo lãng phí (giữ lại để tương thích cũ)
+                    <NavLink
+                        to="/kitchen/waste-report"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                                isActive
+                                    ? "bg-[#10BC5D] text-white"
+                                    : "text-[#3D3D3D] hover:bg-gray-100"
+                            }`
+                        }
+                    >
+                        <BarChart3 size={18} />
+                        <span className="text-sm font-medium">
+                            Cảnh báo lãng phí
+                        </span>
+                    </NavLink> */}
 
                 <NavLink
                     to="/kitchen/waste-base"
@@ -138,7 +142,7 @@ const KitchenSidebar = () => {
                     }
                 >
                     <PlusCircle size={18} />
-                    <span className="text-sm font-medium">Món dư</span>
+                    <span className="text-sm font-medium">Ghi nhận món ăn</span>
                 </NavLink>
 
                 {/* Thông tin cá nhân */}
@@ -152,30 +156,36 @@ const KitchenSidebar = () => {
                     }
                 >
                     <User size={18} />
-                    <span className="text-sm font-medium">Thông tin cá nhân</span>
+                    <span className="text-sm font-medium">
+                        Thông tin cá nhân
+                    </span>
                 </NavLink>
-
             </div>
 
             {/* User Info - Cố định dưới cùng */}
             <div className="px-3 py-4 border-t border-gray-200">
                 <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-full bg-[#10BC5D] flex items-center justify-center text-white text-sm font-bold">
-                        NV
+                        {decode?.name?.charAt(0)}
                     </div>
                     <div>
                         <p className="text-xs font-medium text-[#141C21]">
-                            Nguyễn Văn A
+                            {decode?.name}
                         </p>
                         <p className="text-[10px] text-[#8B8B8B]">
-                            Nhân viên bếp
+                            {decode?.email}
                         </p>
                     </div>
                 </div>
-                <button onClick={logout} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
+                <button onClick={() => setOpenModal(true)} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
                     <LogOut size={14} />
                     <span>Đăng xuất</span>
                 </button>
+                <ConfirmLogoutModal
+                    isOpen={openModal}
+                    onClose={() => setOpenModal(false)}
+                    onConfirm={logout}
+                />
             </div>
         </div>
     );

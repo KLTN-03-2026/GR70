@@ -10,7 +10,7 @@ exports.CreateIngredient = async function (req, res, next) {
     const data = req.body;
     const brandID = req.params.brandID;
     if (!brandID) {
-      throw ApiError.ValidationError("Missing required field: brandID");
+      throw ApiError.ValidationError("Thieu truong bat buoc: brandID");
     }
     if (
       !data.name ||
@@ -22,7 +22,7 @@ exports.CreateIngredient = async function (req, res, next) {
       Number.isNaN(data.current_stock)
     ) {
       throw ApiError.ValidationError(
-        "Missing required fields: name, unit, ingredient_category_id, minimum_stock, current_stock",
+        "Thieu cac truong bat buoc: name, unit, ingredient_category_id, minimum_stock, current_stock",
       );
     }
     // Check if the ingredient category exists
@@ -48,11 +48,11 @@ exports.AddIngredientTransaction = async function (req, res, next) {
     const data = req.body;
     const userID = req.params.id;
     if (!userID) {
-      throw ApiError.ValidationError("Missing required field: userID");
+      throw ApiError.ValidationError("Thieu truong bat buoc: userID");
     }
     if (!data.ingredient_id || !data.quantity || Number.isNaN(data.quantity)) {
       throw ApiError.ValidationError(
-        "Missing required fields: ingredientID, quantity",
+        "Thieu cac truong bat buoc: ingredientID, quantity",
       );
     }
     // có 3 loại transaction: nhập kho (extra), xuất kho (sell), điều chỉnh tồn kho(adjustment)
@@ -91,7 +91,7 @@ exports.UpdateIngredient = async function (req, res, next) {
     };
     const ingredientID = req.params.ingredientID;
     if (!ingredientID) {
-      throw ApiError.ValidationError("Missing required field: ingredientID");
+      throw ApiError.ValidationError("Thieu truong bat buoc: ingredientID");
     }
     if (
       !data.name ||
@@ -101,15 +101,15 @@ exports.UpdateIngredient = async function (req, res, next) {
       Number.isNaN(data.minimum_stock)
     ) {
       throw ApiError.ValidationError(
-        "Missing required fields: name, unit, IngredientCategoryID, minimum_stock",
+        "Thieu cac truong bat buoc: name, unit, IngredientCategoryID, minimum_stock",
       );
     }
     if (data.minimum_stock < 0) {
-      throw ApiError.ValidationError("minimum_stock must be >= 0");
+      throw ApiError.ValidationError("minimum_stock phai lon hon hoac bang 0");
     }
     // if (data.current_stock && Number(data.current_stock)) {
     //   throw ApiError.ValidationError(
-    //     "Invalid value for field: current_stock cannot be updated through this endpoint",
+    //     "Gia tri current_stock khong hop le va khong the cap nhat qua endpoint nay",
     //   );
     // }
     // Check if the ingredient category exists
@@ -144,11 +144,11 @@ exports.DeleteIngredient = async function (req, res, next) {
   try {
     const ingredientID = req.params.ingredientID;
     if (!ingredientID) {
-      throw ApiError.ValidationError("Missing required field: ingredientID");
+      throw ApiError.ValidationError("Thieu truong bat buoc: ingredientID");
     }
     const check = await IngredientServices.CheckIngredientInDish(ingredientID);
     if (check) {
-      throw ApiError.ValidationError("Ingredient is used in a dish");
+      throw ApiError.ValidationError("Nguyen lieu dang duoc su dung trong mon an");
     }
     const deleteIngredient =
       await IngredientsRepository.deleteIngredient(ingredientID);
@@ -165,7 +165,7 @@ exports.GetIngredient = async function (req, res, next) {
   try {
     const ingredientID = req.params.ingredientID;
     if (!ingredientID) {
-      throw ApiError.ValidationError("Missing required field: ingredientID");
+      throw ApiError.ValidationError("Thieu truong bat buoc: ingredientID");
     }
     const getIngredient =
       await IngredientsRepository.getIngredient(ingredientID);
@@ -187,7 +187,7 @@ exports.GetIngredientsByBrandID = async function (req, res, next) {
       category: req.query.category || undefined,
     }
     if (!brandID) {
-      throw ApiError.ValidationError("Missing required field: brandID");
+      throw ApiError.ValidationError("Thieu truong bat buoc: brandID");
     }
     const getIngredientsByBrandID = await IngredientsRepository.getIngredientsByBrandID(brandID,{
       page,

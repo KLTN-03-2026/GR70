@@ -22,7 +22,7 @@ export default function Accountmanagement() {
 
     const [filterType, setFilterType] = useState("all");
 
-    // 🔥 CLIENT PAGINATION
+    // PAGINATION
     const [page, setPage] = useState(1);
     const pageSize = 10;
 
@@ -44,14 +44,15 @@ export default function Accountmanagement() {
                 const brands = res.data.data.data;
 
                 const formatted = brands.flatMap((brand) =>
-                    brand.users.map((user, index) => ({
-                        id: brand.id + "-" + index,
+                    brand.users.map((user) => ({
+                        id: brand.id + "_" + user.email,
+                        brandId: brand.id,
                         name: user.name,
                         email: user.email,
                         store: brand.name,
                         type: brand.rolebrand?.toLowerCase().trim(),
                         status: brand.status ? "active" : "inactive",
-                        kitchens: 0
+                        kitchens: brand.kitchens?.length || 0
                     }))
                 );
 
@@ -100,6 +101,7 @@ export default function Accountmanagement() {
     const totalPages = Math.ceil(filteredData.length / pageSize);
 
     const startIndex = (page - 1) * pageSize;
+
     const paginatedData = filteredData.slice(
         startIndex,
         startIndex + pageSize
@@ -124,10 +126,12 @@ export default function Accountmanagement() {
 
     return (
         <div className="p-6 space-y-6">
-
             {/* HEADER */}
             <div>
-                <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
+                <h1 className="text-2xl font-bold">
+                    Quản lý người dùng
+                </h1>
+
                 <p className="text-sm text-gray-500">
                     Quản lý tài khoản Manager và hệ thống Kitchen
                 </p>
@@ -135,41 +139,66 @@ export default function Accountmanagement() {
 
             {/* STATS */}
             <div className="grid grid-cols-4 gap-4">
-
                 <div className="bg-gradient-to-r from-slate-700 to-slate-900 text-white p-4 rounded-xl flex justify-between">
                     <div>
-                        <p className="text-sm">Tổng tài khoản</p>
-                        <h2 className="text-2xl font-bold">{totalAccounts}</h2>
+                        <p className="text-sm">
+                            Tổng tài khoản
+                        </p>
+
+                        <h2 className="text-2xl font-bold">
+                            {totalAccounts}
+                        </h2>
                     </div>
+
                     <Users />
                 </div>
 
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-xl flex justify-between">
                     <div>
-                        <p className="text-sm">Đang hoạt động</p>
+                        <p className="text-sm">
+                            Đang hoạt động
+                        </p>
+
                         <h2 className="text-2xl font-bold">
-                            {data.filter((i) => i.status === "active").length}
+                            {
+                                data.filter(
+                                    (i) =>
+                                        i.status === "active"
+                                ).length
+                            }
                         </h2>
                     </div>
+
                     <ShieldCheck />
                 </div>
 
                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-xl flex justify-between">
                     <div>
-                        <p className="text-sm">Tổng Manager</p>
-                        <h2 className="text-2xl font-bold">{totalManagers}</h2>
+                        <p className="text-sm">
+                            Tổng Manager
+                        </p>
+
+                        <h2 className="text-2xl font-bold">
+                            {totalManagers}
+                        </h2>
                     </div>
+
                     <Users />
                 </div>
 
                 <div className="bg-gradient-to-r from-orange-400 to-orange-600 text-white p-4 rounded-xl flex justify-between">
                     <div>
-                        <p className="text-sm">Tổng Kitchen</p>
-                        <h2 className="text-2xl font-bold">{totalKitchens}</h2>
+                        <p className="text-sm">
+                            Tổng Kitchen
+                        </p>
+
+                        <h2 className="text-2xl font-bold">
+                            {totalKitchens}
+                        </h2>
                     </div>
+
                     <Utensils />
                 </div>
-
             </div>
 
             {/* FILTER */}
@@ -182,33 +211,72 @@ export default function Accountmanagement() {
                     }}
                     className="border px-3 py-2 rounded-lg text-sm"
                 >
-                    <option value="all">Tất cả</option>
-                    <option value="restaurant">Nhà hàng</option>
-                    <option value="hotel">Khách sạn</option>
+                    <option value="all">
+                        Tất cả
+                    </option>
+
+                    <option value="restaurant">
+                        Nhà hàng
+                    </option>
+
+                    <option value="hotel">
+                        Khách sạn
+                    </option>
                 </select>
             </div>
 
             {/* TABLE */}
             <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
+                <table className="w-full text-sm table-fixed">
+                    <thead className="bg-gray-100 text-gray-600 text-xs uppercase">
                         <tr>
-                            <th className="p-3">Manager</th>
-                            <th className="p-3">Email</th>
-                            <th className="p-3">Cửa hàng</th>
-                            <th className="p-3">Loại</th>
-                            <th className="p-3">Trạng thái</th>
-                            <th className="p-3">Kitchen</th>
-                            <th className="p-3">Thao tác</th>
+                            <th className="p-3 text-left w-[18%]">
+                                Manager
+                            </th>
+
+                            <th className="p-3 text-left w-[20%]">
+                                Email
+                            </th>
+
+                            <th className="p-3 text-left w-[18%]">
+                                Cửa hàng
+                            </th>
+
+                            <th className="p-3 text-left w-[12%]">
+                                Loại
+                            </th>
+
+                            <th className="p-3 text-left w-[14%]">
+                                Trạng thái
+                            </th>
+
+                            <th className="p-3 text-center w-[8%]">
+                                Kitchen
+                            </th>
+
+                            <th className="p-3 text-center w-[10%]">
+                                Thao tác
+                            </th>
                         </tr>
                     </thead>
 
                     <tbody>
                         {paginatedData.map((item) => (
-                            <tr key={item.id} className="border-t hover:bg-gray-50">
-                                <td className="p-3">{item.name}</td>
-                                <td className="p-3">{item.email}</td>
-                                <td className="p-3">{item.store}</td>
+                            <tr
+                                key={item.id}
+                                className="border-t hover:bg-gray-50 transition"
+                            >
+                                <td className="p-3 font-medium text-gray-800">
+                                    {item.name}
+                                </td>
+
+                                <td className="p-3 text-gray-600">
+                                    {item.email}
+                                </td>
+
+                                <td className="p-3">
+                                    {item.store}
+                                </td>
 
                                 <td className="p-3">
                                     <span className="text-xs px-2 py-1 bg-gray-100 rounded">
@@ -219,31 +287,33 @@ export default function Accountmanagement() {
                                 <td className="p-3">
                                     <span
                                         className={`px-2 py-1 rounded-full text-xs ${
-                                            item.status === "active"
+                                            item.status ===
+                                            "active"
                                                 ? "bg-green-100 text-green-600"
                                                 : "bg-gray-200 text-gray-500"
                                         }`}
                                     >
-                                        {item.status === "active"
+                                        {item.status ===
+                                        "active"
                                             ? "Hoạt động"
                                             : "Ngừng"}
                                     </span>
                                 </td>
 
-                                <td className="p-3">{item.kitchens}</td>
+                                <td className="p-3 text-center align-middle">
+                                    {item.kitchens}
+                                </td>
 
-                                <td className="p-3 flex gap-2">
+                                <td className="p-3 text-center align-middle">
                                     <button
                                         onClick={() =>
-                                            navigate(`/admin/user/${item.id}/kitchens`)
+                                            navigate(
+                                                `/admin/manager/${item.brandId}`
+                                            )
                                         }
-                                        className="p-2 hover:bg-gray-100 rounded"
+                                        className="p-2 hover:bg-gray-100 rounded transition"
                                     >
                                         <Eye size={16} />
-                                    </button>
-
-                                    <button className="p-2 hover:bg-gray-100 rounded">
-                                        <Pencil size={16} />
                                     </button>
                                 </td>
                             </tr>
@@ -251,7 +321,6 @@ export default function Accountmanagement() {
                     </tbody>
                 </table>
 
-                {/* EMPTY */}
                 {paginatedData.length === 0 && (
                     <div className="text-center p-6 text-gray-500">
                         Không có dữ liệu
@@ -260,41 +329,53 @@ export default function Accountmanagement() {
 
                 {/* PAGINATION */}
                 <div className="flex justify-center items-center gap-2 p-4">
-
                     <button
-                        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                        onClick={() =>
+                            setPage((prev) =>
+                                Math.max(prev - 1, 1)
+                            )
+                        }
                         disabled={page === 1}
                         className="px-3 py-1 border rounded"
                     >
                         ←
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => setPage(i + 1)}
-                            className={`px-3 py-1 border rounded ${
-                                page === i + 1
-                                    ? "bg-blue-500 text-white"
-                                    : ""
-                            }`}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
+                    {Array.from(
+                        { length: totalPages },
+                        (_, i) => (
+                            <button
+                                key={i}
+                                onClick={() =>
+                                    setPage(i + 1)
+                                }
+                                className={`px-3 py-1 border rounded ${
+                                    page === i + 1
+                                        ? "bg-blue-500 text-white"
+                                        : ""
+                                }`}
+                            >
+                                {i + 1}
+                            </button>
+                        )
+                    )}
 
                     <button
                         onClick={() =>
                             setPage((prev) =>
-                                Math.min(prev + 1, totalPages)
+                                Math.min(
+                                    prev + 1,
+                                    totalPages
+                                )
                             )
                         }
-                        disabled={page === totalPages}
+                        disabled={
+                            page === totalPages
+                        }
                         className="px-3 py-1 border rounded"
                     >
                         →
                     </button>
-
                 </div>
             </div>
         </div>

@@ -10,7 +10,7 @@ exports.GetInfoUser = async function (req, res, next) {
     const userId = req.user.userId;
     const user = await UserRepository.InfoUser(userId);
     if (!user) {
-      throw ApiError.NotFound("User not found");
+      throw ApiError.NotFound("Khong tim thay nguoi dung");
     }
     return res.json(ApiSuccess.getSelect("User information", user));
   } catch (error) {
@@ -74,11 +74,11 @@ exports.RegisterKitchen = async function (req, res, next) {
     const data = req.body;
     const userID = req.params.id;
     if (!data.email || !data.password || !data.name || !userID) {
-      throw ApiError.ValidationError("Missing required fields");
+      throw ApiError.ValidationError("Thieu cac truong bat buoc");
     }
     const checkuser = await CheckServices.checkUserActive(userID);
     if (!checkuser) {
-      throw ApiError.Unauthorized("User is not active");
+      throw ApiError.Unauthorized("Nguoi dung khong hoat dong");
     }
     await CheckServices.checkMailExit(data.email);
     data.password = await CheckServices.hashPassword(data.password);
@@ -125,7 +125,7 @@ exports.UpdateKitchen = async function (req, res, next) {
     const userID = req.params.id;
     const checkuser = await CheckServices.checkUserActive(userID);
     if (!checkuser) {
-      throw ApiError.Unauthorized("User is not active");
+      throw ApiError.Unauthorized("Nguoi dung khong hoat dong");
     }
     // Chỉ kiểm tra email nếu email khác email hiện tại
     if (data.email && data.email !== checkuser.email) {
@@ -135,7 +135,7 @@ exports.UpdateKitchen = async function (req, res, next) {
       transaction: t,
     });
     if (!updateKitchen[0]) {
-      throw ApiError.NotFound("Failed to update user");
+      throw ApiError.NotFound("Cap nhat nguoi dung that bai");
     }
     await t.commit();
     return res.json(ApiSuccess.updated("Kitchen staff updated successfully"));
@@ -150,22 +150,27 @@ exports.UpdateKitchen = async function (req, res, next) {
 exports.LockKitchen = async function (req, res, next) {
   try {
     const userID = req.params.id;
+    const reason=req.body.reason;
     const checkuser = await CheckServices.checkUserActive(userID);
     if (!checkuser) {
         // console.log("checkusser");
-      throw ApiError.Unauthorized("User is not active");
+      throw ApiError.Unauthorized("Nguoi dung khong hoat dong");
     }
     if (checkuser.roles.some((role) => role.name === "Manager" || role.name === "Admin",)) {
         // console.log("user:",checkuser.roles);
-      throw ApiError.Unauthorized("You cannot lock a Manager account");
+      throw ApiError.Unauthorized("Khong the khoa tai khoan Manager");
+    }
+    if(!reason){
+        throw ApiError.ValidationError("Thieu cac truong bat buoc");
     }
     const [affectedCount] = await UserRepository.lockOrUnlockUser(
       userID,
+      reason,
       false,
     );
     // console.log("update result =", affectedCount);
     if (affectedCount === 0) {
-      throw ApiError.NotFound("User not found or already locked");
+      throw ApiError.NotFound("Khong tim thay nguoi dung hoac nguoi dung da bi khoa");
     }
     return res.json(ApiSuccess.updated("Kitchen staff locked successfully"));
   } catch (error) {
@@ -176,16 +181,17 @@ exports.LockKitchen = async function (req, res, next) {
 exports.UnlockKitchen = async function (req, res, next) {
   try {
     const userID = req.params.id;
+    const reason=null;
     const checkuser = await CheckServices.checkStautsUser(userID);
     if (!checkuser) {
-      throw ApiError.Unauthorized("User is not active");
+      throw ApiError.Unauthorized("Nguoi dung khong hoat dong");
     }
     if(checkuser.status===true){
-        throw ApiError.Notification("User is already unlocked");
+        throw ApiError.Notification("Nguoi dung da duoc mo khoa");
     }
-    const [affectedCount] = await UserRepository.lockOrUnlockUser(userID, true);
+    const [affectedCount] = await UserRepository.lockOrUnlockUser(userID,reason, true);
     if (affectedCount === 0) {
-      throw ApiError.NotFound("User not found or already unlocked");
+      throw ApiError.NotFound("Khong tim thay nguoi dung hoac nguoi dung da duoc mo khoa");
     }
     return res.json(ApiSuccess.updated("Kitchen staff unlocked successfully"));
   } catch (error) {
@@ -199,7 +205,7 @@ exports.GetKitchenStaff = async function (req, res, next) {
     const page = parseInt(req.query.page) || 1;
     const size = parseInt(req.query.size) || 10;
     if(!brandID){
-        throw ApiError.Unauthorized("Brand ID is required");
+        throw ApiError.Unauthorized("ID thuong hieu la bat buoc");
     }
     const getKitchenStaff = await UserRepository.getKitchenStaff(brandID,{
       page,
@@ -212,3 +218,14 @@ exports.GetKitchenStaff = async function (req, res, next) {
     return next(error);
   }
 };
+
+// get thông báo khi bị lock account
+exports.GetNotifaction = async function (req, res, next) {
+  try {
+    const userID = req.params.id;
+    const getNotifaction = await UserRepository.getNotifactionReason(userID);
+    return res.json(ApiSuccess.getSelect("Notification list", getNotifaction));
+  } catch (error) {
+    return next(error);
+  }
+}

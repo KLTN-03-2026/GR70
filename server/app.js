@@ -32,6 +32,7 @@ var ManagerAcountRouter = require('./routes/admin/AcountRoutes');
 const { OperationDaily, CallAIEveryDays } = require('./routes/cron');
 //test
 var AuthController = require('./controller/AuthController');
+var UserController = require('./controller/UserController');
 var app = express();
 app.use(cors);
 //kết nối database
@@ -52,6 +53,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/api/get-reason-lock/:id', UserController.GetNotifaction);
 app.get('/api/ping', (req, res) => {
   const user= UserModel.findByPk('94292bfd-19e8-4079-b67f-a2f22961738b');
   res.send('Server is alive ✅');

@@ -14,6 +14,8 @@ import {
     ChevronRight,
 } from "lucide-react";
 import logo from "../../assets/Logo.svg";
+import { jwtDecode } from "jwt-decode";
+import ConfirmLogoutModal from "../ConfirmLogoutModal";
 
 const Sidebar = () => {
     const location = useLocation();
@@ -22,6 +24,9 @@ const Sidebar = () => {
         consumption: true,
     });
 
+    const token = localStorage.getItem("token");
+    const decode = jwtDecode(token);
+
     const toggleMenu = (menu) => {
         setOpenMenus((prev) => ({
             ...prev,
@@ -29,6 +34,7 @@ const Sidebar = () => {
         }));
     };
 
+    const [openModal, setOpenModal] = useState(false);
     const logout = () => {
         localStorage.removeItem("token");
         navigate("/");
@@ -253,21 +259,26 @@ const Sidebar = () => {
             <div className="px-3 py-4 border-t border-gray-200">
                 <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-full bg-[#10BC5D] flex items-center justify-center text-white text-sm font-bold">
-                        A
+                        {decode?.name?.charAt(0)}
                     </div>
                     <div>
                         <p className="text-xs font-medium text-[#141C21]">
-                            Admin Manager
+                            {decode?.name}
                         </p>
                         <p className="text-[10px] text-[#8B8B8B]">
-                            admin@foodwaste.vn
+                            {decode?.email}
                         </p>
                     </div>
                 </div>
-                <button onClick={logout} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
+                <button onClick={()=>setOpenModal(true)} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
                     <LogOut size={14} />
                     <span>Đăng xuất</span>
                 </button>
+                <ConfirmLogoutModal
+                    isOpen={openModal}
+                    onClose={() => setOpenModal(false)}
+                    onConfirm={logout}
+                />
             </div>
         </div>
     );

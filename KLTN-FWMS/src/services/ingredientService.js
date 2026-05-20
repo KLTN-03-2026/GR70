@@ -1,10 +1,17 @@
 import api from "./api";
 
 // ====================== INGREDIENT SERVICES ======================
-export const getIngredients = async () => {
-    const res = await api.get("ingredients/get-ingredients-by-brand");
+export const getIngredients = async (params = {}) => {
+    const token = localStorage.getItem("token");
+    const payload = token ? JSON.parse(atob(token.split(".")[1])) : {};
+    const brandID = payload?.brandID || payload?.brandId || payload?.brand_id;
+
+    const res = await api.get("ingredients/get-ingredients-by-brand", {
+        params: { brandID, ...params },
+    });
     return res.data;
 };
+
 export const createIngredient = async (brandId, data) => {
     const formData = new FormData();
     Object.entries({

@@ -1,6 +1,9 @@
 const ApiSuccess = require("../../utils/ApiSuccess");
 const ApiError = require("../../utils/ApiError");
 const ManagerAllBrandRepository = require("../../repository/admin/ManagerAllBrandRepository");
+const BrandRepository = require("../../repository/CheckRepostory");
+const DashboardAdminRepository = require("../../repository/DashboardAdminRepository");
+const CheckRepostory = require("../../repository/CheckRepostory");
 exports.getAllBrand = async (req, res,next) => {
     try {
         const page = req.query.page || 1;
@@ -14,8 +17,8 @@ exports.getAllBrand = async (req, res,next) => {
             page,
             size,
             filters,
-            // orderBy: req.query.orderBy || "id",
-            // order: req.query.orderType === "1" ? "ASC" : "DESC",
+            orderBy: req.query.orderBy || "id",
+            order: req.query.orderType === "1" ? "ASC" : "DESC",
         });
         res.json(ApiSuccess.getSelect("Get all brand", brand));
     } catch (error) {
@@ -47,10 +50,10 @@ exports.lockBrand = async (req, res, next) => {
         const brandID = req.params.brandID;
         const checkStatus = await ManagerAllBrandRepository.checkStatusBrand(brandID);
         if(checkStatus.status === false){
-            throw ApiError.Notification("Brand is locked");
+            throw ApiError.Notification("Thuong hieu da bi khoa");
         }
         const result = await ManagerAllBrandRepository.lockBrand(brandID);
-        res.json(ApiSuccess.updateStatus("Lock brand", result));
+        return res.json(ApiSuccess.updateStatus("Lock brand", result));
     } catch (error) {
         return next(error);
     }
@@ -60,11 +63,48 @@ exports.unLockBrand = async (req, res, next) => {
         const brandID = req.params.brandID;
         const checkStatus = await ManagerAllBrandRepository.checkStatusBrand(brandID);
         if(checkStatus.status === true){
-            throw ApiError.Notification("Brand is not locked");
+            throw ApiError.Notification("Thuong hieu chua bi khoa");
         }
         const result = await ManagerAllBrandRepository.unlockBrand(brandID);
-        return next(error);
+        return res.json(ApiSuccess.updateStatus("Unlock brand", result));
     }catch (error) {
         return next(error);
     }
+};
+
+// tổng cửa hàng, tổng hoạt động, tổng doanh thu
+exports.TotalBrand = async (req, res, next) => {
+  try {
+    const year = new Date().getFullYear();
+
+    const totalRevenuePromise = async () => {
+      const allBrand = await BrandRepository.AllBrandTrueFalse();
+
+      const revenues = await Promise.all(
+        allBrand.map((brand) =>
+          ManagerAllBrandRepository.SumRevenueYearBrand(brand.id, year)
+        )
+      );
+
+      return revenues.reduce((sum, revenue) => sum + Number(revenue || 0), 0);
+    };
+
+    const [totalBrand, activeBrand, totalRevenue] = await Promise.all([
+      CheckRepostory.CountBrand(),
+      DashboardAdminRepository.CountBrandActive(),
+      totalRevenuePromise()
+    ]);
+
+    const result = [
+      {
+        totalBrand,
+        activeBrand,
+        totalRevenue
+      }
+    ];
+
+    return res.json(ApiSuccess.getSelect("Total brand", result));
+  } catch (error) {
+    return next(error);
+  }
 };

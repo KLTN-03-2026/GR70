@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Logo from "../assets/Logo.svg";
+import { toast } from "sonner";
+
 function Register() {
     const navigate = useNavigate();
 
@@ -11,16 +13,46 @@ function Register() {
         password: "",
         address: "",
         province: "",
-        businessType: "",
+        rolebrand: "",
         nameBrand: "",
         addressBrand: "",
     });
     const provinces = [
+        "An Giang",
+        "Bắc Ninh",
+        "Cà Mau",
+        "Cao Bằng",
+        "Cần Thơ",
         "Đà Nẵng",
+        "Đắk Lắk",
+        "Điện Biên",
+        "Đồng Nai",
+        "Đồng Tháp",
+        "Gia Lai",
         "Hà Nội",
+        "Hà Tĩnh",
+        "Hải Phòng",
         "Hồ Chí Minh",
+        "Hưng Yên",
         "Huế",
-        "Quảng Nam"
+        "Khánh Hòa",
+        "Lâm Đồng",
+        "Lai Châu",
+        "Lạng Sơn",
+        "Lào Cai",
+        "Nghệ An",
+        "Ninh Bình",
+        "Phú Thọ",
+        "Quảng Ngãi",
+        "Quảng Ninh",
+        "Quảng Trị",
+        "Sơn La",
+        "Tây Ninh",
+        "Thái Nguyên",
+        "Thanh Hóa",
+        "Tuyên Quang",
+        "Vĩnh Long",
+
     ];
 
     const handleChange = (e) => {
@@ -32,20 +64,65 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validate
+        if (!form.name.trim()) {
+            return toast.error("Vui lòng nhập họ và tên");
+        }
+        if (!form.email.trim()) {
+            return toast.error("Vui lòng nhập email");
+        }
+        if (!form.email.endsWith("@gmail.com")) {
+            return toast.error("Email không hợp lệ!");
+        }
+        if (!form.password.trim()) {
+            return toast.error("Vui lòng nhập mật khẩu");
+        }
+        if (form.password.length < 6 || form.password.length > 18) {
+            return toast.error("Mật khẩu phải từ 6 đến 18 ký tự!");
+        }
+        if (!/[A-Z]/.test(form.password)) {
+            return toast.error("Mật khẩu phải chứa ít nhất 1 chữ hoa (A-Z)!");
+        }
+        if (!/[a-z]/.test(form.password)) {
+            return toast.error("Mật khẩu phải chứa ít nhất 1 chữ thường (a-z)!");
+        }
+        if (!/[0-9]/.test(form.password)) {
+            return toast.error("Mật khẩu phải chứa ít nhất 1 chữ số (0-9)!");
+        }
+        if (!/[@$!%*?&]/.test(form.password)) {
+            return toast.error("Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (@, $, !, %, *, ?, &)");
+        }
+        if (!form.address.trim()) {
+            return toast.error("Vui lòng nhập địa chỉ");
+        }
+        if (!form.rolebrand) {
+            return toast.error("Vui lòng chọn loại hình");
+        }
+        if (!form.nameBrand.trim()) {
+            return toast.error("Vui lòng nhập tên nhà hàng / khách sạn");
+        }
+        if (!form.province) {
+            return toast.error("Vui lòng chọn tỉnh / thành phố");
+        }
+        if (!form.addressBrand.trim()) {
+            return toast.error("Vui lòng nhập địa chỉ cơ sở");
+        }
+
         try {
             const res = await axios.post(
                 "https://system-waste-less-ai.onrender.com/api/auth/register",
                 form
             );
-            console.log(res.data);
-
-            alert("Đăng ký thành công");
+            toast.success("Đăng ký thành công");
+            // chuyển trang sau 1 chút
+            navigate("/#/");
         } catch (error) {
-            console.log(error.response?.data);
-
-            alert("Đăng ký không thành công");
+            const message =
+                error.response?.data?.message || "Email này đã có người đăng ký";
+            toast.error(message);
         }
-    }
+    };
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -133,8 +210,8 @@ function Register() {
                         Thông tin nhà hàng - khách sạn
                     </h3>
                     <select
-                        name="businessType"
-                        value={form.businessType}
+                        name="rolebrand"
+                        value={form.rolebrand}
                         onChange={handleChange}
                         className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 mb-4"
                     >

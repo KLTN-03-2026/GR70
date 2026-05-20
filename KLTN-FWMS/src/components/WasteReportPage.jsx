@@ -37,7 +37,6 @@ const WasteReportPage = () => {
           axios.get(`${BASE_URL}/report-waste/top-5-wasted-ingredients`, axiosConfig),
         ]);
 
-        // 👉 GIỮ NGUYÊN FORMAT UI CŨ
         const summary = {
           wasteRate:
             ingredientRes.data?.data?.waste_percentage || 0,
@@ -50,12 +49,13 @@ const WasteReportPage = () => {
             percentRes.data?.data?.trend_percent || 0,
         };
 
-       
+        // ✅ SỬA THEO API MỚI
         const topWaste = (topRes.data?.data || []).map((item) => ({
           name: item.ingredient_name,
-          amount: Number(item.total_wasted || 0),
-          unit: item.unit || "kg",
-          trend: 0, // API chưa có
+          amount: item.wasted_amount || 0, // dùng cho chart
+          display: item.display_amount,    // dùng hiển thị
+          trendPercent: item.trend_percent || 0,
+          trendDirection: item.trend_direction, // up | down
         }));
 
         setData({
@@ -70,7 +70,6 @@ const WasteReportPage = () => {
     fetchData();
   }, []);
 
-  // 👉 fallback
   const summary = data?.summary || {};
   const topWaste = data?.topWaste || [];
 
@@ -83,10 +82,6 @@ const WasteReportPage = () => {
         <h1 className="text-2xl font-bold text-[#141C21]">
           Báo cáo Phân tích Lãng phí
         </h1>
-        <input
-          placeholder="Tìm kiếm dữ liệu..."
-          className="px-4 py-2 border rounded-lg text-sm outline-none"
-        />
       </div>
 
       {/* CARDS */}
@@ -98,9 +93,7 @@ const WasteReportPage = () => {
           <h2 className="text-2xl font-bold">
             {summary.wasteRate || 0}%
           </h2>
-          <p className="text-red-500 text-xs mt-1">
-            +2% mục tiêu
-          </p>
+          
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm">
@@ -130,9 +123,6 @@ const WasteReportPage = () => {
             <h3 className="font-semibold">
               Top 5 nguyên liệu lãng phí nhất
             </h3>
-            <span className="text-green-500 text-sm cursor-pointer">
-              Xem tất cả
-            </span>
           </div>
 
           <table className="w-full text-sm">
@@ -146,37 +136,32 @@ const WasteReportPage = () => {
 
             <tbody>
               {topWaste.map((item, index) => {
-                const trend = item.trend || 0;
-
-                const trendText =
-                  trend > 0
-                    ? `+${trend}%`
-                    : trend < 0
-                    ? `${trend}%`
-                    : "0%";
-
-                const up =
-                  trend > 0 ? true : trend < 0 ? false : null;
+                const isUp = item.trendDirection === "up";
 
                 return (
                   <tr key={index} className="border-t">
                     <td className="py-3">{item.name}</td>
+
+                    {/* ✅ HIỂN THỊ display_amount */}
                     <td className="text-center">
-                      {item.amount} {item.unit}
+                      {item.display}
                     </td>
+
+                    {/* ✅ TREND */}
                     <td className="text-center">
                       <span
                         className={`flex items-center justify-center gap-1 ${
-                          up === true
+                          isUp
                             ? "text-red-500"
-                            : up === false
-                            ? "text-green-500"
-                            : "text-gray-400"
+                            : "text-green-500"
                         }`}
                       >
-                        {up === true && <ArrowUpRight size={14} />}
-                        {up === false && <ArrowDownRight size={14} />}
-                        {trendText}
+                        {isUp ? (
+                          <ArrowUpRight size={14} />
+                        ) : (
+                          <ArrowDownRight size={14} />
+                        )}
+                        {item.trendPercent}%
                       </span>
                     </td>
                   </tr>
@@ -189,7 +174,7 @@ const WasteReportPage = () => {
         {/* PIE */}
         <div className="bg-white p-5 rounded-xl shadow-sm">
           <h3 className="font-semibold mb-4">
-            Top 5 món ăn lãng phí nhiều nhất
+            Top 5 nguyên liệu lãng phí
           </h3>
 
           <div className="w-full h-52">
@@ -226,9 +211,7 @@ const WasteReportPage = () => {
                   ></span>
                   {item.name}
                 </span>
-                <span>
-                  {item.amount} {item.unit}
-                </span>
+                <span>{item.display}</span>
               </div>
             ))}
           </div>

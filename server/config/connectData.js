@@ -5,10 +5,18 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
   logging: false,
+  define: {
+    schema: 'public',
+  },
   dialectOptions: {
     ssl: {
       require: true,
       rejectUnauthorized: false, // cần cho Supabase vì cert self-signed
+    },
+  },
+  hooks: {
+    afterConnect: async (connection) => {
+      await connection.query('SET search_path TO public');
     },
   },
   pool: {

@@ -30,6 +30,9 @@ const UserModel = sequelize.define('users', {
   address: {
     type: DataTypes.TEXT
   },
+  reason:{
+    type: DataTypes.TEXT
+  },
   status: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

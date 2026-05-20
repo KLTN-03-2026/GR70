@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "sonner";
 import {
     Edit2,
     ChevronLeft,
@@ -126,18 +127,18 @@ const SurplusDetailPanel = ({
                 />
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-                        {/* <div className="flex justify-between items-center p-6 border-b">
+                        <div className="flex justify-between items-center p-6 border-b">
                             <h3 className="text-xl font-bold">
                                 Thêm báo cáo món dư
                             </h3>
                             <button
                                 onClick={onClose}
-                                disabled={loading}
+                                disabled={true}
                                 className="hover:bg-gray-100 p-1 rounded"
                             >
                                 <X size={24} />
                             </button>
-                        </div> */}
+                        </div>
                         <div className="mx-6 mt-2">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                                 <div className="flex items-center gap-2 text-sm text-blue-800">
@@ -151,9 +152,6 @@ const SurplusDetailPanel = ({
                             {dishName && isDishExistsInToday(dishName) && (
                                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2">
                                     <div className="flex items-start gap-2">
-                                        <span className="text-orange-600 text-lg">
-                                            ⚠️
-                                        </span>
                                         <div className="text-xs text-orange-800">
                                             <p className="font-semibold">
                                                 Món này đã có trong ngày hôm
@@ -254,7 +252,7 @@ const SurplusDetailPanel = ({
                             >
                                 Hủy
                             </button>
-                            {/* <button
+                            <button
                                 onClick={handleSubmit}
                                 disabled={
                                     loading ||
@@ -271,7 +269,7 @@ const SurplusDetailPanel = ({
                                 ) : (
                                     "Thêm báo cáo món dư"
                                 )}
-                            </button> */}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -296,70 +294,92 @@ const SurplusDetailPanel = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {dishes.map((dishItem) => (
-                            <tr
-                                key={dishItem.id}
-                                className={`border-b cursor-pointer hover:bg-gray-50 ${
-                                    selectedDish?.id === dishItem.id
-                                        ? "bg-orange-50"
-                                        : ""
-                                }`}
-                                onClick={() => onRowClick(dishItem)}
-                            >
-                                <td className="px-5 py-4">
-                                    <div className="font-semibold">
-                                        {dishItem.name}
-                                    </div>
-                                    <div className="text-xs text-[#8b8b8b]">
-                                        {dishItem.category}
-                                    </div>
-                                </td>
-                                <td className="px-5 py-4">
-                                    {dishItem.prepared} phần
-                                </td>
-                                <td className="px-5 py-4">
-                                    {dishItem.waste > 0 ? (
-                                        <div>
-                                            <span className="text-red-600 font-semibold">
-                                                {dishItem.waste} phần
-                                            </span>
-                                            <span className="text-xs text-red-600 block">
-                                                (
-                                                {formatPrice(
-                                                    dishItem.waste_cost,
-                                                )}
-                                                )
-                                            </span>
+                        {dishes.map((dishItem) => {
+                            const hasWaste = dishItem.waste > 0;
+                            return (
+                                <tr
+                                    key={dishItem.id}
+                                    className={`border-b cursor-pointer hover:bg-gray-50 ${
+                                        selectedDish?.id === dishItem.id
+                                            ? "bg-orange-50"
+                                            : ""
+                                    } ${hasWaste ? "opacity-60" : ""}`}
+                                    onClick={() => onRowClick(dishItem)}
+                                >
+                                    <td className="px-5 py-4">
+                                        <div className="font-semibold">
+                                            {dishItem.name}
+                                            {hasWaste && (
+                                                <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                                                    Đã đóng
+                                                </span>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <span className="text-gray-400">
-                                            0 phần
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="px-5 py-4">
-                                    {formatPrice(dishItem.waste_cost || 0)}
-                                </td>
-                                <td className="px-5 py-4 text-center">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEditClick(dishItem);
-                                        }}
-                                        className="text-[#10bc5d] hover:text-[#0c9c4a]"
-                                    >
-                                        <Edit2 size={18} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                                        <div className="text-xs text-[#8b8b8b]">
+                                            {dishItem.category}
+                                        </div>
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {dishItem.prepared} phần
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {dishItem.waste > 0 ? (
+                                            <div>
+                                                <span className="text-red-600 font-semibold">
+                                                    {dishItem.waste} phần
+                                                </span>
+                                                <span className="text-xs text-red-600 block">
+                                                    (
+                                                    {formatPrice(
+                                                        dishItem.waste_cost,
+                                                    )}
+                                                    )
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">
+                                                0 phần
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {formatPrice(dishItem.waste_cost || 0)}
+                                    </td>
+                                    <td className="px-5 py-4 text-center">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!hasWaste) {
+                                                    onEditClick(dishItem);
+                                                } else {
+                                                    toast.error(
+                                                        `❌ Món "${dishItem.name}" đã có món dư, không thể chỉnh sửa!`,
+                                                        {
+                                                            duration: 3000,
+                                                        },
+                                                    );
+                                                }
+                                            }}
+                                            className={`text-[#10bc5d] hover:text-[#0c9c4a] ${
+                                                hasWaste
+                                                    ? "opacity-50 cursor-not-allowed"
+                                                    : ""
+                                            }`}
+                                            disabled={hasWaste}
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
         );
     }
 
-    // Panel chi tiết
+    // Panel chi tiết - GIỮ NGUYÊN UI CŨ
     if (isDetail && dish) {
         const handleDetailWasteChange = (e) => {
             const numericValue = e.target.value.replace(/[^\d]/g, "");
@@ -462,6 +482,8 @@ const SurplusDetailPanel = ({
                         </p>
                     </div>
                 </div>
+
+                {/* UI cũ - giữ nguyên giao diện */}
                 <div className="pt-1">
                     <p className="text-sm font-semibold uppercase mb-2">
                         CẬP NHẬT SỐ LƯỢNG DƯ
@@ -499,4 +521,5 @@ const SurplusDetailPanel = ({
     }
     return null;
 };
+
 export default SurplusDetailPanel;

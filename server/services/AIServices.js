@@ -104,24 +104,24 @@ class AIServices {
 
             return JSON.parse(cleaned);
         } catch (error) {
-            throw new Error("AI response is not valid JSON");
+            throw new Error("Phan hoi AI khong phai JSON hop le");
         }
     };
     // hàm validate kết quả trả về từ AI để đảm bảo dữ liệu đúng định dạng và hợp lệ trước khi lưu vào database
     async validateAIResult(data) {
-        if (!data) throw new Error("AI result empty");
+        if (!data) throw new Error("Ket qua AI rong");
 
         if (!Array.isArray(data.details)) {
-            throw new Error("details must be array");
+            throw new Error("details phai la mang");
         }
 
         for (const item of data.details) {
             if (!item.dish_name) {
-            throw new Error("Missing dish_name");
+            throw new Error("Thieu dish_name");
             }
 
             if (Number(item.predicted_waste_quantity) > Number(item.recommended_quantity)) {
-            throw new Error("waste > recommended");
+            throw new Error("Luong lang phi du doan lon hon luong khuyen nghi");
             }
         }
 

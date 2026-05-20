@@ -8,7 +8,7 @@ class DailyServices {
         try {
             const dish = await DishesRepository.GetPriceDishByID(dishes_id);
             if(!dish){
-                throw ApiError.NotFound("Dish not found");
+                throw ApiError.NotFound("Khong tim thay mon an");
             }
             return dish;
         } catch (error) {

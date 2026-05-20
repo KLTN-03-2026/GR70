@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from "../../assets/Logo.svg";
 import {
@@ -13,9 +13,15 @@ import {
     ChevronDown,
     ChevronRight,
 } from "lucide-react";
+import { jwtDecode } from "jwt-decode";
+import ConfirmLogoutModal from '../ConfirmLogoutModal';
+
 export const SiderbarAdmin = () => {
     const location = useLocation();
     const navigate = useNavigate();
+
+    const token = localStorage.getItem("token");
+    const decode = jwtDecode(token);
 
     const menu = [
         { name: "Bảng điều khiển", icon: "dashboard", path: "/admin/dashboard" },
@@ -24,6 +30,7 @@ export const SiderbarAdmin = () => {
         { name: "Thống kê hệ thống", icon: "analytics", path: "/admin/statistical" },
     ];
 
+    const [openModal, setOpenModal] = useState(false);
     const logout = () => {
         localStorage.removeItem("token");
         navigate("/");
@@ -73,21 +80,29 @@ export const SiderbarAdmin = () => {
             <div className="px-3 py-4 border-t border-gray-200">
                 <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-full bg-[#10BC5D] flex items-center justify-center text-white text-sm font-bold">
-                        A
+                        {decode?.name?.charAt(0)}
+
                     </div>
                     <div>
                         <p className="text-xs font-medium text-[#141C21]">
-                            Admin Manager
+                            {decode?.name}
+
                         </p>
                         <p className="text-[10px] text-[#8B8B8B]">
-                            admin@foodwaste.vn
+                            {decode?.email}
+
                         </p>
                     </div>
                 </div>
-                <button onClick={logout} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
+                <button onClick={()=>setOpenModal(true)} className="flex items-center gap-2 text-[#8B8B8B] hover:text-[#141C21] w-full px-3 py-1.5 rounded-lg hover:bg-gray-100 text-xs">
                     <LogOut size={14} />
                     <span>Đăng xuất</span>
                 </button>
+                <ConfirmLogoutModal
+                    isOpen={openModal}
+                    onClose={() => setOpenModal(false)}
+                    onConfirm={logout}
+                />
             </div>
         </aside>
     );

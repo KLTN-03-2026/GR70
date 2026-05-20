@@ -45,6 +45,37 @@ class AcountRepository {
             ...options
         })
     }
+    async DetailManager(id){
+        return await BrandModel.findOne({
+            attributes:[],
+            where: {id: id},
+            include: [{
+                model: UserModel,
+                attributes: ['name', 'email','phone','address','status','created_at'],
+                include: [{
+                    model: RoleModel,
+                    attributes: [],
+                    where: { name: "Manager" }
+                }]
+                
+            }]
+        })
+    }
+    async DetailKitchen(id){
+        return await BrandModel.findOne({
+            attributes:[],
+            where: {id: id},
+            include: [{
+                model: UserModel,
+                attributes: ['name', 'email','phone','address','status','created_at'],
+                include: [{
+                    model: RoleModel,
+                    attributes: [],
+                    where: { name: "Kitchen" }
+                }]
+            }]
+        })
+    }
 }
 
 module.exports = new AcountRepository()

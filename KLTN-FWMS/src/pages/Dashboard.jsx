@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Lightbulb } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const getCurrentTime = () => {
@@ -62,27 +63,24 @@ function AddPeopleForm({ onClose }) {
     const [count, setCount] = useState("");
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
-    // ← THÊM CẢ ĐOẠN NÀY (đặt sau 3 state trên)
+    const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const fetchCustomerCount = async () => {
         try {
             const token = localStorage.getItem("token");
             const response = await axios.get(
-                `${import.meta.env.VITE_API_URL}users/get-customer-count`,
+                `${import.meta.env.VITE_API_URL}/users/get-customer-count`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 },
             );
-
             console.log("Customer count response:", response.data);
-
-            // Giả sử API trả về data là số lượng khách
             const customerCount =
                 response.data?.data?.customer_count ||
                 response.data?.customer_count ||
                 response.data;
-
             if (customerCount && typeof customerCount === "number") {
                 setEntries([
                     {
@@ -98,19 +96,29 @@ function AddPeopleForm({ onClose }) {
             setLoading(false);
         }
     };
-
-    // ← THÊM useEffect NÀY
     useEffect(() => {
         fetchCustomerCount();
     }, []);
 
     const handleAdd = async () => {
-        if (!count || isNaN(count) || Number(count) <= 0) return;
+        // Validation: Kiểm tra chưa nhập số
+        if (!count || count === "") {
+            setError("Vui lòng nhập số lượng người!");
+            return;
+        }
+        // Validation: Kiểm tra số không hợp lệ
+        if (isNaN(count) || Number(count) <= 0) {
+            setError("Số lượng người phải là số và lớn hơn 0!");
+            return;
+        }
+        // Clear error trước khi gọi API
+        setError("");
+        setSuccessMessage(""); // Clear success message cũ
 
         try {
             const token = localStorage.getItem("token");
             const response = await axios.put(
-                `${import.meta.env.VITE_API_URL}users/update-customer-count`,
+                `${import.meta.env.VITE_API_URL}/users/update-customer-count`,
                 { customer_count: Number(count) },
                 {
                     headers: {
@@ -120,8 +128,12 @@ function AddPeopleForm({ onClose }) {
                 },
             );
 
-            // ✅ Sửa điều kiện ở đây
+            //điều kiện
             if (response.data?.success === true) {
+                // Hiển thị thông báo thành công
+                setSuccessMessage("✅ Thêm thành công!");
+
+                // Cập nhật box "Đã thêm hôm nay"
                 setEntries([
                     {
                         count: Number(count),
@@ -130,13 +142,22 @@ function AddPeopleForm({ onClose }) {
                     },
                 ]);
                 setCount("");
+                setError("");
+
+                // Sau 1.5 giây, đóng modal và reload trang
+                setTimeout(() => {
+                    window.location.reload(); // Reload lại trang
+                    onClose(); // Đóng modal
+                }, 1500);
+
                 console.log("Đã thêm thành công:", count, "người");
             } else {
+                setError("Cập nhật thất bại, vui lòng thử lại!");
                 console.log("API trả về không thành công");
             }
         } catch (error) {
             console.error("Lỗi khi cập nhật:", error);
-            alert("Cập nhật thất bại, vui lòng thử lại!");
+            setError("Cập nhật thất bại, vui lòng thử lại!");
         }
     };
 
@@ -166,12 +187,6 @@ function AddPeopleForm({ onClose }) {
                         <span className="font-semibold">
                             {getCurrentDate()} — {getCurrentTime()}
                         </span>
-                        <span
-                            className="ml-auto text-xs bg-gray-200 px-2 py-0.5 rounded-full"
-                            style={{ color: "var(--color-text-3)" }}
-                        >
-                            Cố định
-                        </span>
                     </div>
                 </div>
                 <div>
@@ -185,26 +200,48 @@ function AddPeopleForm({ onClose }) {
                         type="number"
                         min="1"
                         value={count}
-                        onChange={(e) => setCount(e.target.value)}
+                        onChange={(e) => {
+                            setCount(e.target.value);
+                            setError(""); // Clear error khi người dùng bắt đầu nhập
+                        }}
                         placeholder="Nhập số lượng người..."
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none transition-all"
                         style={{
                             fontFamily: "'Nunito', sans-serif",
                             color: "var(--color-text-1)",
+                            borderColor: error ? "#ef4444" : undefined, // Thêm viền đỏ nếu có lỗi
                         }}
                         onFocus={(e) => {
-                            e.target.style.borderColor = "var(--color-primary)";
-                            e.target.style.boxShadow =
-                                "0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent)";
+                            e.target.style.borderColor = error
+                                ? "#ef4444"
+                                : "var(--color-primary)";
+                            e.target.style.boxShadow = error
+                                ? "0 0 0 3px rgba(239, 68, 68, 0.2)"
+                                : "0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent)";
                         }}
                         onBlur={(e) => {
-                            e.target.style.borderColor = "#e5e7eb";
+                            e.target.style.borderColor = error
+                                ? "#ef4444"
+                                : "#e5e7eb";
                             e.target.style.boxShadow = "none";
                         }}
                     />
+                    {/* Hiển thị thông báo lỗi */}
+                    {error && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">
+                                error
+                            </span>
+                            {error}
+                        </p>
+                    )}
+                    {successMessage && (
+                        <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
+                            {successMessage}
+                        </p>
+                    )}
                 </div>
 
-                {/* Thay thế đoạn code cũ từ {entries.length > 0 && (...) thành: */}
                 {loading ? (
                     <div className="text-center py-4">
                         <span
@@ -381,12 +418,13 @@ export default function Dashboard() {
                     },
                 },
             );
-            console.log(res.data.data);
+            // console.log(res.data.data?.[0]?.ai_analysis_details);
             setWasteLess_AI(res.data.data?.[0]?.ai_analysis_details);
+            // setWasteLess_AI(res.data.data?.[0]);
         } catch (error) {
             console.log(error);
         }
-    }
+    };
 
     const [Customer_AI, setCustomer_AI] = useState(null);
     const fetch_Customer_AI = async () => {
@@ -400,79 +438,83 @@ export default function Dashboard() {
                 },
             );
             // console.log(res.data.data);
-            setCustomer_AI(res.data.data);
+            setCustomer_AI(res.data?.data[0]);
         } catch (error) {
             console.log(error);
         }
-    }
+    };
     const [showDetailAI, setShowDetailAI] = useState(false);
     function AIAlertDetail({ data, onClose }) {
-    return (
-        <Modal className="w-[800px]" title="Chi tiết gợi ý AI" onClose={onClose}>
-            <div className="space-y-4 max-h-[520px] overflow-y-auto">
-                {!data || data.length === 0 ? (
-                    <p className="text-base text-gray-500 text-center">
-                        Không có dữ liệu chi tiết
-                    </p>
-                ) : (
-                    data.map((item, index) => (
-                        <div
-                            key={index}
-                            className="p-4 border rounded-2xl bg-white shadow-sm"
-                        >
-                            {/* Tên món */}
-                            <div className="flex justify-between items-center">
-                                <p className="font-bold text-base text-gray-800">
-                                    {item.dish?.name}
+        return (
+            <Modal
+                className="w-[800px]"
+                title="Chi tiết gợi ý AI"
+                onClose={onClose}
+            >
+                <div className="space-y-4 max-h-[520px] overflow-y-auto">
+                    {!data || data.length === 0 ? (
+                        <p className="text-base text-gray-500 text-center">
+                            Không có dữ liệu chi tiết
+                        </p>
+                    ) : (
+                        data.map((item, index) => (
+                            <div
+                                key={index}
+                                className="p-4 border rounded-2xl bg-white shadow-sm"
+                            >
+                                {/* Tên món */}
+                                <div className="flex justify-between items-center">
+                                    <p className="font-bold text-base text-gray-800">
+                                        {item.dish?.name}
+                                    </p>
+
+                                    <span
+                                        className={`text-xs px-2 py-1 rounded-full font-bold ${
+                                            item.predicted_waste_quantity > 0
+                                                ? "bg-red-100 text-red-600"
+                                                : "bg-green-100 text-green-600"
+                                        }`}
+                                    >
+                                        {item.predicted_waste_quantity > 0
+                                            ? "Cảnh báo"
+                                            : "Ổn định"}
+                                    </span>
+                                </div>
+
+                                {/* Recommended */}
+                                <p className="text-sm mt-3">
+                                    👉 Nên chuẩn bị:{" "}
+                                    <span className="font-bold text-green-600 text-sm">
+                                        {item.recommended_quantity}
+                                    </span>{" "}
+                                    suất
                                 </p>
 
-                                <span
-                                    className={`text-xs px-2 py-1 rounded-full font-bold ${
-                                        item.predicted_waste_quantity > 0
-                                            ? "bg-red-100 text-red-600"
-                                            : "bg-green-100 text-green-600"
-                                    }`}
-                                >
-                                    {item.predicted_waste_quantity > 0
-                                        ? "Cảnh báo"
-                                        : "Ổn định"}
-                                </span>
+                                {/* Waste */}
+                                <p className="text-sm mt-1">
+                                    ⚠️ Dự kiến lãng phí:{" "}
+                                    <span
+                                        className={`font-bold text-sm ${
+                                            item.predicted_waste_quantity > 0
+                                                ? "text-red-500"
+                                                : "text-green-500"
+                                        }`}
+                                    >
+                                        {item.predicted_waste_quantity}
+                                    </span>
+                                </p>
+
+                                {/* Suggestion note */}
+                                <div className="mt-3 p-3 rounded-xl bg-gray-100 text-black text-sm leading-relaxed">
+                                    {item.suggestion_note}
+                                </div>
                             </div>
-
-                            {/* Recommended */}
-                            <p className="text-sm mt-3">
-                                👉 Nên chuẩn bị:{" "}
-                                <span className="font-bold text-green-600 text-sm">
-                                    {item.recommended_quantity}
-                                </span>{" "}
-                                suất
-                            </p>
-
-                            {/* Waste */}
-                            <p className="text-sm mt-1">
-                                ⚠️ Dự kiến lãng phí:{" "}
-                                <span
-                                    className={`font-bold text-sm ${
-                                        item.predicted_waste_quantity > 0
-                                            ? "text-red-500"
-                                            : "text-green-500"
-                                    }`}
-                                >
-                                    {item.predicted_waste_quantity}
-                                </span>
-                            </p>
-
-                            {/* Suggestion note */}
-                            <div className="mt-3 p-3 rounded-xl bg-gray-100 text-black text-sm leading-relaxed">
-                                {item.suggestion_note}
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </Modal>
-    );
-}
+                        ))
+                    )}
+                </div>
+            </Modal>
+        );
+    }
 
     return (
         <>
@@ -536,57 +578,6 @@ export default function Dashboard() {
                             </button>
                         </div>
                     </div>
-
-                    {/* AI Alert */}
-                    <div className="mb-8 p-6 bg-orange-50 border-l-4 border-orange-500 rounded-xl flex items-start gap-4">
-                        <div className="bg-orange-500 text-white p-2 rounded-full flex-shrink-0">
-                            <span className="material-symbols-outlined text-sm">
-                                auto_awesome
-                            </span>
-                        </div>
-                        <div>
-                            <p
-                                className="font-bold text-orange-800 text-base"
-                                style={{ fontFamily: "'Arimo', sans-serif" }}
-                            >
-                                Cảnh báo lãng phí (AI Alert)
-                            </p>
-                            <p
-                                className="text-orange-700 text-sm mt-1"
-                                style={{ fontFamily: "'Nunito', sans-serif" }}
-                            >
-                                {!Customer_AI || Customer_AI.length === 0 ? (
-                                    "Chưa có gợi ý gì cho hôm nay."
-                                ) : (
-                                    Customer_AI.map((value, index) => (
-                                        <div key={index}>
-                                            {Array.isArray(value.summary) ? (
-                                                value.summary.length > 0 ? (
-                                                    value.summary.map((item, i) => (
-                                                        <div key={i}>{item}</div>
-                                                    ))
-                                                ) : (
-                                                    "Chưa có gợi ý gì cho hôm nay."
-                                                )
-                                            ) : value.summary ? (
-                                                value.summary
-                                            ) : (
-                                                "Chưa có gợi ý gì cho hôm nay."
-                                            )}
-                                        </div>
-                                    ))
-                                )}
-                            </p>
-                            <button
-                                onClick={() => setShowDetailAI(true)}
-                                className="mt-2 text-xs font-bold underline hover:opacity-80"
-                                style={{ color: "#ea580c" }}
-                            >
-                                Xem chi tiết gợi ý từ AI!
-                            </button>
-                        </div>
-                    </div>
-
                     {showDetailAI && (
                         <AIAlertDetail
                             data={WasteLess_AI}
@@ -621,7 +612,12 @@ export default function Dashboard() {
                                         value:
                                             dataDishes?.totalServingDishes ||
                                             "0",
-                                        badge: (((dataDishes?.totalServingDishes) * 100) / (dataDishes?.totalDishes || 1)).toFixed(1) + "%",
+                                        badge:
+                                            (
+                                                (dataDishes?.totalServingDishes *
+                                                    100) /
+                                                (dataDishes?.totalDishes || 1)
+                                            ).toFixed(1) + "%",
                                         badgeBg: "#f3f4f6",
                                         badgeColor: "var(--color-text-3)",
                                     },
@@ -630,9 +626,18 @@ export default function Dashboard() {
                                         value:
                                             dataDishes?.totalWaitingDishes ||
                                             "0",
-                                        badge: ((dataDishes?.totalWaitingDishes) > 0) ? "Cần xử lý" : "Ổn định",
-                                        badgeBg: ((dataDishes?.totalWaitingDishes) === 0) ? "color-mix(in srgb, var(--color-primary) 10%, transparent)" : "#fff7ed",
-                                        badgeColor: ((dataDishes?.totalWaitingDishes) === 0) ? "var(--color-primary)" : "#f97316",
+                                        badge:
+                                            dataDishes?.totalWaitingDishes > 0
+                                                ? "Cần xử lý"
+                                                : "Ổn định",
+                                        badgeBg:
+                                            dataDishes?.totalWaitingDishes === 0
+                                                ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+                                                : "#fff7ed",
+                                        badgeColor:
+                                            dataDishes?.totalWaitingDishes === 0
+                                                ? "var(--color-primary)"
+                                                : "#f97316",
                                     },
                                 ].map((s) => (
                                     <div
@@ -680,8 +685,8 @@ export default function Dashboard() {
                             </div>
 
                             {/* Revenue Chart */}
-                            <div className="mt-8">
-                                <p
+                            <div className="mt-8 flex gap-2">
+                                {/* <p
                                     className="font-bold text-base mb-4"
                                     style={{
                                         color: "var(--color-text-1)",
@@ -689,16 +694,131 @@ export default function Dashboard() {
                                     }}
                                 >
                                     Báo cáo tổng doanh thu tháng
-                                </p>
+                                </p> */}
                                 <div
-                                    className="bg-white p-6 rounded-xl shadow-sm h-64 flex flex-col"
+                                    className="bg-white px-6 pt-2 rounded-xl shadow-sm flex flex-col w-3/5"
                                     style={{
                                         border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
                                     }}
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div>
+                                        <div className="text-center w-full p-4 bg-white rounded-2xl">
                                             <p
+                                                className="font-bold text-base"
+                                                style={{
+                                                    color: "var(--color-text-1)",
+                                                    fontFamily:
+                                                        "'Arimo', sans-serif",
+                                                }}
+                                            >
+                                                Báo cáo tổng doanh thu tháng
+                                            </p>
+
+                                            {/* Icon + số */}
+                                            <div className="flex flex-col items-center gap-2 mt-2">
+                                                <div className=" w-14">
+                                                    <span className="material-symbols-outlined text-green-600 text-3xl">
+                                                        payments
+                                                    </span>
+                                                </div>
+
+                                                <p
+                                                    style={{
+                                                        color: "",
+                                                        fontFamily:
+                                                            "'Arimo', sans-serif",
+                                                    }}
+                                                    className="text-2xl font-bold text-white rounded-md py-3 px-6 bg-[#10BC5D] "
+                                                >
+                                                    {(
+                                                        totalRevenueOneMonth *
+                                                        26.335
+                                                    ).toLocaleString()}{" "}
+                                                    VND
+                                                </p>
+                                            </div>
+
+                                            {/* Breakdown */}
+                                            <div className="text-sm mt-8">
+                                                <div className="flex flex-col">
+                                                    <span
+                                                        className="text-gray-500 font-light"
+                                                        style={{
+                                                            color: "",
+                                                            fontFamily:
+                                                                "'Arimo', sans-serif",
+                                                        }}
+                                                    >
+                                                        Trung bình{" "}
+                                                        {Math.round(
+                                                            (totalRevenueOneMonth *
+                                                                26.335) /
+                                                                30,
+                                                        ).toLocaleString()}{" "}
+                                                        VND / ngày
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Trend */}
+                                            <p className="text-sm font-bold flex justify-center items-center gap-1 text-green-600 mt-6">
+                                                <span className="material-symbols-outlined text-sm">
+                                                    {/* trending_up */}
+                                                </span>
+                                                Doanh thu đang tăng trưởng ổn
+                                                định, phản ánh hiệu quả kinh
+                                                doanh tích cực.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Waste gauge */}
+                                <div
+                                    className="bg-white p-6 rounded-xl shadow-sm text-center w-3/5"
+                                    style={{
+                                        border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
+                                    }}
+                                >
+                                    <p
+                                        className="font-bold text-base mb-5"
+                                        style={{
+                                            color: "var(--color-text-1)",
+                                            fontFamily: "'Arimo', sans-serif",
+                                        }}
+                                    >
+                                        Báo cáo % lãng phí
+                                    </p>
+                                    <div className="relative w-36 h-36 mx-auto mb-4">
+                                        <svg
+                                            className="w-full h-full -rotate-90"
+                                            viewBox="0 0 80 80"
+                                        >
+                                            <circle
+                                                cx="40"
+                                                cy="40"
+                                                r="32"
+                                                fill="none"
+                                                stroke="#f0f4f2"
+                                                strokeWidth="7"
+                                            />
+                                            <circle
+                                                cx="40"
+                                                cy="40"
+                                                r="32"
+                                                fill="none"
+                                                stroke={`${number_waste_percentage <= 5 ? "var(--color-primary)" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "#f97316" : number_waste_percentage > 10 ? "#ef4444" : ""}`}
+                                                strokeWidth="7"
+                                                strokeDasharray="201"
+                                                strokeDashoffset={
+                                                    201 -
+                                                    number_waste_percentage * 2
+                                                }
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span
                                                 className="text-2xl font-bold"
                                                 style={{
                                                     color: "var(--color-text-1)",
@@ -706,189 +826,58 @@ export default function Dashboard() {
                                                         "'Arimo', sans-serif",
                                                 }}
                                             >
-                                                {(
-                                                    totalRevenueOneMonth *
-                                                    26.335
-                                                ).toLocaleString()}{" "}
-                                                VND
-                                            </p>
-                                            <p
-                                                className="text-sm font-bold flex items-center gap-1 mt-0.5"
+                                                {Waste_Percentage}
+                                            </span>
+                                            <span
+                                                className="text-xs"
                                                 style={{
-                                                    color: "var(--color-primary)",
+                                                    color: "var(--color-text-3)",
                                                     fontFamily:
                                                         "'Nunito', sans-serif",
                                                 }}
                                             >
-                                                <span className="material-symbols-outlined text-sm">
-                                                    trending_up
-                                                </span>{" "}
-                                                +12% so với tháng trước
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-3">
-                                            <div className="flex items-center gap-1.5">
-                                                <div
-                                                    className="w-2.5 h-2.5 rounded-full"
-                                                    style={{
-                                                        background:
-                                                            "var(--color-primary)",
-                                                    }}
-                                                />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: "var(--color-text-3)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    Doanh thu
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-2.5 h-2.5 bg-gray-200 rounded-full" />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: "var(--color-text-3)",
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    Mục tiêu
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 flex items-end gap-2 px-2">
-                                        {[60, 75, 90, 65, 80, 95, 100].map(
-                                            (h, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex-1 rounded-t relative group"
-                                                    style={{
-                                                        height: `${h}%`,
-                                                        background:
-                                                            "color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                                                    }}
-                                                >
-                                                    <div
-                                                        className="absolute bottom-0 left-0 w-full rounded-t transition-all duration-300 group-hover:opacity-80"
-                                                        style={{
-                                                            height: "85%",
-                                                            background:
-                                                                "linear-gradient(to top, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, transparent))",
-                                                        }}
-                                                    />
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right: Waste % + Low Stock */}
-                        <div className="col-span-12 lg:col-span-4 space-y-6">
-                            {/* Waste gauge */}
-                            <div
-                                className="bg-white p-6 rounded-xl shadow-sm text-center"
-                                style={{
-                                    border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                                }}
-                            >
-                                <p
-                                    className="font-bold text-base mb-5"
-                                    style={{
-                                        color: "var(--color-text-1)",
-                                        fontFamily: "'Arimo', sans-serif",
-                                    }}
-                                >
-                                    Báo cáo % lãng phí
-                                </p>
-                                <div className="relative w-36 h-36 mx-auto mb-4">
-                                    <svg
-                                        className="w-full h-full -rotate-90"
-                                        viewBox="0 0 80 80"
-                                    >
-                                        <circle
-                                            cx="40"
-                                            cy="40"
-                                            r="32"
-                                            fill="none"
-                                            stroke="#f0f4f2"
-                                            strokeWidth="7"
-                                        />
-                                        <circle
-                                            cx="40"
-                                            cy="40"
-                                            r="32"
-                                            fill="none"
-                                            stroke={`${number_waste_percentage <= 5 ? "var(--color-primary)" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "#f97316" : number_waste_percentage > 10 ? "#ef4444" : ""}`}
-                                            strokeWidth="7"
-                                            strokeDasharray="201"
-                                            strokeDashoffset={
-                                                201 -
-                                                number_waste_percentage * 2
-                                            }
-                                            strokeLinecap="round"
-                                        />
-                                    </svg>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span
-                                            className="text-2xl font-bold"
-                                            style={{
-                                                color: "var(--color-text-1)",
-                                                fontFamily:
-                                                    "'Arimo', sans-serif",
-                                            }}
-                                        >
-                                            {Waste_Percentage}
-                                        </span>
-                                        <span
-                                            className="text-xs"
-                                            style={{
-                                                color: "var(--color-text-3)",
-                                                fontFamily:
-                                                    "'Nunito', sans-serif",
-                                            }}
-                                        >
-                                            {number_waste_percentage <= 5
-                                                ? "Ổn Định"
-                                                : number_waste_percentage > 5 &&
-                                                    number_waste_percentage <=
-                                                    10
-                                                    ? "Cảnh báo"
-                                                    : number_waste_percentage > 10
+                                                {number_waste_percentage <= 5
+                                                    ? "Ổn Định"
+                                                    : number_waste_percentage >
+                                                            5 &&
+                                                        number_waste_percentage <=
+                                                            10
+                                                      ? "Cảnh báo"
+                                                      : number_waste_percentage >
+                                                          10
                                                         ? "Báo động"
                                                         : ""}
-                                        </span>
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                {/* style={{ color: "var(--color-text-2)", fontFamily: "'Nunito', sans-serif" }} */}
-                                <p
-                                    className={`text-sm ${number_waste_percentage <= 5 ? "text-[#10BC5D]" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "text-[#f97316]" : number_waste_percentage > 10 ? "text-[#ef4444]" : ""}`}
-                                >
-                                    {number_waste_percentage <= 5
-                                        ? `Mức lãng phí thực phẩm đang ổn định, chưa có dấu hiệu đáng lo ngại.`
-                                        : number_waste_percentage > 5 &&
-                                            number_waste_percentage <= 10
-                                            ? "Lượng thực phẩm lãng phí đang tăng, cần theo dõi và kiểm soát sớm."
-                                            : number_waste_percentage > 10
+                                    {/* style={{ color: "var(--color-text-2)", fontFamily: "'Nunito', sans-serif" }} */}
+                                    <p
+                                        className={`text-sm ${number_waste_percentage <= 5 ? "text-[#10BC5D]" : number_waste_percentage > 5 && number_waste_percentage <= 10 ? "text-[#f97316]" : number_waste_percentage > 10 ? "text-[#ef4444]" : ""}`}
+                                    >
+                                        {number_waste_percentage <= 5
+                                            ? `Mức lãng phí thực phẩm đang ổn định, chưa có dấu hiệu đáng lo ngại.`
+                                            : number_waste_percentage > 5 &&
+                                                number_waste_percentage <= 10
+                                              ? "Lượng thực phẩm lãng phí đang tăng, cần theo dõi và kiểm soát sớm."
+                                              : number_waste_percentage > 10
                                                 ? `Mức lãng phí thực phẩm cao hơn ${(number_waste_percentage - 10).toFixed(2)}% ,cần hành động ngay để tránh thất thoát nghiêm trọng!`
                                                 : ""}
-                                </p>
+                                    </p>
+                                </div>
                             </div>
-
-                            {/* Low stock */}
+                            {/* Waste Table */}
                             <div
-                                className="bg-white p-6 rounded-xl shadow-sm"
+                                className="mt-10 bg-white rounded-xl shadow-sm overflow-hidden"
                                 style={{
                                     border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
                                 }}
                             >
-                                <div className="flex justify-between items-center mb-4">
+                                <div
+                                    className="p-6 flex justify-between items-center"
+                                    style={{
+                                        borderBottom: "1px solid #f6f8f7",
+                                    }}
+                                >
                                     <p
                                         className="font-bold text-base"
                                         style={{
@@ -898,252 +887,281 @@ export default function Dashboard() {
                                     >
                                         Nguyên liệu sắp hết
                                     </p>
-                                    <span
-                                        className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg font-bold"
+                                    <button
+                                        className="text-sm font-bold hover:underline"
                                         style={{
+                                            color: "var(--color-primary)",
                                             fontFamily: "'Nunito', sans-serif",
                                         }}
-                                    >
-                                        4 Cảnh báo
-                                    </span>
+                                    ></button>
                                 </div>
-                                <div className="space-y-3">
-                                    {[
-                                        {
-                                            name: "Sữa tươi",
-                                            status: "Còn 2L (Tối thiểu 5L)",
-                                            color: "#ef4444",
-                                            icon: "priority_high",
-                                            iconColor: "#f87171",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuALpLnaf1p3NHsARbyzz1S8JPF6DdinQLmzrmmY_yvbFDpd8sno8L3qDwdvrSFyYqTA-TgsZ7paqtn_qdSXlXxlCU5uYp73iCq4RC9IwlxdUaZ5-BMV4-75rP3e78n5JKVz_Xeqbe4dwXfSS6aJd8UKUylOv2heygVzk2CdYanmDLzWQQTeunlUts1h14zdV18kmpCVlFGTUe9vDZF6uDTofQPzLptJF5yY6LeCfwpRd1NyGbHpKZAH8y9OPh2_8gdMEamnZjfH0-Q",
-                                        },
-                                        {
-                                            name: "Thịt bò",
-                                            status: "Còn 1.5kg (Dưới mức an toàn)",
-                                            color: "#f97316",
-                                            icon: "warning",
-                                            iconColor: "#fb923c",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDHL2oTnRXN7owRLMNWRWMyCab-QpWowthiOemDMvg1WnrTWVGEtRK6HdVZ3Ors4d8eHDp9M83a5WefmtjfkO0spzUGXQ2LXtDWeZ2z8mb1HVsXs1wmH13fhJUFAXlQ6JMRkH2zKF3rpmTlTNWV9qeZmk5uTfgx0eVJFgqtxK0lTGI3GjQscQhJsRG6Ibd6a9WCHrj2sra0BMug2-2EwKMQC54nE3nlXku8FqqIum6jcO7p8InvkuK_NTdBwnytAVJFGf-G43Jwiss",
-                                        },
-                                        {
-                                            name: "Cà chua",
-                                            status: "Còn 0.5kg (Sắp hết)",
-                                            color: "#f97316",
-                                            icon: "warning",
-                                            iconColor: "#fb923c",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAtqpLHW7k9YdZWaKUr5sQNK4LPTM_cQ0gI3kPY9t_-ivIPJrazOnSqxYj2fggYE6twpD-fDBLsleITKZYauOhA-YbCMDv0UjMWaRsUo0bBztCaFLDDvoaAxou0jZQPJ7QMchJpAJvHaAQpLBzgRflIFGQtR7fp9RIEsGnJtHQ9rdjjWScPIlBITrXemfqy77lq_4WmE2mz_ovTNLiaALqSbhqTDtJvoNBt6svj5caSj8eqDNm_dunLmcCUj-dU7TdW4EMzVDAPV7I",
-                                        },
-                                        {
-                                            name: "Hành lá",
-                                            status: "Còn 0.2kg (Nhập ngay)",
-                                            color: "#ef4444",
-                                            icon: "priority_high",
-                                            iconColor: "#f87171",
-                                            img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD2TkOmaWbre-wLDEOsaLYYM5ZOXfhGl1193whUgt-T8QTGPNyYskKTFxORzWgK5tHHjRlU4nPlB4C0CPSsEDvrPhgY73GZdU34xUSVk7lUa6ZSCbz0qWGUjeIVoXs_Z-xeTw-0y6-YxMClj-gWGGReAqZ_3m2_PeuErUVvZVPZgKxI9gsLB-W-UGBxHxV4Ll8d0iugFm6_56gXOoDJAWbBLHHjKPbmGcDlTKLx_WXZs9PyPzQ3OIVbHYgowv3Q0yNcqAXFZWJlqf8",
-                                        },
-                                    ].map((item, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center gap-3 pb-3 last:pb-0"
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr
                                             style={{
-                                                borderBottom:
-                                                    idx < 3
-                                                        ? "1px solid #f6f8f7"
-                                                        : "none",
+                                                background:
+                                                    "rgba(246,248,247,0.6)",
                                             }}
                                         >
-                                            <div
-                                                className="w-10 h-10 rounded-lg bg-center bg-cover flex-shrink-0"
-                                                style={{
-                                                    backgroundImage: `url('${item.img}')`,
-                                                }}
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p
-                                                    className="text-sm font-bold"
+                                            {[
+                                                "Tên nguyên liệu",
+                                                "Trong kho",
+                                                "Tồn tối thiểu",
+                                                "Đơn vị",
+                                                "Trạng thái",
+                                            ].map((h) => (
+                                                <th
+                                                    key={h}
+                                                    className="px-6 py-4 font-bold text-xs uppercase tracking-wider"
                                                     style={{
-                                                        color: "var(--color-text-1)",
+                                                        color: "var(--color-text-3)",
                                                         fontFamily:
                                                             "'Nunito', sans-serif",
                                                     }}
                                                 >
-                                                    {item.name}
-                                                </p>
-                                                <p
-                                                    className="text-xs font-bold"
-                                                    style={{
-                                                        color: item.color,
-                                                        fontFamily:
-                                                            "'Nunito', sans-serif",
-                                                    }}
-                                                >
-                                                    {item.status}
-                                                </p>
-                                            </div>
-                                            <span
-                                                className="material-symbols-outlined text-sm"
-                                                style={{
-                                                    color: item.iconColor,
-                                                }}
-                                            >
-                                                {item.icon}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button
-                                    className="w-full mt-4 py-2 font-bold text-sm rounded-xl hover:opacity-80 transition-colors"
-                                    style={{
-                                        color: "var(--color-primary)",
-                                        border: "1px solid color-mix(in srgb, var(--color-primary) 20%, transparent)",
-                                        fontFamily: "'Nunito', sans-serif",
-                                    }}
-                                >
-                                    Xem tất cả nguyên liệu
-                                </button>
+                                                    {h}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {lowstockingredient?.map(
+                                            (value, index) => {
+                                                const isLow =
+                                                    value.current_stock <
+                                                    value.minimum_stock / 2;
+
+                                                return (
+                                                    <tr
+                                                        key={value.id || index}
+                                                        className="transition-colors hover:bg-gray-50"
+                                                        style={{
+                                                            borderTop:
+                                                                "1px solid #f6f8f7",
+                                                        }}
+                                                    >
+                                                        {/* Tên */}
+                                                        <td className="px-6 py-4 text-sm font-bold">
+                                                            {value.name}
+                                                        </td>
+
+                                                        {/* Current stock */}
+                                                        <td className="px-6 py-4 text-sm">
+                                                            {value.current_stock?.toLocaleString(
+                                                                "vi-VN",
+                                                            )}
+                                                        </td>
+
+                                                        {/* Minimum */}
+                                                        <td className="px-6 py-4 text-sm">
+                                                            {value.minimum_stock?.toLocaleString(
+                                                                "vi-VN",
+                                                            )}
+                                                        </td>
+
+                                                        {/* Unit */}
+                                                        <td className="px-6 py-4 text-sm">
+                                                            {value.unit?.toLocaleString(
+                                                                "vi-VN",
+                                                            )}
+                                                        </td>
+
+                                                        {/* Status */}
+                                                        <td className="px-6 py-4">
+                                                            <span
+                                                                className="px-2 py-1 rounded text-xs font-bold"
+                                                                style={{
+                                                                    background:
+                                                                        isLow
+                                                                            ? "#fee2e2"
+                                                                            : "#FFF7ED",
+                                                                    color: isLow
+                                                                        ? "#dc2626"
+                                                                        : "#F97316",
+                                                                }}
+                                                            >
+                                                                {isLow
+                                                                    ? "Khẩn cấp"
+                                                                    : "Cảnh báo"}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            },
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Waste Table */}
-                    <div
-                        className="mt-10 bg-white rounded-xl shadow-sm overflow-hidden"
-                        style={{
-                            border: "1px solid color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                        }}
-                    >
-                        <div
-                            className="p-6 flex justify-between items-center"
-                            style={{ borderBottom: "1px solid #f6f8f7" }}
-                        >
-                            <p
-                                className="font-bold text-base"
-                                style={{
-                                    color: "var(--color-text-1)",
-                                    fontFamily: "'Arimo', sans-serif",
-                                }}
-                            >
-                                Chi tiết lãng phí theo danh mục
-                            </p>
-                            <button
-                                className="text-sm font-bold hover:underline"
-                                style={{
-                                    color: "var(--color-primary)",
-                                    fontFamily: "'Nunito', sans-serif",
-                                }}
-                            >
-                                Xem chi tiết
-                            </button>
-                        </div>
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr
-                                    style={{
-                                        background: "rgba(246,248,247,0.6)",
-                                    }}
-                                >
-                                    {[
-                                        "Danh mục",
-                                        "Số lượng",
-                                        "Tồn tối thiểu",
-                                        "Đơn vị",
-                                        "Trạng thái",
-                                        "Xu hướng",
-                                    ].map((h) => (
-                                        <th
-                                            key={h}
-                                            className="px-6 py-4 font-bold text-xs uppercase tracking-wider"
-                                            style={{
-                                                color: "var(--color-text-3)",
-                                                fontFamily:
-                                                    "'Nunito', sans-serif",
-                                            }}
-                                        >
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
+                        {/* Right: Waste % + Low Stock */}
 
-                            <tbody>
-                                {lowstockingredient?.map((value, index) => {
-                                    const isLow =
-                                        value.current_stock <
-                                        value.minimum_stock;
+                        <div className="col-span-12 lg:col-span-4 space-y-6 mt-10">
+                            {/* Low stock */}
+                            <div className="lg:col-span-1">
+                                <div className="bg-white border border-green-300 rounded-2xl p-6 sticky top-6 shadow-lg">
+                                    <div className="text-center mb-6">
+                                        <div className="flex items-center justify-center gap-3 mb-2">
+                                            <span className="text-3xl">✨</span>
+                                            <h3 className="font-semibold text-2xl text-[#141C21]">
+                                                Gợi ý AI
+                                            </h3>
+                                        </div>
+                                        <p className="text-base text-[#8B8B8B]">
+                                            Dự báo chuẩn bị cho ngày hôm nay
+                                        </p>
+                                    </div>
 
-                                    return (
-                                        <tr
-                                            key={value.id || index}
-                                            className="transition-colors hover:bg-gray-50"
-                                            style={{
-                                                borderTop: "1px solid #f6f8f7",
-                                            }}
-                                        >
-                                            {/* Tên */}
-                                            <td className="px-6 py-4 text-sm font-bold">
-                                                {value.name}
-                                            </td>
-
-                                            {/* Current stock */}
-                                            <td className="px-6 py-4 text-sm">
-                                                {value.current_stock?.toLocaleString(
-                                                    "vi-VN",
-                                                )}
-                                            </td>
-
-                                            {/* Minimum */}
-                                            <td className="px-6 py-4 text-sm">
-                                                {value.minimum_stock?.toLocaleString(
-                                                    "vi-VN",
-                                                )}
-                                            </td>
-
-                                            {/* Unit */}
-                                            <td className="px-6 py-4 text-sm">
-                                                {value.unit?.toLocaleString(
-                                                    "vi-VN",
-                                                )}
-                                            </td>
-
-                                            {/* Status */}
-                                            <td className="px-6 py-4">
+                                    {/* Dự đoán số lượng khách từ AI */}
+                                    {WasteLess_AI && (
+                                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-semibold text-[#141C21]">
+                                                    📈 Dự đoán số lượng khách
+                                                </span>
                                                 <span
-                                                    className="px-2 py-1 rounded text-xs font-bold"
-                                                    style={{
-                                                        background: isLow
-                                                            ? "#fee2e2"
-                                                            : "#dcfce7",
-                                                        color: isLow
-                                                            ? "#dc2626"
-                                                            : "#16a34a",
-                                                    }}
+                                                    className={`text-[14px] px-2 py-1 rounded-full ${
+                                                        Customer_AI?.risk_level ===
+                                                        "high"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : Customer_AI?.risk_level ===
+                                                                "medium"
+                                                              ? "bg-yellow-100 text-yellow-700"
+                                                              : "bg-green-100 text-green-700"
+                                                    }`}
                                                 >
-                                                    {isLow
-                                                        ? "Thiếu hàng"
-                                                        : "Ổn định"}
+                                                    Rủi ro:{" "}
+                                                    {Customer_AI?.risk_level ===
+                                                    "high"
+                                                        ? "Cao"
+                                                        : Customer_AI?.risk_level ===
+                                                            "medium"
+                                                          ? "Trung bình"
+                                                          : "Thấp"}
                                                 </span>
-                                            </td>
+                                            </div>
+                                            <div className="text-3xl font-bold text-[#141C21] mb-2">
+                                                {Customer_AI?.ai_customer_count}{" "}
+                                                khách
+                                            </div>
+                                            <p className="text-sm text-[#8B8B8B] leading-relaxed">
+                                                {Customer_AI?.summary}
+                                            </p>
+                                        </div>
+                                    )}
 
-                                            {/* Trend */}
-                                            <td
-                                                className="px-6 py-4"
-                                                style={{
-                                                    color: isLow
-                                                        ? "#dc2626"
-                                                        : "#16a34a",
-                                                }}
-                                            >
-                                                <span className="material-symbols-outlined align-middle text-sm">
-                                                    {isLow
-                                                        ? "trending_down"
-                                                        : "trending_up"}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    {/* Đề xuất số lượng chuẩn bị */}
+                                    <div className="space-y-4 mb-6">
+                                        <h4 className="font-semibold text-[#141C21] border-b pb-2">
+                                            🍽️ Đề xuất số lượng chuẩn bị
+                                        </h4>
+                                        {WasteLess_AI?.length > 0 ? (
+                                            WasteLess_AI.slice(0, 5).map(
+                                                (item, index) => {
+                                                    const dishName =
+                                                        item.dish?.name ||
+                                                        "Tên món";
+                                                    const recommendedQty =
+                                                        item.recommended_quantity ||
+                                                        0;
+                                                    const predictedWaste =
+                                                        item.predicted_waste_quantity ||
+                                                        0;
+                                                    const currentQty =
+                                                        recommendedQty +
+                                                        predictedWaste;
+
+                                                    return (
+                                                        <div
+                                                            key={
+                                                                item.id || index
+                                                            }
+                                                            className="pb-4 border-b border-[#D1D1D1]/50"
+                                                        >
+                                                            <div className="flex justify-between items-baseline mb-2">
+                                                                <span className="font-semibold text-base text-[#141C21]">
+                                                                    {dishName}
+                                                                </span>
+                                                                <span className="text-xl font-bold text-[#141C21]">
+                                                                    {currentQty}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between text-sm mb-2">
+                                                                <span className="text-[#8B8B8B]">
+                                                                    Nguy cơ dư
+                                                                    thừa
+                                                                </span>
+                                                                <span className="text-orange-500 font-semibold">
+                                                                    {
+                                                                        predictedWaste
+                                                                    }{" "}
+                                                                    suất dư
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 bg-[#D1D1D1] rounded-full overflow-hidden mb-2">
+                                                                <div
+                                                                    className="h-full bg-[#10BC5D] rounded-full"
+                                                                    style={{
+                                                                        width: `${Math.min(100, (recommendedQty / currentQty) * 100)}`,
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <p className="text-xs text-[#8B8B8B] mt-1">
+                                                                AI dự báo cần{" "}
+                                                                {recommendedQty}{" "}
+                                                                suất, đang chuẩn
+                                                                bị {currentQty}{" "}
+                                                                suất
+                                                            </p>
+                                                            {item.suggestion_note && (
+                                                                <p className="text-xs text-[#8B8B8B] mt-2 italic">
+                                                                    💡{" "}
+                                                                    {
+                                                                        item.suggestion_note
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                },
+                                            )
+                                        ) : (
+                                            <div className="text-center py-8 text-[#8B8B8B]">
+                                                <p>
+                                                    Đang cập nhật dữ liệu AI...
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Mẹo giảm lãng phí */}
+                                    <div className="bg-[#F0FFF4] rounded-xl p-5 border border-[#10BC5D]/30">
+                                        <div className="flex gap-4">
+                                            <div className="w-10 h-10 bg-[#10BC5D]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                <Lightbulb
+                                                    size={20}
+                                                    className="text-[#10BC5D]"
+                                                />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-base font-semibold text-[#141C21] mb-2">
+                                                    Mẹo giảm lãng phí
+                                                </h4>
+                                                <p className="text-sm text-[#3D3D3D] leading-relaxed">
+                                                    Ưu tiên rà soát các món có
+                                                    tỷ lệ lãng phí cao trước.
+                                                    Với món chuẩn bị cao hơn AI
+                                                    dự đoán, nên điều chỉnh giảm
+                                                    5–10% ở ca tiếp theo để
+                                                    tránh dư thừa.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </main>
             </div>
