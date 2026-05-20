@@ -69,58 +69,60 @@ class DashboardAdminRepository {
     return precent;
   }
   // lấy lãng phí cao nhất trong 1 tháng của từng cửa hàng
-  async ReportBrandWasteDish(value) {
-    const date = await this.handleSetMonth();
+async ReportBrandWasteDish(value) {
+  const date = await this.handleSetMonth();
 
-    return await DailyDetailModel.findAll({
-      attributes: [
-        [col("daily_operation.brand_id"), "brand_id"],
-        [col("daily_operation->brand.name"), "brand_name"],
-        [fn("COALESCE", fn("SUM", col("quantity_wasted")), 0), "total_waste"],
-        [fn("COALESCE", fn("SUM", col("quantity_prepared")), 0), "total_prepared"],
-        [
-          literal(`
-            CASE
-              WHEN SUM(quantity_prepared) = 0 THEN 0
-              ELSE (SUM(quantity_wasted) * 100.0 / SUM(quantity_prepared))
-            END
-          `),
-          "total_percent"
-        ],
+  const percentCondition = literal(`
+    CASE
+      WHEN SUM(quantity_prepared) = 0 THEN 0
+      ELSE (SUM(quantity_wasted) * 100.0 / SUM(quantity_prepared))
+    END > ${value ?? 15}
+  `);
+
+  return await DailyDetailModel.findAll({
+    attributes: [
+      [col("daily_operation.brand_id"), "brand_id"],
+      [col("daily_operation->brand.name"), "brand_name"],
+      [fn("COALESCE", fn("SUM", col("quantity_wasted")), 0), "total_waste"],
+      [fn("COALESCE", fn("SUM", col("quantity_prepared")), 0), "total_prepared"],
+      [
+        literal(`
+          CASE
+            WHEN SUM(quantity_prepared) = 0 THEN 0
+            ELSE (SUM(quantity_wasted) * 100.0 / SUM(quantity_prepared))
+          END
+        `),
+        "total_percent"
       ],
-      include: [
-        {
-          model: DailyOperationModel,
-          attributes: [],
-          required: true,
-          where: {
-            operation_date: {
-              [Op.gte]: date.firstDayOfMonth,
-              [Op.lt]: date.firstDayOfNextMonth,
-            },
+    ],
+    include: [
+      {
+        model: DailyOperationModel,
+        attributes: [],
+        required: true,
+        where: {
+          operation_date: {
+            [Op.gte]: date.firstDayOfMonth,
+            [Op.lt]: date.firstDayOfNextMonth,
           },
-          include: [
-            {
-              model: BrandModel,
-              attributes: ["address","province"],
-              required: true,
-            },
-          ],
         },
-      ],
-      group: [
-        col("daily_operation.brand_id"),
-        col("daily_operation->brand.id"),
-        col("daily_operation->brand.name"),
-      ],
-      having: literal(`
-        CASE
-          WHEN SUM(quantity_prepared) = 0 THEN 0
-          ELSE (SUM(quantity_wasted) * 100.0 / SUM(quantity_prepared))
-        END > ${value?value:15} 
-      `),
-      raw: true,
-    });
+        include: [
+          {
+            model: BrandModel,
+            attributes: ["address", "province"],
+            required: true,
+          },
+        ],
+      },
+    ],
+    group: [
+      col("daily_operation.brand_id"),
+      col("daily_operation->brand.id"),
+      col("daily_operation->brand.name"),
+    ],
+    ...(value === 0 ? {} : { having: percentCondition }),
+    raw: true,
+  });
 }
   async handleSetMonth(month){
     const now = new Date();

@@ -42,6 +42,8 @@ exports.ReportBrandWasteDish = async function (req, res, next) {
 exports.ReportAllBrandWasteDish = async function (req, res, next) {
     try {
         const response = await dashboardRepository.ReportBrandWasteDish(0);
+        console.log(response);
+        
         return res.json(ApiSuccess.getSelect("Report All Brand Waste Dish", response));
     } catch (error) {
         return next(error);
