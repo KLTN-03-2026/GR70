@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
     Eye,
     Users,
-    ShieldCheck,
-    Utensils
+    ShieldCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -15,7 +14,6 @@ export default function Accountmanagement() {
     const [stats, setStats] = useState({
         sumAccount: 0,
         sumManager: 0,
-        sumKitchen: 0,
         sumBrand: 0,
     });
 
@@ -44,14 +42,13 @@ export default function Accountmanagement() {
 
                 const formatted = brands.flatMap((brand) =>
                     brand.users.map((user) => ({
-                        id: brand.id + "_" + user.email, // ✅ unique id
-                        brandId: brand.id, // ✅ dùng cho detail
+                        id: brand.id + "_" + user.email,
+                        brandId: brand.id,
                         name: user.name,
                         email: user.email,
                         store: brand.name,
                         type: brand.rolebrand?.toLowerCase().trim(),
                         status: brand.status ? "active" : "inactive",
-                        kitchens: brand.kitchens?.length || 0
                     }))
                 );
 
@@ -100,7 +97,7 @@ export default function Accountmanagement() {
     const totalPages = Math.ceil(filteredData.length / pageSize);
 
     const startIndex = (page - 1) * pageSize;
-    const paginatedData = filteredData.slice(
+const paginatedData = filteredData.slice(
         startIndex,
         startIndex + pageSize
     );
@@ -124,12 +121,12 @@ export default function Accountmanagement() {
             <div>
                 <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
                 <p className="text-sm text-gray-500">
-                    Quản lý tài khoản Manager và hệ thống Kitchen
+                    Quản lý tài khoản Manager
                 </p>
             </div>
 
             {/* STATS */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
 
                 <div className="bg-gradient-to-r from-slate-700 to-slate-900 text-white p-4 rounded-xl flex justify-between">
                     <div>
@@ -157,14 +154,6 @@ export default function Accountmanagement() {
                     <Users />
                 </div>
 
-                <div className="bg-gradient-to-r from-orange-400 to-orange-600 text-white p-4 rounded-xl flex justify-between">
-                    <div>
-                        <p className="text-sm">Tổng Kitchen</p>
-                        <h2 className="text-2xl font-bold">{stats.sumKitchen}</h2>
-                    </div>
-                    <Utensils />
-                </div>
-
             </div>
 
             {/* FILTER */}
@@ -188,12 +177,11 @@ export default function Accountmanagement() {
                 <table className="w-full text-sm table-fixed">
                     <thead className="bg-gray-100 text-gray-600 text-xs uppercase">
                         <tr>
-                            <th className="p-3 text-left w-[18%]">Manager</th>
-                            <th className="p-3 text-left w-[20%]">Email</th>
-                            <th className="p-3 text-left w-[18%]">Cửa hàng</th>
-                            <th className="p-3 text-left w-[12%]">Loại</th>
-                            <th className="p-3 text-left w-[14%]">Trạng thái</th>
-                            <th className="p-3 text-center w-[8%]">Kitchen</th>
+<th className="p-3 text-left w-[20%]">Manager</th>
+                            <th className="p-3 text-left w-[25%]">Email</th>
+                            <th className="p-3 text-left w-[20%]">Cửa hàng</th>
+                            <th className="p-3 text-left w-[15%]">Loại</th>
+                            <th className="p-3 text-left w-[10%]">Trạng thái</th>
                             <th className="p-3 text-center w-[10%]">Thao tác</th>
                         </tr>
                     </thead>
@@ -224,10 +212,11 @@ export default function Accountmanagement() {
 
                                 <td className="p-3">
                                     <span
-                                        className={`px-2 py-1 rounded-full text-xs ${item.status === "active"
-                                            ? "bg-green-100 text-green-600"
-                                            : "bg-gray-200 text-gray-500"
-                                            }`}
+                                        className={`px-2 py-1 rounded-full text-xs ${
+                                            item.status === "active"
+                                                ? "bg-green-100 text-green-600"
+                                                : "bg-gray-200 text-gray-500"
+                                        }`}
                                     >
                                         {item.status === "active"
                                             ? "Hoạt động"
@@ -235,12 +224,7 @@ export default function Accountmanagement() {
                                     </span>
                                 </td>
 
-                                {/* ✅ FIX LỆCH */}
-                                <td className="p-3 text-center align-middle">
-                                    {item.kitchens}
-                                </td>
-
-                                <td className="p-3 text-center align-middle">
+                                <td className="p-3 text-center">
                                     <button
                                         onClick={() =>
                                             navigate(`/admin/manager/${item.brandId}`)
@@ -254,8 +238,7 @@ export default function Accountmanagement() {
                         ))}
                     </tbody>
                 </table>
-
-                {/* EMPTY */}
+{/* EMPTY */}
                 {paginatedData.length === 0 && (
                     <div className="text-center p-6 text-gray-500">
                         Không có dữ liệu
@@ -276,10 +259,9 @@ export default function Accountmanagement() {
                         <button
                             key={i}
                             onClick={() => setPage(i + 1)}
-                            className={`px-3 py-1 border rounded ${page === i + 1
-                                ? "bg-blue-500 text-white"
-                                : ""
-                                }`}
+                            className={`px-3 py-1 border rounded ${
+                                page === i + 1 ? "bg-blue-500 text-white" : ""
+                            }`}
                         >
                             {i + 1}
                         </button>
